@@ -199,17 +199,17 @@ Result mockResetSimulation(SimulationState* self) {
     return OK;
 }
 
-char mockCanStepForward(SimulationState* self) {
+bool mockCanStepForward(SimulationState* self) {
     MockSimulationState* mock = (MockSimulationState*)self;
     return mock->currentLine < N_ACTIONS;
 }
 
-char mockCanStepBackward(SimulationState* self) {
+bool mockCanStepBackward(SimulationState* self) {
     MockSimulationState* mock = (MockSimulationState*)self;
     return mock->currentLine > 0;
 }
 
-char mockIsFinished(SimulationState* self) {
+bool mockIsFinished(SimulationState* self) {
     MockSimulationState* mock = (MockSimulationState*)self;
     return mock->currentLine >= N_ACTIONS; // TODO
 }

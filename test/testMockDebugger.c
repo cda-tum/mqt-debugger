@@ -41,9 +41,18 @@ int main(int argc, char** argv) {
     char* command = (char*) malloc(sizeof(char) * 100);
     MockSimulationState state;
     createMockSimulationState(&state);
+    bool wasError = 0;
 
     while(strcmp(command, "exit") != 0) {
         system("clear");
+        if(wasError) {
+            printf("Invalid command. Choose one of:\n");
+            printf("run\n");
+            printf("step\n");
+            printf("back\n");
+            printf("reset\n");
+            wasError = 0;
+        }
         printState(&state);
         printf("Enter command: ");
         scanf("%s", command);
@@ -58,11 +67,7 @@ int main(int argc, char** argv) {
         } else if(strcmp(command, "fix") == 0) {
             state.useCorrectAction3 = 1;
         } else {
-            printf("Invalid command. Choose one of:\n");
-            printf("run\n");
-            printf("step\n");
-            printf("back\n");
-            printf("reset\n");
+            wasError = 1;
         }
     }
 

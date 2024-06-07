@@ -6,9 +6,10 @@ typedef struct
   int currentLine;
 
   Statevector stateVector;
-  char assertionFailed;
+  bool assertionFailed;
 
-  char useCorrectAction3;
+  // Determines, whether the correct or incorrect action 3 is used. Can be used to mock errors in the code and to fix them during debugging.
+  bool useCorrectAction3;
 } MockSimulationState;
 
 Result mockInit(SimulationState* self);
@@ -16,9 +17,9 @@ Result mockStepForward(SimulationState* self);
 Result mockStepBackward(SimulationState* self);
 Result mockRunSimulation(SimulationState* self);
 Result mockResetSimulation(SimulationState* self);
-char mockCanStepForward(SimulationState* self);
-char mockCanStepBackward(SimulationState* self);
-char mockIsFinished(SimulationState* self);
+bool mockCanStepForward(SimulationState* self);
+bool mockCanStepBackward(SimulationState* self);
+bool mockIsFinished(SimulationState* self);
 
 int mockGetCurrentLine(SimulationState* self);
 Result mockGetAmplitudeIndex(SimulationState* self, int qubit, Complex* output);
