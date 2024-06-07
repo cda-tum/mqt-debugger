@@ -100,6 +100,8 @@ void undoAction5(MockSimulationState* state) {
 
 Result createMockSimulationState(MockSimulationState* self) {
     self->interface.init = mockInit;
+
+    self->interface.loadCode = mockLoadCode;
     self->interface.stepForward = mockStepForward;
     self->interface.stepBackward = mockStepBackward;
     self->interface.runSimulation = mockRunSimulation;
@@ -133,6 +135,12 @@ Result mockInit(SimulationState* self) {
     mock->assertionFailed = 0;
     mock->useCorrectAction3 = 0;
 
+    return OK;
+}
+
+Result mockLoadCode(SimulationState* self, char* code) {
+    MockSimulationState* mock = (MockSimulationState*)self;
+    mock->currentLine = 0;
     return OK;
 }
 

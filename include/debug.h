@@ -7,6 +7,9 @@ typedef struct SimulationState SimulationState;
 
 struct SimulationState {
     Result (*init)(SimulationState* self);
+
+    Result (*loadCode)(SimulationState* self, char* code);
+
     Result (*stepForward)(SimulationState* self);
     Result (*stepBackward)(SimulationState* self);
     Result (*runSimulation)(SimulationState* self);

@@ -13,6 +13,8 @@ typedef struct
 } MockSimulationState;
 
 Result mockInit(SimulationState* self);
+
+Result mockLoadCode(SimulationState* self, char* code);
 Result mockStepForward(SimulationState* self);
 Result mockStepBackward(SimulationState* self);
 Result mockRunSimulation(SimulationState* self);

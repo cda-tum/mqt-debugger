@@ -22,6 +22,8 @@ char* linesFixed[] = {
     "end"
 };
 
+char* code = "h q[0];\ncx q[0], q[1];\ncx q[2], q[0];\nassert-ent q[0], q[1];\nassert-ent q[2], q[0];\nend";
+
 void printState(MockSimulationState* state) {
     char** linesToUse = (state->useCorrectAction3) ? linesFixed : lines;
     printf("Current line: %d\t\t| %s\n\n", state->interface.getCurrentLine(&state->interface) + 1, linesToUse[state->interface.getCurrentLine(&state->interface)]);
@@ -41,6 +43,7 @@ int main(int argc, char** argv) {
     char* command = (char*) malloc(sizeof(char) * 100);
     MockSimulationState state;
     createMockSimulationState(&state);
+    state.interface.loadCode(&state.interface, code);
     bool wasError = 0;
 
     while(strcmp(command, "exit") != 0) {
