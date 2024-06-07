@@ -17,7 +17,8 @@ TARGET = testMockDebugger
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
+	mkdir -p build
+	$(CC) $(CFLAGS) -o build/$@ $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c -o $@ $<
