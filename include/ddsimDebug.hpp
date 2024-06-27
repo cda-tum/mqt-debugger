@@ -37,7 +37,7 @@ typedef struct
   std::vector<QubitRegisterDefinition> qubitRegisters;
 
   bool assertionFailed;
-} DDSimSimulationState;
+} DDSimulationState;
 
 Result ddsimInit(SimulationState* self);
 
@@ -57,10 +57,10 @@ Result ddsimGetClassicalVariable(SimulationState* self, const char* name, Variab
 Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output);
 Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize, const size_t* qubits, Statevector* output);
 
-Result createDDSimSimulationState(DDSimSimulationState* self);
-Result destroyDDSimSimulationState([[maybe_unused]] DDSimSimulationState* self);
+Result createDDSimulationState(DDSimulationState* self);
+Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self);
 
-std::string preprocessAssertionCode(const char* code, DDSimSimulationState* ddsim);
-bool checkAssertion(DDSimSimulationState* ddsim, std::string& assertion);
+std::string preprocessAssertionCode(const char* code, DDSimulationState* ddsim);
+bool checkAssertion(DDSimulationState* ddsim, std::string& assertion);
 
 #endif // DDSIM_DEBUG_H
