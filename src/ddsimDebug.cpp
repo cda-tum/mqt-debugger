@@ -275,11 +275,12 @@ size_t variableToQubit(DDSimulationState* ddsim, std::string& variable) {
 
     for(auto& reg : ddsim->qubitRegisters) {
         if(reg.name == var) {
-            // TODO check if inside size
+            if(idx >= reg.size)
+                throw std::runtime_error("Index out of bounds");
             return reg.index + idx;
         }
     }
-    return 0; // TODO error
+    throw std::runtime_error("Unknown variable name " + var);
 }
 
 double complexMagnitude(Complex& c) {
@@ -332,9 +333,34 @@ bool checkAssertionEntangled(DDSimulationState* ddsim, std::string& assertion) {
     return result;
 }
 
-/*bool checkAssertionSuperposition(DDSimulationState* ddsim, std::string assertion) {
+bool checkAssertionSuperposition(DDSimulationState* ddsim, std::string& assertion) {
+    std::string expression = replaceAll(assertion, "assert-sup ", "");
+    expression = replaceAll(expression, " ", "");
+    expression = replaceAll(expression, "\t", "");
+    std::vector<std::string> variables = split(expression, ',');
+    std::vector<size_t> qubits;
+    for(auto variable : variables) {
+        qubits.push_back(variableToQubit(ddsim, variable));
+    }
 
-}*/
+    Statevector sv;
+    sv.numQubits = qubits.size();
+    sv.numStates = 1 << sv.numQubits;
+    sv.amplitudes = new Complex[sv.numStates];
+
+    ddsim->interface.getStateVectorSub(&ddsim->interface, sv.numQubits, qubits.data(), &sv);
+
+    int found = 0;
+    double epsilon = 0.00000001;
+    for(size_t i = 0; i < sv.numStates && found < 2; i++) {
+        if(complexMagnitude(sv.amplitudes[i]) > epsilon) {
+            found++;
+        }
+    }
+
+    free(sv.amplitudes);
+    return found > 1;
+}
 
 bool checkAssertion(DDSimulationState* ddsim, std::string& assertion) {
     assertion = trim(assertion);
@@ -342,7 +368,7 @@ bool checkAssertion(DDSimulationState* ddsim, std::string& assertion) {
         return checkAssertionEntangled(ddsim, assertion);
     }
     else if(startsWith(assertion, "assert-sup ")) {
-        return assertion.size() == 2; // TODO
+        return checkAssertionSuperposition(ddsim, assertion);
     }
     else if(startsWith(assertion, "assert ")) {
         return assertion.size() == 3; // TODO
