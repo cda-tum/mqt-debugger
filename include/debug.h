@@ -8,7 +8,7 @@ typedef struct SimulationState SimulationState;
 struct SimulationState {
     Result (*init)(SimulationState* self);
 
-    Result (*loadCode)(SimulationState* self, char* code);
+    Result (*loadCode)(SimulationState* self, const char* code);
 
     Result (*stepForward)(SimulationState* self);
     Result (*stepBackward)(SimulationState* self);
@@ -18,12 +18,12 @@ struct SimulationState {
     bool (*canStepBackward)(SimulationState* self);
     bool (*isFinished)(SimulationState* self);
 
-    int (*getCurrentLine)(SimulationState* self);
-    Result (*getAmplitudeIndex)(SimulationState* self, int qubit, Complex* output);
-    Result (*getAmplitudeBitstring)(SimulationState* self, char* bitstring, Complex* output);
-    Result (*getClassicalVariable)(SimulationState* self, char* name, Variable* output);
+    size_t (*getCurrentLine)(SimulationState* self);
+    Result (*getAmplitudeIndex)(SimulationState* self, size_t qubit, Complex* output);
+    Result (*getAmplitudeBitstring)(SimulationState* self, const char* bitstring, Complex* output);
+    Result (*getClassicalVariable)(SimulationState* self, const char* name, Variable* output);
     Result (*getStateVectorFull)(SimulationState* self, Statevector* output);
-    Result (*getStateVectorSub)(SimulationState* self, int substateSize, int* qubits, Statevector* output);
+    Result (*getStateVectorSub)(SimulationState* self, size_t subStateSize, const size_t* qubits, Statevector* output);
 };
 
 #endif // DEBUG_H

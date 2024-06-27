@@ -1,4 +1,13 @@
+#ifndef COMMON_H
+#define COMMON_H
+
+
+
+#ifndef __cplusplus
 typedef char bool;
+#else
+#include <cstddef>
+#endif
 
 typedef enum {
     OK,
@@ -14,7 +23,7 @@ typedef enum {
 typedef union {
     bool bool_value;
     int int_value;
-    float float_value;
+    double float_value;
 } VariableValue;
 
 typedef struct {
@@ -24,18 +33,14 @@ typedef struct {
 } Variable;
 
 typedef struct {
-    Variable* variables;
-    int numVariables;
-    int maxVariables;
-} VariableList;
-
-typedef struct {
-    float real;
-    float imaginary;
+    double real;
+    double imaginary;
 } Complex;
 
 typedef struct {
-    int numQubits;
-    int numStates;
+    size_t numQubits;
+    size_t numStates;
     Complex* amplitudes;
 } Statevector;
+
+#endif // COMMON_H
