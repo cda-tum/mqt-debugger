@@ -6,7 +6,15 @@
 #include <algorithm>
 #include <cctype>
 #include <string>
+#include <random>
 
+double generateRandomNumber() {
+    std::random_device rd;  // Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+
+    return dis(gen);
+}
 
 Result createDDSimulationState(DDSimulationState* self) {
     self->interface.init = ddsimInit;
@@ -46,6 +54,7 @@ Result ddsimInit(SimulationState* self) {
     ddsim->iterator = ddsim->qc->begin();
     ddsim->currentLine = 0;
     ddsim->assertionFailed = false;
+    ddsim->lastIrreversibleStep = 0;
 
     resetSimulationState(ddsim);
 
@@ -85,6 +94,43 @@ Result ddsimStepForward(SimulationState* self) {
     }
 
     qc::MatrixDD currDD{};
+    if ((*ddsim->iterator)->getType() == qc::Measure) {
+        auto qubitsToMeasure = (*ddsim->iterator)->getTargets();
+        auto classicalBits = dynamic_cast<qc::NonUnitaryOperation*>(ddsim->iterator->get())
+                ->getClassics();
+        for(size_t i = 0; i < qubitsToMeasure.size(); i++) {
+            auto qubit = qubitsToMeasure[i];
+            auto classicalBit = classicalBits[i];
+
+            auto [pZero, pOne]  = ddsim->dd->determineMeasurementProbabilities(
+                    ddsim->simulationState, static_cast<dd::Qubit>(qubit), true);
+            auto rnd = generateRandomNumber();
+            auto result = rnd < pZero;
+            ddsim->dd->performCollapsingMeasurement(ddsim->simulationState, static_cast<dd::Qubit>(qubit), result ? pZero : pOne, result);
+            auto name = getClassicalBitName(ddsim, classicalBit);
+            if(ddsim->variables.find(name) != ddsim->variables.end()) {
+                VariableValue value;
+                value.bool_value = !result;
+                ddsim->variables[name].value = value;
+            }
+            else {
+                Variable newVariable{name.c_str(), VariableType::VAR_BOOL, {!result}};
+                ddsim->variables.insert({name, newVariable});
+            }
+        }
+
+        ddsim->iterator++;
+        ddsim->lastIrreversibleStep = ddsim->currentLine;
+        return OK;
+    }
+    if ((*ddsim->iterator)->getType() == qc::Reset) {
+        ddsim->iterator++;
+        return ERROR; //TODO
+    }
+    if ((*ddsim->iterator)->getType() == qc::Barrier) {
+        ddsim->iterator++;
+        return OK;
+    }
     if ((*ddsim->iterator)->isClassicControlledOperation()) {
         // TODO this is for later
     } else {
@@ -149,6 +195,8 @@ Result ddsimResetSimulation(SimulationState* self) {
 
     ddsim->iterator = ddsim->qc->begin();
     ddsim->assertionFailed = false;
+    ddsim->lastIrreversibleStep = 0;
+    ddsim->variables.clear();
 
     resetSimulationState(ddsim);
     return OK;
@@ -161,7 +209,7 @@ bool ddsimCanStepForward(SimulationState* self) {
 
 bool ddsimCanStepBackward(SimulationState* self) {
     auto ddsim = reinterpret_cast<DDSimulationState*>(self);
-    return ddsim->currentLine > 0;
+    return ddsim->currentLine > ddsim->lastIrreversibleStep;
 }
 
 bool ddsimIsFinished(SimulationState* self) {
@@ -193,8 +241,12 @@ Result ddsimGetAmplitudeBitstring(SimulationState* self, const char* bitstring, 
 }
 
 Result ddsimGetClassicalVariable(SimulationState* self, const char* name, Variable* output) {
-    std::cout << "Getting classical variable " << name << " into " << output << " for " << self << std::endl;
-    return ERROR; // TODO this is for later
+    auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+    if(ddsim->variables.find(name) != ddsim->variables.end()) {
+        *output = ddsim->variables[name];
+        return OK;
+    }
+    return ERROR;
 }
 
 Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
@@ -370,9 +422,12 @@ bool checkAssertion(DDSimulationState* ddsim, std::string& assertion) {
     else if(startsWith(assertion, "assert-sup ")) {
         return checkAssertionSuperposition(ddsim, assertion);
     }
-    else if(startsWith(assertion, "assert ")) {
-        return assertion.size() == 3; // TODO
+    /*else if(startsWith(assertion, "assert-span ")) {
+        return false; // TODO
     }
+    else if(startsWith(assertion, "assert-eq ")) {
+        return false; // TODO
+    }*/
     else {
         return false;
     }
@@ -406,6 +461,18 @@ std::string preprocessAssertionCode(const char* code, DDSimulationState* ddsim) 
             ddsim->instructionTypes.push_back(NOP);
         }
         else if (line.find("creg") != std::string::npos) {
+            auto declaration = replaceAll(line, "creg", "");
+            declaration = replaceAll(declaration, " ", "");
+            declaration = replaceAll(declaration, "\t", "");
+            declaration = replaceAll(declaration, ";", "");
+            auto parts = split(declaration, '[');
+            auto name = parts[0];
+            size_t size = std::stoul(parts[1].substr(0, parts[1].size() - 1));
+
+            size_t index = ddsim->classicalRegisters.empty() ? 0 : ddsim->classicalRegisters.back().index + ddsim->classicalRegisters.back().size;
+            ClassicalRegisterDefinition reg{name, index, size};
+            ddsim->classicalRegisters.push_back(reg);
+
             correctLines.push_back(line);
             ddsim->instructionTypes.push_back(NOP);
         }
@@ -424,4 +491,13 @@ std::string preprocessAssertionCode(const char* code, DDSimulationState* ddsim) 
                            [](const std::string& a, const std::string& b) {
                                return a + b + ";";
                            });
+}
+
+std::string getClassicalBitName(DDSimulationState* ddsim, size_t index) {
+    for(auto& reg : ddsim->classicalRegisters) {
+        if(index >= reg.index && index < reg.index + reg.size) {
+            return reg.name + "[" + std::to_string(index - reg.index) + "]";
+        }
+    }
+    return "UNKNOWN";
 }

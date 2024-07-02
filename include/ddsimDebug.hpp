@@ -25,6 +25,13 @@ typedef struct
 
 typedef struct
 {
+    std::string name;
+    size_t index;
+    size_t size;
+} ClassicalRegisterDefinition;
+
+typedef struct
+{
   SimulationState interface;
   size_t currentLine;
 
@@ -35,6 +42,9 @@ typedef struct
   std::vector<InstructionType> instructionTypes;
   std::map<size_t, std::string> assertionInstructions;
   std::vector<QubitRegisterDefinition> qubitRegisters;
+  std::vector<ClassicalRegisterDefinition > classicalRegisters;
+  std::map<std::string, Variable> variables;
+  size_t lastIrreversibleStep;
 
   bool assertionFailed;
 } DDSimulationState;
@@ -62,5 +72,6 @@ Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self);
 
 std::string preprocessAssertionCode(const char* code, DDSimulationState* ddsim);
 bool checkAssertion(DDSimulationState* ddsim, std::string& assertion);
+std::string getClassicalBitName(DDSimulationState* ddsim, size_t index);
 
 #endif // DDSIM_DEBUG_H

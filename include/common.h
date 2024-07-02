@@ -27,7 +27,7 @@ typedef union {
 } VariableValue;
 
 typedef struct {
-    char* name;
+    const char* name;
     VariableType type;
     VariableValue value;
 } Variable;
