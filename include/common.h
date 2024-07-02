@@ -1,7 +1,4 @@
-#ifndef COMMON_H
-#define COMMON_H
-
-
+#pragma once
 
 #ifndef __cplusplus
 typedef char bool;
@@ -42,5 +39,3 @@ typedef struct {
     size_t numStates;
     Complex* amplitudes;
 } Statevector;
-
-#endif // COMMON_H

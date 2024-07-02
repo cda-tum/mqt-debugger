@@ -1,5 +1,4 @@
-#ifndef DDSIM_DEBUG_H
-#define DDSIM_DEBUG_H
+#pragma once
 
 #include "common.h"
 #include "backend/debug.h"
@@ -75,4 +74,3 @@ std::string preprocessAssertionCode(const char* code, DDSimulationState* ddsim);
 bool checkAssertion(DDSimulationState* ddsim, std::string& assertion);
 std::string getClassicalBitName(DDSimulationState* ddsim, size_t index);
 
-#endif // DDSIM_DEBUG_H

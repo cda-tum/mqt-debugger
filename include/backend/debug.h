@@ -1,5 +1,4 @@
-#ifndef DEBUG_H
-#define DEBUG_H
+#pragma once
 
 #include "common.h"
 
@@ -26,5 +25,3 @@ struct SimulationState {
     Result (*getStateVectorFull)(SimulationState* self, Statevector* output);
     Result (*getStateVectorSub)(SimulationState* self, size_t subStateSize, const size_t* qubits, Statevector* output);
 };
-
-#endif // DEBUG_H

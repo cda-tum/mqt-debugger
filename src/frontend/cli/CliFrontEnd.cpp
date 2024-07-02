@@ -71,8 +71,6 @@ void CliFrontEnd::run(const char *code, SimulationState* state) {
             state->stepBackward(state);
         } else if(strcmp(command.get(), "reset") == 0) {
             state->resetSimulation(state);
-        } else if(strcmp(command.get(), "fix") == 0) {
-
         } else if(strlen(command.get()) >= 5 && strncmp(command.get(), "get ", 4) == 0) {
             wasGet = true;
         } else {

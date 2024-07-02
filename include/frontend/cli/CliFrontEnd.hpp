@@ -1,9 +1,4 @@
-//
-// Created by damian on 7/2/24.
-//
-
-#ifndef MQT_DEBUG_CLIFRONTEND_HPP
-#define MQT_DEBUG_CLIFRONTEND_HPP
+#pragma once
 
 #include <vector>
 #include <string>
@@ -23,6 +18,3 @@ private:
     void initCode(const char* code);
 
 };
-
-
-#endif //MQT_DEBUG_CLIFRONTEND_HPP
