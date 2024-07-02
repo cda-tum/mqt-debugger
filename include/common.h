@@ -11,12 +11,12 @@ typedef enum {
   ERROR,
 } Result;
 
-typedef enum { VAR_BOOL, VAR_INT, VAR_FLOAT } VariableType;
+typedef enum { VarBool, VarInt, VarFloat } VariableType;
 
 typedef union {
-  bool bool_value;
-  int int_value;
-  double float_value;
+  bool boolValue;
+  int intValue;
+  double floatValue;
 } VariableValue;
 
 typedef struct {

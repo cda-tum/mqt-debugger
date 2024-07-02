@@ -28,52 +28,55 @@ void CliFrontEnd::initCode(const char* code) {
 void CliFrontEnd::run(const char* code, SimulationState* state) {
   initCode(code);
 
-  auto command = std::make_unique<char[]>(100);
+  std::string command;
   state->loadCode(state, code);
   bool wasError = false;
   bool wasGet = false;
 
-  while (strcmp(command.get(), "exit") != 0) {
+  while (command != "exit") {
     clearScreen();
     if (wasError) {
-      printf("Invalid command. Choose one of:\n");
-      printf("run\t");
-      printf("step\t");
-      printf("back\t");
-      printf("get <variable>\t");
-      printf("reset\t");
-      printf("exit\n\n");
+      std::cout << "Invalid command. Choose one of:\n";
+      std::cout << "run\t";
+      std::cout << "step\t";
+      std::cout << "back\t";
+      std::cout << "get <variable>\t";
+      std::cout << "reset\t";
+      std::cout << "exit\n\n";
       wasError = false;
     }
     if (wasGet) {
       Variable v;
-      if (state->getClassicalVariable(state, command.get() + 4, &v) == ERROR) {
-        printf("Variable %s not found\n", command.get() + 4);
+      if (state->getClassicalVariable(
+              state, command.substr(4, command.length() - 4).c_str(), &v) ==
+          ERROR) {
+        std::cout << "Variable " << command << " not found\n";
       } else {
-        if (v.type == VAR_BOOL) {
-          printf("%s = %s\n", command.get() + 4,
-                 v.value.bool_value ? "true" : "false");
-        } else if (v.type == VAR_INT) {
-          printf("%s = %d\n", command.get() + 4, v.value.int_value);
-        } else if (v.type == VAR_FLOAT) {
-          printf("%s = %f\n", command.get() + 4, v.value.float_value);
+        if (v.type == VarBool) {
+          std::cout << command.substr(4, command.length() - 4) << " = "
+                    << (v.value.boolValue ? "true" : "false") << "\n";
+        } else if (v.type == VarInt) {
+          std::cout << command.substr(4, command.length() - 4) << " = "
+                    << v.value.intValue << "\n";
+        } else if (v.type == VarFloat) {
+          std::cout << command.substr(4, command.length() - 4) << " = "
+                    << v.value.floatValue << "\n";
         }
       }
       wasGet = false;
     }
     printState(state);
-    printf("Enter command: ");
-    std::cin.getline(command.get(), 100);
-    if (strcmp(command.get(), "run") == 0) {
+    std::cout << "Enter command: ";
+    std::getline(std::cin, command);
+    if (command == "run") {
       state->runSimulation(state);
-    } else if (strcmp(command.get(), "step") == 0) {
+    } else if (command == "step") {
       state->stepForward(state);
-    } else if (strcmp(command.get(), "back") == 0) {
+    } else if (command == "back") {
       state->stepBackward(state);
-    } else if (strcmp(command.get(), "reset") == 0) {
+    } else if (command == "reset") {
       state->resetSimulation(state);
-    } else if (strlen(command.get()) >= 5 &&
-               strncmp(command.get(), "get ", 4) == 0) {
+    } else if (command.length() >= 5 && command.substr(0, 4) == "get ") {
       wasGet = true;
     } else {
       wasError = true;
@@ -84,23 +87,23 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
 void CliFrontEnd::printState(SimulationState* state) {
   for (size_t i = 0; i < lines.size(); i++) {
     if (i == state->getCurrentLine(state)) {
-      printf("%s > ", ANSI_BG_YELLOW);
+      std::cout << ANSI_BG_YELLOW << " > ";
     } else {
-      printf("%s   ", ANSI_BG_RESET);
+      std::cout << ANSI_BG_RESET << " > ";
     }
-    printf("%s\t\t\t\t%s\n", lines[i].c_str(), ANSI_BG_RESET);
+    std::cout << lines[i].c_str() << "\t\t\t\t" << ANSI_BG_RESET << "\n";
   }
-  printf("\n");
+  std::cout << "\n";
 
   const char* bitStrings[] = {"000", "001", "010", "011",
                               "100", "101", "110", "111"};
   Complex c;
   for (auto& bitString : bitStrings) {
     state->getAmplitudeBitstring(state, bitString, &c);
-    printf("%s %f\t||\t", bitString, c.real);
+    std::cout << bitString << " " << c.real << "\t||\t";
   }
-  printf("\n");
+  std::cout << "\n";
   if (state->didAssertionFail(state)) {
-    printf("THE PREVIOUS LINE FAILED AN ASSERTION\n");
+    std::cout << "THE PREVIOUS LINE FAILED AN ASSERTION\n";
   }
 }

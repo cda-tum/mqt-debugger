@@ -10,19 +10,19 @@
 
 enum InstructionType { NOP, SIMULATE, ASSERTION };
 
-typedef struct {
+struct QubitRegisterDefinition {
   std::string name;
   size_t index;
   size_t size;
-} QubitRegisterDefinition;
+};
 
-typedef struct {
+struct ClassicalRegisterDefinition {
   std::string name;
   size_t index;
   size_t size;
-} ClassicalRegisterDefinition;
+};
 
-typedef struct {
+struct DDSimulationState {
   SimulationState interface;
   size_t currentLine;
 
@@ -38,7 +38,7 @@ typedef struct {
   size_t lastIrreversibleStep;
 
   bool assertionFailed;
-} DDSimulationState;
+};
 
 Result ddsimInit(SimulationState* self);
 

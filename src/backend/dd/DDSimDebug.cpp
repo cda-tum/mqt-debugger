@@ -1,3 +1,5 @@
+#pragma ide diagnostic ignored "cppcoreguidelines-pro-type-reinterpret-cast"
+
 #include "backend/dd/DDSimDebug.hpp"
 
 #include "backend/debug.h"
@@ -18,6 +20,7 @@ double generateRandomNumber() {
   return dis(gen);
 }
 
+#pragma clang diagnostic push
 Result createDDSimulationState(DDSimulationState* self) {
   self->interface.init = ddsimInit;
 
@@ -40,6 +43,7 @@ Result createDDSimulationState(DDSimulationState* self) {
 
   return self->interface.init(reinterpret_cast<SimulationState*>(self));
 }
+#pragma clang diagnostic pop
 
 void resetSimulationState(DDSimulationState* ddsim) {
   if (ddsim->simulationState.p != nullptr) {
@@ -50,7 +54,7 @@ void resetSimulationState(DDSimulationState* ddsim) {
 }
 
 Result ddsimInit(SimulationState* self) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
 
   ddsim->qc = std::make_unique<qc::QuantumComputation>();
   ddsim->dd = std::make_unique<dd::Package<>>(1);
@@ -65,7 +69,7 @@ Result ddsimInit(SimulationState* self) {
 }
 
 Result ddsimLoadCode(SimulationState* self, const char* code) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   ddsim->currentLine = 0;
   std::stringstream ss{preprocessAssertionCode(code, ddsim)};
   ddsim->qc->import(ss, qc::Format::OpenQASM3);
@@ -80,9 +84,10 @@ Result ddsimLoadCode(SimulationState* self, const char* code) {
 }
 
 Result ddsimStepForward(SimulationState* self) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
-  if (!self->canStepForward(self))
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (!self->canStepForward(self)) {
     return ERROR;
+  }
   ddsim->currentLine++;
 
   if (ddsim->instructionTypes[ddsim->currentLine - 1] == ASSERTION) {
@@ -116,10 +121,11 @@ Result ddsimStepForward(SimulationState* self) {
       auto name = getClassicalBitName(ddsim, classicalBit);
       if (ddsim->variables.find(name) != ddsim->variables.end()) {
         VariableValue value;
-        value.bool_value = !result;
+        value.boolValue = !result;
         ddsim->variables[name].value = value;
       } else {
-        Variable newVariable{name.c_str(), VariableType::VAR_BOOL, {!result}};
+        const Variable newVariable{
+            name.c_str(), VariableType::VarBool, {!result}};
         ddsim->variables.insert({name, newVariable});
       }
     }
@@ -154,9 +160,10 @@ Result ddsimStepForward(SimulationState* self) {
 }
 
 Result ddsimStepBackward(SimulationState* self) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
-  if (!self->canStepBackward(self))
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (!self->canStepBackward(self)) {
     return ERROR;
+  }
   ddsim->currentLine--;
 
   if (ddsim->instructionTypes[ddsim->currentLine] == SIMULATE) {
@@ -190,14 +197,15 @@ Result ddsimStepBackward(SimulationState* self) {
 }
 
 Result ddsimRunSimulation(SimulationState* self) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
-  while (!self->isFinished(self) && !ddsim->assertionFailed)
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  while (!self->isFinished(self) && !ddsim->assertionFailed) {
     self->stepForward(self);
+  }
   return OK;
 }
 
 Result ddsimResetSimulation(SimulationState* self) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   ddsim->currentLine = 0;
 
   ddsim->iterator = ddsim->qc->begin();
@@ -210,33 +218,33 @@ Result ddsimResetSimulation(SimulationState* self) {
 }
 
 bool ddsimCanStepForward(SimulationState* self) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   return ddsim->currentLine < ddsim->instructionTypes.size();
 }
 
 bool ddsimCanStepBackward(SimulationState* self) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   return ddsim->currentLine > ddsim->lastIrreversibleStep;
 }
 
 bool ddsimIsFinished(SimulationState* self) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   return ddsim->currentLine == ddsim->instructionTypes.size();
 }
 
 bool ddsimDidAssertionFail(SimulationState* self) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   return ddsim->assertionFailed;
 }
 
 size_t ddsimGetCurrentLine(SimulationState* self) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   return ddsim->currentLine;
 }
 
 Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
                               Complex* output) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   auto result = ddsim->simulationState.getValueByIndex(qubit);
   output->real = result.real();
   output->imaginary = result.imag();
@@ -245,7 +253,7 @@ Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
 
 Result ddsimGetAmplitudeBitstring(SimulationState* self, const char* bitstring,
                                   Complex* output) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   auto path = std::string(bitstring);
   std::reverse(path.begin(), path.end());
   auto result =
@@ -257,7 +265,7 @@ Result ddsimGetAmplitudeBitstring(SimulationState* self, const char* bitstring,
 
 Result ddsimGetClassicalVariable(SimulationState* self, const char* name,
                                  Variable* output) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   if (ddsim->variables.find(name) != ddsim->variables.end()) {
     *output = ddsim->variables[name];
     return OK;
@@ -276,7 +284,7 @@ Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
 
 Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
                               const size_t* qubits, Statevector* output) {
-  auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   Statevector fullState;
   fullState.numQubits = ddsim->qc->getNqubits();
   fullState.numStates = 1 << fullState.numQubits;
@@ -320,11 +328,10 @@ bool startsWith(const std::string& str, const std::string& prefix) {
 
 std::string replaceAll(std::string str, const std::string& from,
                        const std::string& to) {
-  size_t start_pos = 0;
-  while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-    str.replace(start_pos, from.length(), to);
-    start_pos +=
-        to.length(); // Handles case where 'to' is a substring of 'from'
+  size_t startPos = 0;
+  while ((startPos = str.find(from, startPos)) != std::string::npos) {
+    str.replace(startPos, from.length(), to);
+    startPos += to.length(); // Handles case where 'to' is a substring of 'from'
   }
   return str;
 }
@@ -332,8 +339,9 @@ std::string replaceAll(std::string str, const std::string& from,
 std::vector<std::string> split(std::string& text, char delimiter) {
   std::vector<std::string> result;
   std::istringstream iss(text);
-  for (std::string s; std::getline(iss, s, delimiter);)
+  for (std::string s; std::getline(iss, s, delimiter);) {
     result.push_back(s);
+  }
   return result;
 }
 
@@ -342,12 +350,13 @@ size_t variableToQubit(DDSimulationState* ddsim, std::string& variable) {
   declaration = replaceAll(declaration, "\t", "");
   auto parts = split(declaration, '[');
   auto var = parts[0];
-  size_t idx = std::stoul(parts[1].substr(0, parts[1].size() - 1));
+  const size_t idx = std::stoul(parts[1].substr(0, parts[1].size() - 1));
 
   for (auto& reg : ddsim->qubitRegisters) {
     if (reg.name == var) {
-      if (idx >= reg.size)
+      if (idx >= reg.size) {
         throw std::runtime_error("Index out of bounds");
+      }
       return reg.index + idx;
     }
   }
@@ -359,11 +368,11 @@ double complexMagnitude(Complex& c) {
 }
 
 bool areQubitsEntangled(Statevector* sv) {
-  double epsilon = 0.0001;
-  bool canBe00 = complexMagnitude(sv->amplitudes[0]) > epsilon;
-  bool canBe01 = complexMagnitude(sv->amplitudes[1]) > epsilon;
-  bool canBe10 = complexMagnitude(sv->amplitudes[2]) > epsilon;
-  bool canBe11 = complexMagnitude(sv->amplitudes[3]) > epsilon;
+  const double epsilon = 0.0001;
+  const bool canBe00 = complexMagnitude(sv->amplitudes[0]) > epsilon;
+  const bool canBe01 = complexMagnitude(sv->amplitudes[1]) > epsilon;
+  const bool canBe10 = complexMagnitude(sv->amplitudes[2]) > epsilon;
+  const bool canBe11 = complexMagnitude(sv->amplitudes[3]) > epsilon;
 
   return (canBe00 && canBe11 && !(canBe01 && canBe10)) ||
          (canBe01 && canBe10 && !(canBe00 && canBe11));
@@ -373,7 +382,7 @@ bool checkAssertionEntangled(DDSimulationState* ddsim, std::string& assertion) {
   std::string expression = replaceAll(assertion, "assert-ent ", "");
   expression = replaceAll(expression, " ", "");
   expression = replaceAll(expression, "\t", "");
-  std::vector<std::string> variables = split(expression, ',');
+  const std::vector<std::string> variables = split(expression, ',');
   std::vector<size_t> qubits;
   for (auto variable : variables) {
     qubits.push_back(variableToQubit(ddsim, variable));
@@ -389,11 +398,13 @@ bool checkAssertionEntangled(DDSimulationState* ddsim, std::string& assertion) {
   bool result = true;
   for (size_t i = 0; i < qubits.size() && result; i++) {
     for (size_t j = 0; j < qubits.size(); j++) {
-      if (i == j)
+      if (i == j) {
         continue;
+      }
       qubitsStep[0] = qubits[i];
       qubitsStep[1] = qubits[j];
-      ddsim->interface.getStateVectorSub(&ddsim->interface, 2, qubitsStep, &sv);
+      ddsim->interface.getStateVectorSub(&ddsim->interface, 2, &qubitsStep[0],
+                                         &sv);
       if (!areQubitsEntangled(&sv)) {
         result = false;
         break;
@@ -409,7 +420,7 @@ bool checkAssertionSuperposition(DDSimulationState* ddsim,
   std::string expression = replaceAll(assertion, "assert-sup ", "");
   expression = replaceAll(expression, " ", "");
   expression = replaceAll(expression, "\t", "");
-  std::vector<std::string> variables = split(expression, ',');
+  const std::vector<std::string> variables = split(expression, ',');
   std::vector<size_t> qubits;
   for (auto variable : variables) {
     qubits.push_back(variableToQubit(ddsim, variable));
@@ -425,7 +436,7 @@ bool checkAssertionSuperposition(DDSimulationState* ddsim,
                                      qubits.data(), &sv);
 
   int found = 0;
-  double epsilon = 0.00000001;
+  const double epsilon = 0.00000001;
   for (size_t i = 0; i < sv.numStates && found < 2; i++) {
     if (complexMagnitude(sv.amplitudes[i]) > epsilon) {
       found++;
@@ -439,7 +450,8 @@ bool checkAssertion(DDSimulationState* ddsim, std::string& assertion) {
   assertion = trim(assertion);
   if (startsWith(assertion, "assert-ent ")) {
     return checkAssertionEntangled(ddsim, assertion);
-  } else if (startsWith(assertion, "assert-sup ")) {
+  }
+  if (startsWith(assertion, "assert-sup ")) {
     return checkAssertionSuperposition(ddsim, assertion);
   }
   /*else if(startsWith(assertion, "assert-span ")) {
@@ -448,9 +460,7 @@ bool checkAssertion(DDSimulationState* ddsim, std::string& assertion) {
   else if(startsWith(assertion, "assert-eq ")) {
       return false; // TODO
   }*/
-  else {
-    return false;
-  }
+  return false;
 }
 
 std::string preprocessAssertionCode(const char* code,
@@ -472,13 +482,13 @@ std::string preprocessAssertionCode(const char* code,
       declaration = replaceAll(declaration, ";", "");
       auto parts = split(declaration, '[');
       auto name = parts[0];
-      size_t size = std::stoul(parts[1].substr(0, parts[1].size() - 1));
+      const size_t size = std::stoul(parts[1].substr(0, parts[1].size() - 1));
 
-      size_t index = ddsim->qubitRegisters.empty()
-                         ? 0
-                         : ddsim->qubitRegisters.back().index +
-                               ddsim->qubitRegisters.back().size;
-      QubitRegisterDefinition reg{name, index, size};
+      const size_t index = ddsim->qubitRegisters.empty()
+                               ? 0
+                               : ddsim->qubitRegisters.back().index +
+                                     ddsim->qubitRegisters.back().size;
+      const QubitRegisterDefinition reg{name, index, size};
       ddsim->qubitRegisters.push_back(reg);
 
       correctLines.push_back(line);
@@ -490,13 +500,13 @@ std::string preprocessAssertionCode(const char* code,
       declaration = replaceAll(declaration, ";", "");
       auto parts = split(declaration, '[');
       auto name = parts[0];
-      size_t size = std::stoul(parts[1].substr(0, parts[1].size() - 1));
+      const size_t size = std::stoul(parts[1].substr(0, parts[1].size() - 1));
 
-      size_t index = ddsim->classicalRegisters.empty()
-                         ? 0
-                         : ddsim->classicalRegisters.back().index +
-                               ddsim->classicalRegisters.back().size;
-      ClassicalRegisterDefinition reg{name, index, size};
+      const size_t index = ddsim->classicalRegisters.empty()
+                               ? 0
+                               : ddsim->classicalRegisters.back().index +
+                                     ddsim->classicalRegisters.back().size;
+      const ClassicalRegisterDefinition reg{name, index, size};
       ddsim->classicalRegisters.push_back(reg);
 
       correctLines.push_back(line);
