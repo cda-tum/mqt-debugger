@@ -7,35 +7,31 @@ typedef char bool;
 #endif
 
 typedef enum {
-    OK,
-    ERROR,
+  OK,
+  ERROR,
 } Result;
 
-typedef enum {
-    VAR_BOOL,
-    VAR_INT,
-    VAR_FLOAT
-} VariableType;
+typedef enum { VAR_BOOL, VAR_INT, VAR_FLOAT } VariableType;
 
 typedef union {
-    bool bool_value;
-    int int_value;
-    double float_value;
+  bool bool_value;
+  int int_value;
+  double float_value;
 } VariableValue;
 
 typedef struct {
-    const char* name;
-    VariableType type;
-    VariableValue value;
+  const char* name;
+  VariableType type;
+  VariableValue value;
 } Variable;
 
 typedef struct {
-    double real;
-    double imaginary;
+  double real;
+  double imaginary;
 } Complex;
 
 typedef struct {
-    size_t numQubits;
-    size_t numStates;
-    Complex* amplitudes;
+  size_t numQubits;
+  size_t numStates;
+  Complex* amplitudes;
 } Statevector;
