@@ -32,10 +32,12 @@ include_directories(include)
 
 add_executable(mqt_debug
         include/common.h
-        include/ddsimDebug.hpp
-        include/debug.h
-        src/ddsimDebug.cpp
-        test/testDDSimDebugger.cpp)
+        include/backend/dd/DDSimDebug.hpp
+        include/backend/debug.h
+        src/backend/dd/DDSimDebug.cpp
+        test/testDDSimDebugger.cpp
+        src/frontend/cli/CliFrontEnd.cpp
+        include/frontend/cli/CliFrontEnd.hpp)
 
 # Link against mqt-core library
 target_link_libraries(mqt_debug

@@ -17,6 +17,7 @@ struct SimulationState {
     bool (*canStepForward)(SimulationState* self);
     bool (*canStepBackward)(SimulationState* self);
     bool (*isFinished)(SimulationState* self);
+    bool (*didAssertionFail)(SimulationState* self);
 
     size_t (*getCurrentLine)(SimulationState* self);
     Result (*getAmplitudeIndex)(SimulationState* self, size_t qubit, Complex* output);

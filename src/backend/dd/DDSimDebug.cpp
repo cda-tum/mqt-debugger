@@ -1,5 +1,5 @@
-#include "ddsimDebug.hpp"
-#include "debug.h"
+#include "backend/dd/DDSimDebug.hpp"
+#include "backend/debug.h"
 #include "common.h"
 
 #include <iostream>
@@ -27,6 +27,7 @@ Result createDDSimulationState(DDSimulationState* self) {
     self->interface.canStepForward = ddsimCanStepForward;
     self->interface.canStepBackward = ddsimCanStepBackward;
     self->interface.isFinished = ddsimIsFinished;
+    self->interface.didAssertionFail = ddsimDidAssertionFail;
 
     self->interface.getCurrentLine = ddsimGetCurrentLine;
     self->interface.getAmplitudeIndex = ddsimGetAmplitudeIndex;
@@ -215,6 +216,11 @@ bool ddsimCanStepBackward(SimulationState* self) {
 bool ddsimIsFinished(SimulationState* self) {
     auto ddsim = reinterpret_cast<DDSimulationState*>(self);
     return ddsim->currentLine == ddsim->instructionTypes.size();
+}
+
+bool ddsimDidAssertionFail(SimulationState* self) {
+    auto ddsim = reinterpret_cast<DDSimulationState*>(self);
+    return ddsim->assertionFailed;
 }
 
 size_t ddsimGetCurrentLine(SimulationState* self) {

@@ -2,7 +2,7 @@
 #define DDSIM_DEBUG_H
 
 #include "common.h"
-#include "debug.h"
+#include "backend/debug.h"
 #include "dd/Operations.hpp"
 #include "QuantumComputation.hpp"
 #include "dd/Package.hpp"
@@ -59,6 +59,7 @@ Result ddsimResetSimulation(SimulationState* self);
 bool ddsimCanStepForward(SimulationState* self);
 bool ddsimCanStepBackward(SimulationState* self);
 bool ddsimIsFinished(SimulationState* self);
+bool ddsimDidAssertionFail(SimulationState* self);
 
 size_t ddsimGetCurrentLine(SimulationState* self);
 Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit, Complex* output);
