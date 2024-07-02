@@ -7,13 +7,13 @@
 #define ANSI_BG_RESET     "\x1b[0m"
 
 // Entanglement test
-//const char* code = "qreg q[3];creg c[3];h q[0];cx q[0], q[1];cx q[2], q[0];assert-ent q[0], q[1];assert-ent q[2], q[0];";
+const char* code = "qreg q[3];creg c[3];h q[0];cx q[0], q[1];cx q[2], q[0];assert-ent q[0], q[1];assert-ent q[2], q[0];";
 
 // Superposition test
 //const char* code = "qreg q[3];creg c[3];h q[0];cx q[0], q[1];cx q[2], q[0];assert-sup q[0];assert-sup q[1];assert-sup q[2];assert-sup q[0],q[1];assert-sup q[0],q[2];assert-sup q[1],q[2];assert-sup q[0],q[1],q[2];";
 
 // Feature test
-const char* code = "qreg q[3];creg c[2];barrier;h q[0];measure q[0] -> c[0];measure q[1] -> c[1];";
+//const char* code = "qreg q[3];creg c[2];barrier;h q[0];measure q[0] -> c[0];measure q[1] -> c[1];";
 
 void printState(DDSimulationState* state) {
     std::vector<std::string> lines;

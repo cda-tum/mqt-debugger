@@ -263,7 +263,9 @@ Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize, const 
     Statevector fullState;
     fullState.numQubits = ddsim->qc->getNqubits();
     fullState.numStates = 1 << fullState.numQubits;
-    fullState.amplitudes = new Complex[fullState.numStates];
+    auto amplitudes = std::make_unique<Complex[]>(fullState.numStates);
+    fullState.amplitudes = amplitudes.get();
+
     self->getStateVectorFull(self, &fullState);
 
     for(size_t i = 0; i < output->numStates; i++) {
@@ -276,11 +278,10 @@ Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize, const 
         for(size_t j = 0; j < subStateSize; j++) {
             outputIndex |= ((i >> qubits[j]) & 1) << j;
         }
-        output->amplitudes[outputIndex].real += fullState.amplitudes[i].real;
-        output->amplitudes[outputIndex].imaginary += fullState.amplitudes[i].imaginary;
+        output->amplitudes[outputIndex].real += amplitudes[i].real;
+        output->amplitudes[outputIndex].imaginary += amplitudes[i].imaginary;
     }
 
-    free(fullState.amplitudes);
     return OK;
 }
 
@@ -363,7 +364,8 @@ bool checkAssertionEntangled(DDSimulationState* ddsim, std::string& assertion) {
     Statevector sv;
     sv.numQubits = 2;
     sv.numStates = 4;
-    sv.amplitudes = new Complex[4];
+    auto amplitudes = std::make_unique<Complex[]>(4);
+    sv.amplitudes = amplitudes.get();
     size_t qubitsStep[] = {0, 0};
 
     bool result = true;
@@ -381,7 +383,6 @@ bool checkAssertionEntangled(DDSimulationState* ddsim, std::string& assertion) {
         }
     }
 
-    free(sv.amplitudes);
     return result;
 }
 
@@ -398,7 +399,8 @@ bool checkAssertionSuperposition(DDSimulationState* ddsim, std::string& assertio
     Statevector sv;
     sv.numQubits = qubits.size();
     sv.numStates = 1 << sv.numQubits;
-    sv.amplitudes = new Complex[sv.numStates];
+    auto amplitudes = std::make_unique<Complex[]>(sv.numStates);
+    sv.amplitudes = amplitudes.get();
 
     ddsim->interface.getStateVectorSub(&ddsim->interface, sv.numQubits, qubits.data(), &sv);
 
@@ -410,7 +412,6 @@ bool checkAssertionSuperposition(DDSimulationState* ddsim, std::string& assertio
         }
     }
 
-    free(sv.amplitudes);
     return found > 1;
 }
 
