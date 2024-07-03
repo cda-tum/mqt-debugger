@@ -9,6 +9,7 @@
 #include <cctype>
 #include <iostream>
 #include <random>
+#include <span>
 #include <string>
 
 double generateRandomNumber() {
@@ -274,10 +275,9 @@ Result ddsimGetClassicalVariable(SimulationState* self, const char* name,
 }
 
 Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
+  const std::span<Complex> amplitudes(output->amplitudes, output->numStates);
   for (size_t i = 0; i < output->numStates; i++) {
-    Complex c;
-    self->getAmplitudeIndex(self, i, &c);
-    output->amplitudes[i] = c;
+    self->getAmplitudeIndex(self, i, &amplitudes[i]);
   }
   return OK;
 }
@@ -288,23 +288,25 @@ Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
   Statevector fullState;
   fullState.numQubits = ddsim->qc->getNqubits();
   fullState.numStates = 1 << fullState.numQubits;
-  auto amplitudes = std::make_unique<Complex[]>(fullState.numStates);
-  fullState.amplitudes = amplitudes.get();
+  std::vector<Complex> amplitudes(fullState.numStates);
+  const std::span<Complex> outAmplitudes(output->amplitudes, output->numStates);
+  const std::span<const size_t> qubitsSpan(qubits, subStateSize);
+  fullState.amplitudes = amplitudes.data();
 
   self->getStateVectorFull(self, &fullState);
 
-  for (size_t i = 0; i < output->numStates; i++) {
-    output->amplitudes[i].real = 0;
-    output->amplitudes[i].imaginary = 0;
+  for (auto& amplitude : outAmplitudes) {
+    amplitude.real = 0;
+    amplitude.imaginary = 0;
   }
 
   for (size_t i = 0; i < fullState.numStates; i++) {
     size_t outputIndex = 0;
     for (size_t j = 0; j < subStateSize; j++) {
-      outputIndex |= ((i >> qubits[j]) & 1) << j;
+      outputIndex |= ((i >> qubitsSpan[j]) & 1) << j;
     }
-    output->amplitudes[outputIndex].real += amplitudes[i].real;
-    output->amplitudes[outputIndex].imaginary += amplitudes[i].imaginary;
+    outAmplitudes[outputIndex].real += amplitudes[i].real;
+    outAmplitudes[outputIndex].imaginary += amplitudes[i].imaginary;
   }
 
   return OK;
@@ -369,10 +371,11 @@ double complexMagnitude(Complex& c) {
 
 bool areQubitsEntangled(Statevector* sv) {
   const double epsilon = 0.0001;
-  const bool canBe00 = complexMagnitude(sv->amplitudes[0]) > epsilon;
-  const bool canBe01 = complexMagnitude(sv->amplitudes[1]) > epsilon;
-  const bool canBe10 = complexMagnitude(sv->amplitudes[2]) > epsilon;
-  const bool canBe11 = complexMagnitude(sv->amplitudes[3]) > epsilon;
+  const std::span<Complex> amplitudes(sv->amplitudes, sv->numStates);
+  const bool canBe00 = complexMagnitude(amplitudes[0]) > epsilon;
+  const bool canBe01 = complexMagnitude(amplitudes[1]) > epsilon;
+  const bool canBe10 = complexMagnitude(amplitudes[2]) > epsilon;
+  const bool canBe11 = complexMagnitude(amplitudes[3]) > epsilon;
 
   return (canBe00 && canBe11 && !(canBe01 && canBe10)) ||
          (canBe01 && canBe10 && !(canBe00 && canBe11));
@@ -391,9 +394,9 @@ bool checkAssertionEntangled(DDSimulationState* ddsim, std::string& assertion) {
   Statevector sv;
   sv.numQubits = 2;
   sv.numStates = 4;
-  auto amplitudes = std::make_unique<Complex[]>(4);
-  sv.amplitudes = amplitudes.get();
-  size_t qubitsStep[] = {0, 0};
+  std::vector<Complex> amplitudes(4);
+  sv.amplitudes = amplitudes.data();
+  std::array<size_t, 2> qubitsStep = {0, 0};
 
   bool result = true;
   for (size_t i = 0; i < qubits.size() && result; i++) {
@@ -403,8 +406,8 @@ bool checkAssertionEntangled(DDSimulationState* ddsim, std::string& assertion) {
       }
       qubitsStep[0] = qubits[i];
       qubitsStep[1] = qubits[j];
-      ddsim->interface.getStateVectorSub(&ddsim->interface, 2, &qubitsStep[0],
-                                         &sv);
+      ddsim->interface.getStateVectorSub(&ddsim->interface, 2,
+                                         qubitsStep.data(), &sv);
       if (!areQubitsEntangled(&sv)) {
         result = false;
         break;
@@ -429,8 +432,8 @@ bool checkAssertionSuperposition(DDSimulationState* ddsim,
   Statevector sv;
   sv.numQubits = qubits.size();
   sv.numStates = 1 << sv.numQubits;
-  auto amplitudes = std::make_unique<Complex[]>(sv.numStates);
-  sv.amplitudes = amplitudes.get();
+  std::vector<Complex> amplitudes(sv.numStates);
+  sv.amplitudes = amplitudes.data();
 
   ddsim->interface.getStateVectorSub(&ddsim->interface, sv.numQubits,
                                      qubits.data(), &sv);
@@ -438,7 +441,7 @@ bool checkAssertionSuperposition(DDSimulationState* ddsim,
   int found = 0;
   const double epsilon = 0.00000001;
   for (size_t i = 0; i < sv.numStates && found < 2; i++) {
-    if (complexMagnitude(sv.amplitudes[i]) > epsilon) {
+    if (complexMagnitude(amplitudes[i]) > epsilon) {
       found++;
     }
   }

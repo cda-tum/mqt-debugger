@@ -4,10 +4,8 @@
 
 #include "frontend/cli/CliFrontEnd.hpp"
 
-#include <cstdio>
-#include <cstring>
+#include <array>
 #include <iostream>
-#include <memory>
 #include <sstream>
 
 void clearScreen() {
@@ -95,10 +93,10 @@ void CliFrontEnd::printState(SimulationState* state) {
   }
   std::cout << "\n";
 
-  const char* bitStrings[] = {"000", "001", "010", "011",
-                              "100", "101", "110", "111"};
+  const std::array<const char*, 8> bitStrings = {"000", "001", "010", "011",
+                                                 "100", "101", "110", "111"};
   Complex c;
-  for (auto& bitString : bitStrings) {
+  for (const auto* bitString : bitStrings) {
     state->getAmplitudeBitstring(state, bitString, &c);
     std::cout << bitString << " " << c.real << "\t||\t";
   }
