@@ -5,7 +5,8 @@
 #include <iostream>
 
 int main() {
-  std::ifstream file("../test/code/entanglement_test.qasm");
+  // std::ifstream file("../test/code/statevector_equality_test.qasm");
+  std::ifstream file("../test/code/test.qasm");
   if (!file.is_open()) {
     std::cerr << "Could not open file\n";
     file.close();

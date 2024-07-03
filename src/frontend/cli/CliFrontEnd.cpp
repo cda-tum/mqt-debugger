@@ -25,6 +25,9 @@ void CliFrontEnd::initCode(const char* code) {
   std::string token;
   std::istringstream tokenStream(code);
   while (std::getline(tokenStream, token, ';')) {
+    if (trimCli(token).empty()) {
+      continue;
+    }
     lines.push_back(trimCli(token));
   }
   lines.emplace_back("END");
