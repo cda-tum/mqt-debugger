@@ -4,6 +4,7 @@
 typedef char bool;
 #else
 #include <cstddef>
+extern "C" {
 #endif
 
 typedef enum {
@@ -35,3 +36,7 @@ typedef struct {
   size_t numStates;
   Complex* amplitudes;
 } Statevector;
+
+#ifdef __cplusplus
+}
+#endif

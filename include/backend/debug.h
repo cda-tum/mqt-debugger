@@ -2,6 +2,10 @@
 
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct SimulationState SimulationState;
 
 struct SimulationState {
@@ -29,3 +33,7 @@ struct SimulationState {
   Result (*getStateVectorSub)(SimulationState* self, size_t subStateSize,
                               const size_t* qubits, Statevector* output);
 };
+
+#ifdef __cplusplus
+}
+#endif
