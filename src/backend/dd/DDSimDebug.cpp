@@ -360,6 +360,23 @@ double complexMagnitude(Complex& c) {
   return std::sqrt(c.real * c.real + c.imaginary * c.imaginary);
 }
 
+double dotProduct(const Statevector& sv1, const Statevector& sv2) {
+  double resultReal = 0;
+  double resultImag = 0;
+
+  const std::span<Complex> amplitudes1(sv1.amplitudes, sv1.numStates);
+  const std::span<Complex> amplitudes2(sv2.amplitudes, sv2.numStates);
+
+  for (size_t i = 0; i < sv1.numStates; i++) {
+    resultReal += amplitudes1[i].real * amplitudes2[i].real -
+                  amplitudes1[i].imaginary * amplitudes2[i].imaginary;
+    resultImag += amplitudes1[i].real * amplitudes2[i].imaginary +
+                  amplitudes1[i].imaginary * amplitudes2[i].real;
+  }
+  Complex result{resultReal, resultImag};
+  return complexMagnitude(result);
+}
+
 bool areQubitsEntangled(Statevector* sv) {
   const double epsilon = 0.0001;
   const std::span<Complex> amplitudes(sv->amplitudes, sv->numStates);
@@ -435,6 +452,42 @@ bool checkAssertionSuperposition(
   return found > 1;
 }
 
+[[noreturn]] bool
+checkAssertionSpan([[maybe_unused]] DDSimulationState* ddsim,
+                   [[maybe_unused]] std::unique_ptr<SpanAssertion>& assertion) {
+  throw std::runtime_error("Span assertions are not implemented");
+}
+
+bool checkAssertionEqualityStatevector(
+    DDSimulationState* ddsim,
+    std::unique_ptr<StatevectorEqualityAssertion>& assertion) {
+  std::vector<size_t> qubits;
+  for (auto variable : assertion->getTargetQubits()) {
+    qubits.push_back(variableToQubit(ddsim, variable));
+  }
+
+  Statevector sv;
+  sv.numQubits = qubits.size();
+  sv.numStates = 1 << sv.numQubits;
+  std::vector<Complex> amplitudes(sv.numStates);
+  sv.amplitudes = amplitudes.data();
+
+  ddsim->interface.getStateVectorSub(&ddsim->interface, sv.numQubits,
+                                     qubits.data(), &sv);
+
+  const double similarityThreshold = assertion->getSimilarityThreshold();
+
+  const double similarity = dotProduct(sv, assertion->getTargetStatevector());
+
+  return similarity >= similarityThreshold;
+}
+
+[[noreturn]] bool checkAssertionEqualityCircuit(
+    [[maybe_unused]] DDSimulationState* ddsim,
+    [[maybe_unused]] std::unique_ptr<CircuitEqualityAssertion>& assertion) {
+  throw std::runtime_error("Span assertions are not implemented");
+}
+
 bool checkAssertion(DDSimulationState* ddsim,
                     std::unique_ptr<Assertion>& assertion) {
   if (assertion->getType() == AssertionType::Entanglement) {
@@ -451,7 +504,29 @@ bool checkAssertion(DDSimulationState* ddsim,
     assertion = std::move(superpositionAssertion);
     return result;
   }
-  return false; // TODO other types
+  if (assertion->getType() == AssertionType::Span) {
+    std::unique_ptr<SpanAssertion> spanAssertion(
+        dynamic_cast<SpanAssertion*>(assertion.release()));
+    auto result = checkAssertionSpan(ddsim, spanAssertion);
+    assertion = std::move(spanAssertion);
+    return result;
+  }
+  if (assertion->getType() == AssertionType::StatevectorEquality) {
+    std::unique_ptr<StatevectorEqualityAssertion> svEqualityAssertion(
+        dynamic_cast<StatevectorEqualityAssertion*>(assertion.release()));
+    auto result = checkAssertionEqualityStatevector(ddsim, svEqualityAssertion);
+    assertion = std::move(svEqualityAssertion);
+    return result;
+  }
+  if (assertion->getType() == AssertionType::CircuitEquality) {
+    std::unique_ptr<CircuitEqualityAssertion> circuitEqualityAssertion(
+        dynamic_cast<CircuitEqualityAssertion*>(assertion.release()));
+    auto result =
+        checkAssertionEqualityCircuit(ddsim, circuitEqualityAssertion);
+    assertion = std::move(circuitEqualityAssertion);
+    return result;
+  }
+  throw std::runtime_error("Unknown assertion type");
 }
 
 std::string preprocessAssertionCode(const char* code,

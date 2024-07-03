@@ -127,15 +127,15 @@ Complex parseComplex(std::string complexString) {
 Statevector parseStatevector(std::string statevectorString) {
   statevectorString = removeWhitespace(statevectorString);
   auto parts = splitString(statevectorString, ',');
-  std::unique_ptr<std::vector<Complex>> amplitudes;
+  auto amplitudes = std::make_unique<std::vector<Complex>>();
   for (auto& part : parts) {
-    amplitudes->emplace_back(parseComplex(part));
+    amplitudes->push_back(parseComplex(part));
   }
 
   size_t numQubits = 0;
   size_t n = amplitudes->size();
   while (n > 0) {
-    if ((n & 1) == 1) {
+    if ((n & 1) == 1 && n != 1) {
       throw std::runtime_error("Invalid statevector size");
     }
     n >>= 1;
@@ -195,7 +195,10 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString) {
     auto parts = splitString(sub, '{');
     auto targets = extractTargetQubits(parts[0]);
     auto bodyString = trim(splitString(parts[1], '}')[0]);
-    auto threshold = removeWhitespace(splitString(parts[1], '}')[1]);
+    auto thresholdParts = splitString(parts[1], '}');
+    auto threshold = thresholdParts.size() > 1
+                         ? removeWhitespace(thresholdParts[1])
+                         : std::string("1.0");
     auto similarityThreshold =
         threshold.length() > 0 ? std::stod(threshold) : 1.0;
 
