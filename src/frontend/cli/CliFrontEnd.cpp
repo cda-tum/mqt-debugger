@@ -4,6 +4,7 @@
 
 #include "frontend/cli/CliFrontEnd.hpp"
 
+#include <algorithm>
 #include <array>
 #include <iostream>
 #include <sstream>
@@ -13,12 +14,18 @@ void clearScreen() {
   std::cout << "\033[2J\033[1;1H";
 }
 
+std::string trimCli(const std::string& str) {
+  auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
+  auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
+  return (start < end) ? std::string(start, end) : std::string();
+}
+
 void CliFrontEnd::initCode(const char* code) {
   lines.clear();
   std::string token;
   std::istringstream tokenStream(code);
   while (std::getline(tokenStream, token, ';')) {
-    lines.push_back(token);
+    lines.push_back(trimCli(token));
   }
   lines.emplace_back("END");
 }

@@ -1,33 +1,26 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "frontend/cli/CliFrontEnd.hpp"
 
-// Entanglement test
-// const char* const CODE = "qreg q[3];creg c[3];h q[0];cx q[0], q[1];cx q[2], "
-//                         "q[0];assert-ent q[0], q[1];assert-ent q[2], q[0];";
-
-// Superposition test
-// const char* const CODE = "qreg q[3];creg c[3];h q[0];cx q[0], q[1];cx q[2],"
-//                         "q[0];assert-sup q[0];assert-sup q[1];assert-sup
-//                         q[2];assert-sup " "q[0],q[1];assert-sup
-//                         q[0],q[2];assert-sup q[1],q[2];assert-sup "
-//                         "q[0],q[1],q[2];";
-
-// Statevector Equality test
-const char* const CODE = "qreg q[3];creg c[3];h q[0];cx q[0], q[1];cx q[0], "
-                         "q[2];assert-eq q[0], q[1], q[2] { 0.70710678, 0, 0, "
-                         "0, 0, 0, 0, 0.70710678 } 0.9;";
-
-// Feature test
-// const char* const CODE = "qreg q[3];creg c[2];barrier;h q[0];measure q[0] ->
-// "
-//                         "c[0];measure q[1] -> c[1];";
+#include <fstream>
+#include <iostream>
 
 int main() {
+  std::ifstream file("../test/code/entanglement_test.qasm");
+  if (!file.is_open()) {
+    std::cerr << "Could not open file\n";
+    file.close();
+    return 1;
+  }
+  const std::string code((std::istreambuf_iterator<char>(file)),
+                         std::istreambuf_iterator<char>());
+
   DDSimulationState state;
   createDDSimulationState(&state);
 
+  file.close();
+
   CliFrontEnd cli;
-  cli.run(CODE, &state.interface);
+  cli.run(code.c_str(), &state.interface);
 
   destroyDDSimulationState(&state);
 

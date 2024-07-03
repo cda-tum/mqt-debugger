@@ -58,6 +58,7 @@ void resetSimulationState(DDSimulationState* ddsim) {
 Result ddsimInit(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
 
+  ddsim->simulationState.p = nullptr;
   ddsim->qc = std::make_unique<qc::QuantumComputation>();
   ddsim->dd = std::make_unique<dd::Package<>>(1);
   ddsim->iterator = ddsim->qc->begin();
@@ -545,6 +546,7 @@ std::string preprocessAssertionCode(const char* code,
       auto declaration = replaceAll(line, "qreg", "");
       declaration = replaceAll(declaration, " ", "");
       declaration = replaceAll(declaration, "\t", "");
+      declaration = replaceAll(declaration, "\n", "");
       declaration = replaceAll(declaration, ";", "");
       auto parts = split(declaration, '[');
       auto name = parts[0];
@@ -557,7 +559,7 @@ std::string preprocessAssertionCode(const char* code,
       const QubitRegisterDefinition reg{name, index, size};
       ddsim->qubitRegisters.push_back(reg);
 
-      correctLines.push_back(line);
+      correctLines.push_back(replaceAll(line, "\n", ""));
       ddsim->instructionTypes.push_back(NOP);
     } else if (line.find("creg") != std::string::npos) {
       auto declaration = replaceAll(line, "creg", "");
@@ -575,13 +577,13 @@ std::string preprocessAssertionCode(const char* code,
       const ClassicalRegisterDefinition reg{name, index, size};
       ddsim->classicalRegisters.push_back(reg);
 
-      correctLines.push_back(line);
+      correctLines.push_back(replaceAll(line, "\n", ""));
       ddsim->instructionTypes.push_back(NOP);
     } else if (isAssertion(line)) {
       ddsim->instructionTypes.push_back(ASSERTION);
       ddsim->assertionInstructions.insert({i, parseAssertion(line)});
     } else {
-      correctLines.push_back(line);
+      correctLines.push_back(replaceAll(line, "\n", ""));
       ddsim->instructionTypes.push_back(SIMULATE);
     }
     i++;
