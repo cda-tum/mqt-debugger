@@ -36,9 +36,11 @@ add_executable(
   mqt_debug
   include/backend/dd/DDSimDebug.hpp
   include/backend/debug.h
+  include/backend/parsing/AssertionParsing.hpp
   include/common.h
   include/frontend/cli/CliFrontEnd.hpp
   src/backend/dd/DDSimDebug.cpp
+  src/backend/parsing/AssertionParsing.cpp
   src/frontend/cli/CliFrontEnd.cpp
   test/testDDSimDebugger.cpp)
 

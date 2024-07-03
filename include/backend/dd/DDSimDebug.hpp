@@ -2,6 +2,7 @@
 
 #include "QuantumComputation.hpp"
 #include "backend/debug.h"
+#include "backend/parsing/AssertionParsing.hpp"
 #include "common.h"
 #include "dd/Operations.hpp"
 #include "dd/Package.hpp"
@@ -31,7 +32,7 @@ struct DDSimulationState {
   std::vector<std::unique_ptr<qc::Operation>>::iterator iterator;
   qc::VectorDD simulationState;
   std::vector<InstructionType> instructionTypes;
-  std::map<size_t, std::string> assertionInstructions;
+  std::map<size_t, std::unique_ptr<Assertion>> assertionInstructions;
   std::vector<QubitRegisterDefinition> qubitRegisters;
   std::vector<ClassicalRegisterDefinition> classicalRegisters;
   std::map<std::string, Variable> variables;
@@ -67,5 +68,6 @@ Result createDDSimulationState(DDSimulationState* self);
 Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self);
 
 std::string preprocessAssertionCode(const char* code, DDSimulationState* ddsim);
-bool checkAssertion(DDSimulationState* ddsim, std::string& assertion);
+bool checkAssertion(DDSimulationState* ddsim,
+                    std::unique_ptr<Assertion>& assertion);
 std::string getClassicalBitName(DDSimulationState* ddsim, size_t index);

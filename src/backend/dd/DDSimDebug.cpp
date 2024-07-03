@@ -3,14 +3,15 @@
 #include "backend/dd/DDSimDebug.hpp"
 
 #include "backend/debug.h"
+#include "backend/parsing/AssertionParsing.hpp"
 #include "common.h"
 
 #include <algorithm>
-#include <cctype>
 #include <iostream>
 #include <random>
 #include <span>
 #include <string>
+#include <utility>
 
 double generateRandomNumber() {
   std::random_device
@@ -318,16 +319,6 @@ Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self) {
 
 //-----------------------------------------------------------------------------------------
 
-std::string trim(const std::string& str) {
-  auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
-  auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
-  return (start < end) ? std::string(start, end) : std::string();
-}
-
-bool startsWith(const std::string& str, const std::string& prefix) {
-  return str.compare(0, prefix.size(), prefix) == 0;
-}
-
 std::string replaceAll(std::string str, const std::string& from,
                        const std::string& to) {
   size_t startPos = 0;
@@ -381,13 +372,11 @@ bool areQubitsEntangled(Statevector* sv) {
          (canBe01 && canBe10 && !(canBe00 && canBe11));
 }
 
-bool checkAssertionEntangled(DDSimulationState* ddsim, std::string& assertion) {
-  std::string expression = replaceAll(assertion, "assert-ent ", "");
-  expression = replaceAll(expression, " ", "");
-  expression = replaceAll(expression, "\t", "");
-  const std::vector<std::string> variables = split(expression, ',');
+bool checkAssertionEntangled(
+    DDSimulationState* ddsim,
+    std::unique_ptr<EntanglementAssertion>& assertion) {
   std::vector<size_t> qubits;
-  for (auto variable : variables) {
+  for (auto variable : assertion->getTargetQubits()) {
     qubits.push_back(variableToQubit(ddsim, variable));
   }
 
@@ -418,14 +407,11 @@ bool checkAssertionEntangled(DDSimulationState* ddsim, std::string& assertion) {
   return result;
 }
 
-bool checkAssertionSuperposition(DDSimulationState* ddsim,
-                                 std::string& assertion) {
-  std::string expression = replaceAll(assertion, "assert-sup ", "");
-  expression = replaceAll(expression, " ", "");
-  expression = replaceAll(expression, "\t", "");
-  const std::vector<std::string> variables = split(expression, ',');
+bool checkAssertionSuperposition(
+    DDSimulationState* ddsim,
+    std::unique_ptr<SuperpositionAssertion>& assertion) {
   std::vector<size_t> qubits;
-  for (auto variable : variables) {
+  for (auto variable : assertion->getTargetQubits()) {
     qubits.push_back(variableToQubit(ddsim, variable));
   }
 
@@ -449,21 +435,23 @@ bool checkAssertionSuperposition(DDSimulationState* ddsim,
   return found > 1;
 }
 
-bool checkAssertion(DDSimulationState* ddsim, std::string& assertion) {
-  assertion = trim(assertion);
-  if (startsWith(assertion, "assert-ent ")) {
-    return checkAssertionEntangled(ddsim, assertion);
+bool checkAssertion(DDSimulationState* ddsim,
+                    std::unique_ptr<Assertion>& assertion) {
+  if (assertion->getType() == AssertionType::Entanglement) {
+    std::unique_ptr<EntanglementAssertion> entanglementAssertion(
+        dynamic_cast<EntanglementAssertion*>(assertion.release()));
+    auto result = checkAssertionEntangled(ddsim, entanglementAssertion);
+    assertion = std::move(entanglementAssertion);
+    return result;
   }
-  if (startsWith(assertion, "assert-sup ")) {
-    return checkAssertionSuperposition(ddsim, assertion);
+  if (assertion->getType() == AssertionType::Superposition) {
+    std::unique_ptr<SuperpositionAssertion> superpositionAssertion(
+        dynamic_cast<SuperpositionAssertion*>(assertion.release()));
+    auto result = checkAssertionSuperposition(ddsim, superpositionAssertion);
+    assertion = std::move(superpositionAssertion);
+    return result;
   }
-  /*else if(startsWith(assertion, "assert-span ")) {
-      return false; // TODO
-  }
-  else if(startsWith(assertion, "assert-eq ")) {
-      return false; // TODO
-  }*/
-  return false;
+  return false; // TODO other types
 }
 
 std::string preprocessAssertionCode(const char* code,
@@ -514,9 +502,9 @@ std::string preprocessAssertionCode(const char* code,
 
       correctLines.push_back(line);
       ddsim->instructionTypes.push_back(NOP);
-    } else if (line.find("assert") != std::string::npos) {
+    } else if (isAssertion(line)) {
       ddsim->instructionTypes.push_back(ASSERTION);
-      ddsim->assertionInstructions.insert({i, line});
+      ddsim->assertionInstructions.insert({i, parseAssertion(line)});
     } else {
       correctLines.push_back(line);
       ddsim->instructionTypes.push_back(SIMULATE);
