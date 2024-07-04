@@ -150,8 +150,28 @@ Result ddsimStepForward(SimulationState* self) {
     return OK;
   }
   if ((*ddsim->iterator)->getType() == qc::Reset) {
+    auto qubitsToMeasure = (*ddsim->iterator)->getTargets();
     ddsim->iterator++;
-    return ERROR; // TODO
+    ddsim->lastIrreversibleStep = ddsim->currentInstruction;
+
+    for (const auto qubit : qubitsToMeasure) {
+      auto [pZero, pOne] = ddsim->dd->determineMeasurementProbabilities(
+          ddsim->simulationState, static_cast<dd::Qubit>(qubit), true);
+      auto rnd = generateRandomNumber();
+      auto result = rnd < pZero;
+      ddsim->dd->performCollapsingMeasurement(ddsim->simulationState,
+                                              static_cast<dd::Qubit>(qubit),
+                                              result ? pZero : pOne, result);
+      if (!result) {
+        const auto x = qc::StandardOperation(qubit, qc::X);
+        auto tmp = ddsim->dd->multiply(dd::getDD(&x, *ddsim->dd),
+                                       ddsim->simulationState);
+        ddsim->dd->incRef(tmp);
+        ddsim->dd->decRef(ddsim->simulationState);
+        ddsim->simulationState = tmp;
+      }
+    }
+    return OK;
   }
   if ((*ddsim->iterator)->getType() == qc::Barrier) {
     ddsim->iterator++;
