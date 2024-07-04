@@ -2,5 +2,10 @@ qreg q[3];
 creg c[3];
 
 h q[1];
-cx q[1], q[0];
-reset q[1];
+
+gate entangle q0, q1 {
+    cx q0, q1;
+}
+
+entangle q[1], q[0];
+measure q[1] -> c[1];

@@ -29,7 +29,7 @@ std::string sweepBlocks(const std::string& code,
       if (level == 0) {
         const std::string block = result.substr(start + 1, pos - 1 - start);
         const std::string blockName =
-            "$__block" + std::to_string(blocks.size()) + "$";
+            "$__block" + std::to_string(blocks.size()) + "$;";
         blocks[blockName] = block;
         result.replace(start, pos + 1 - start, blockName);
         pos = start;
@@ -63,7 +63,7 @@ std::vector<Instruction> preprocessCode(const std::string& code) {
 
     Block block{false, ""};
     if (blockPos != std::string::npos) {
-      const auto endPos = line.find('$', blockPos + 1);
+      const auto endPos = line.find('$', blockPos + 1) + 1;
       const auto blockName = line.substr(blockPos, endPos - blockPos + 1);
       const auto blockContent = blocks[blockName];
 

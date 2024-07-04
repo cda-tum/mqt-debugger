@@ -85,6 +85,7 @@ Result ddsimLoadCode(SimulationState* self, const char* code) {
     std::stringstream ss{preprocessAssertionCode(code, ddsim)};
     ddsim->qc->import(ss, qc::Format::OpenQASM3);
   } catch (ParsingError& e) {
+    std::cerr << e.what() << std::endl;
     return ERROR;
   }
 

@@ -3,4 +3,4 @@ creg c[3];
 h q[0];
 measure q[0] -> c[0];
 if (c == 0) x q[0];
-assert-eq q[0] { 0, 1 };
+assert-eq q[0] { 0, 1 }
