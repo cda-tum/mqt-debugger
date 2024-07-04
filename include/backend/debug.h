@@ -23,6 +23,7 @@ struct SimulationState {
   bool (*didAssertionFail)(SimulationState* self);
 
   size_t (*getCurrentLine)(SimulationState* self);
+  size_t (*getNumQubits)(SimulationState* self);
   Result (*getAmplitudeIndex)(SimulationState* self, size_t qubit,
                               Complex* output);
   Result (*getAmplitudeBitstring)(SimulationState* self, const char* bitstring,

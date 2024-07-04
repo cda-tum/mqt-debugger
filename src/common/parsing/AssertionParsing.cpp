@@ -1,44 +1,12 @@
-#include "backend/parsing/AssertionParsing.hpp"
+#include "common/parsing/AssertionParsing.hpp"
+
+#include "common/parsing/Utils.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <memory>
 #include <sstream>
 #include <utility>
-
-std::string trim(const std::string& str) {
-  auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
-  auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
-  return (start < end) ? std::string(start, end) : std::string();
-}
-
-bool startsWith(const std::string& str, const std::string& prefix) {
-  return str.compare(0, prefix.size(), prefix) == 0;
-}
-
-std::vector<std::string> splitString(std::string& text, char delimiter) {
-  std::vector<std::string> result;
-  std::istringstream iss(text);
-  for (std::string s; std::getline(iss, s, delimiter);) {
-    result.push_back(s);
-  }
-  return result;
-}
-
-std::string replaceString(std::string str, const std::string& from,
-                          const std::string& to) {
-  size_t startPos = 0;
-  while ((startPos = str.find(from, startPos)) != std::string::npos) {
-    str.replace(startPos, from.length(), to);
-    startPos += to.length(); // Handles case where 'to' is a substring of 'from'
-  }
-  return str;
-}
-
-std::string removeWhitespace(std::string str) {
-  str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
-  return str;
-}
 
 Assertion::Assertion(std::vector<std::string> inputTargetQubits,
                      AssertionType assertionType)
@@ -159,6 +127,11 @@ bool isAssertion(std::string expression) {
 }
 
 std::unique_ptr<Assertion> parseAssertion(std::string assertionString) {
+  return parseAssertion(std::move(assertionString), "");
+}
+
+std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
+                                          std::string blockContent) {
   assertionString = trim(replaceString(assertionString, ";", ""));
 
   if (startsWith(assertionString, "assert-ent")) {
@@ -171,10 +144,8 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString) {
   }
   if (startsWith(assertionString, "assert-span")) {
     auto sub = assertionString.substr(12);
-    auto parts = splitString(sub, '{');
-    auto targets = extractTargetQubits(parts[0]);
-    auto spanString = trim(splitString(parts[1], '}')[0]);
-    auto statevectors = splitString(spanString, ';');
+    auto targets = extractTargetQubits(sub);
+    auto statevectors = splitString(blockContent, ';');
     std::vector<Statevector> statevectorList;
     for (auto& statevector : statevectors) {
       statevectorList.emplace_back(parseStatevector(statevector));
@@ -192,22 +163,23 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString) {
   }
   if (startsWith(assertionString, "assert-eq")) {
     auto sub = assertionString.substr(10);
-    auto parts = splitString(sub, '{');
-    auto targets = extractTargetQubits(parts[0]);
-    auto bodyString = trim(splitString(parts[1], '}')[0]);
-    auto thresholdParts = splitString(parts[1], '}');
-    auto threshold = thresholdParts.size() > 1
-                         ? removeWhitespace(thresholdParts[1])
-                         : std::string("1.0");
-    auto similarityThreshold =
-        threshold.length() > 0 ? std::stod(threshold) : 1.0;
+    auto targets = extractTargetQubits(sub);
+    double similarityThreshold = 0;
+    try {
+      similarityThreshold = std::stod(targets[0]);
+      targets.erase(targets.begin());
+    } catch (const std::invalid_argument& e) {
+      similarityThreshold = 1.0;
+    } catch (const std::out_of_range& e) {
+      similarityThreshold = 1.0;
+    }
 
-    if (bodyString.find(';') == std::string::npos) {
-      auto statevector = parseStatevector(bodyString);
+    if (blockContent.find(';') == std::string::npos) {
+      auto statevector = parseStatevector(blockContent);
       return std::make_unique<StatevectorEqualityAssertion>(
           statevector, similarityThreshold, targets);
     }
-    auto circuitCode = trim(bodyString);
+    auto circuitCode = trim(blockContent);
     return std::make_unique<CircuitEqualityAssertion>(
         circuitCode, similarityThreshold, targets);
   }

@@ -3,8 +3,10 @@
 #include "backend/dd/DDSimDebug.hpp"
 
 #include "backend/debug.h"
-#include "backend/parsing/AssertionParsing.hpp"
 #include "common.h"
+#include "common/parsing/AssertionParsing.hpp"
+#include "common/parsing/CodePreprocessing.hpp"
+#include "common/parsing/Utils.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -37,6 +39,7 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.didAssertionFail = ddsimDidAssertionFail;
 
   self->interface.getCurrentLine = ddsimGetCurrentLine;
+  self->interface.getNumQubits = ddsimGetNumQubits;
   self->interface.getAmplitudeIndex = ddsimGetAmplitudeIndex;
   self->interface.getAmplitudeBitstring = ddsimGetAmplitudeBitstring;
   self->interface.getClassicalVariable = ddsimGetClassicalVariable;
@@ -245,6 +248,11 @@ size_t ddsimGetCurrentLine(SimulationState* self) {
   return ddsim->currentLine;
 }
 
+size_t ddsimGetNumQubits(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  return ddsim->qc->getNqubits();
+}
+
 Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
                               Complex* output) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
@@ -319,30 +327,10 @@ Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self) {
 }
 
 //-----------------------------------------------------------------------------------------
-
-std::string replaceAll(std::string str, const std::string& from,
-                       const std::string& to) {
-  size_t startPos = 0;
-  while ((startPos = str.find(from, startPos)) != std::string::npos) {
-    str.replace(startPos, from.length(), to);
-    startPos += to.length(); // Handles case where 'to' is a substring of 'from'
-  }
-  return str;
-}
-
-std::vector<std::string> split(std::string& text, char delimiter) {
-  std::vector<std::string> result;
-  std::istringstream iss(text);
-  for (std::string s; std::getline(iss, s, delimiter);) {
-    result.push_back(s);
-  }
-  return result;
-}
-
 size_t variableToQubit(DDSimulationState* ddsim, std::string& variable) {
-  auto declaration = replaceAll(variable, " ", "");
-  declaration = replaceAll(declaration, "\t", "");
-  auto parts = split(declaration, '[');
+  auto declaration = replaceString(variable, " ", "");
+  declaration = replaceString(declaration, "\t", "");
+  auto parts = splitString(declaration, '[');
   auto var = parts[0];
   const size_t idx = std::stoul(parts[1].substr(0, parts[1].size() - 1));
 
@@ -483,10 +471,47 @@ bool checkAssertionEqualityStatevector(
   return similarity >= similarityThreshold;
 }
 
-[[noreturn]] bool checkAssertionEqualityCircuit(
+bool checkAssertionEqualityCircuit(
     [[maybe_unused]] DDSimulationState* ddsim,
     [[maybe_unused]] std::unique_ptr<CircuitEqualityAssertion>& assertion) {
-  throw std::runtime_error("Span assertions are not implemented");
+  DDSimulationState secondSimulation;
+  createDDSimulationState(&secondSimulation);
+  secondSimulation.interface.loadCode(&secondSimulation.interface,
+                                      assertion->getCircuitCode().c_str());
+  if (!secondSimulation.assertionInstructions.empty()) {
+    destroyDDSimulationState(&secondSimulation);
+    throw std::runtime_error(
+        "Circuit equality assertions cannot contain nested assertions");
+  }
+  secondSimulation.interface.runSimulation(&secondSimulation.interface);
+
+  Statevector sv2;
+  sv2.numQubits =
+      secondSimulation.interface.getNumQubits(&secondSimulation.interface);
+  sv2.numStates = 1 << sv2.numQubits;
+  std::vector<Complex> amplitudes2(sv2.numStates);
+  sv2.amplitudes = amplitudes2.data();
+  secondSimulation.interface.getStateVectorFull(&secondSimulation.interface,
+                                                &sv2);
+  destroyDDSimulationState(&secondSimulation);
+
+  std::vector<size_t> qubits;
+  for (auto variable : assertion->getTargetQubits()) {
+    qubits.push_back(variableToQubit(ddsim, variable));
+  }
+  Statevector sv;
+  sv.numQubits = qubits.size();
+  sv.numStates = 1 << sv.numQubits;
+  std::vector<Complex> amplitudes(sv.numStates);
+  sv.amplitudes = amplitudes.data();
+  ddsim->interface.getStateVectorSub(&ddsim->interface, sv.numQubits,
+                                     qubits.data(), &sv);
+
+  const double similarityThreshold = assertion->getSimilarityThreshold();
+
+  const double similarity = dotProduct(sv, sv2);
+
+  return similarity >= similarityThreshold;
 }
 
 bool checkAssertion(DDSimulationState* ddsim,
@@ -532,25 +557,21 @@ bool checkAssertion(DDSimulationState* ddsim,
 
 std::string preprocessAssertionCode(const char* code,
                                     DDSimulationState* ddsim) {
-  std::vector<std::string> lines;
-  std::string token;
-  std::istringstream tokenStream(code);
-  while (std::getline(tokenStream, token, ';')) {
-    if (replaceAll(token, "\n", "").empty()) {
-      continue;
-    }
-    lines.push_back(replaceAll(token, "\n", ""));
-  }
 
+  auto instructions = preprocessCode(code);
   std::vector<std::string> correctLines;
-  size_t i = 0;
-  for (const auto& line : lines) {
-    if (line.find("qreg") != std::string::npos) {
-      auto declaration = replaceAll(line, "qreg", "");
-      declaration = replaceAll(declaration, " ", "");
-      declaration = replaceAll(declaration, "\t", "");
-      declaration = replaceAll(declaration, ";", "");
-      auto parts = split(declaration, '[');
+
+  for (auto& instruction : instructions) {
+    if (instruction.assertion != nullptr) {
+      ddsim->instructionTypes.push_back(ASSERTION);
+      ddsim->assertionInstructions.insert(
+          {instruction.lineNumber, std::move(instruction.assertion)});
+    } else if (instruction.code.find("qreg") != std::string::npos) {
+      auto declaration = replaceString(instruction.code, "qreg", "");
+      declaration = replaceString(declaration, " ", "");
+      declaration = replaceString(declaration, "\t", "");
+      declaration = replaceString(declaration, ";", "");
+      auto parts = splitString(declaration, '[');
       auto name = parts[0];
       const size_t size = std::stoul(parts[1].substr(0, parts[1].size() - 1));
 
@@ -561,14 +582,14 @@ std::string preprocessAssertionCode(const char* code,
       const QubitRegisterDefinition reg{name, index, size};
       ddsim->qubitRegisters.push_back(reg);
 
-      correctLines.push_back(line);
+      correctLines.push_back(instruction.code);
       ddsim->instructionTypes.push_back(NOP);
-    } else if (line.find("creg") != std::string::npos) {
-      auto declaration = replaceAll(line, "creg", "");
-      declaration = replaceAll(declaration, " ", "");
-      declaration = replaceAll(declaration, "\t", "");
-      declaration = replaceAll(declaration, ";", "");
-      auto parts = split(declaration, '[');
+    } else if (instruction.code.find("creg") != std::string::npos) {
+      auto declaration = replaceString(instruction.code, "creg", "");
+      declaration = replaceString(declaration, " ", "");
+      declaration = replaceString(declaration, "\t", "");
+      declaration = replaceString(declaration, ";", "");
+      auto parts = splitString(declaration, '[');
       auto name = parts[0];
       const size_t size = std::stoul(parts[1].substr(0, parts[1].size() - 1));
 
@@ -579,16 +600,12 @@ std::string preprocessAssertionCode(const char* code,
       const ClassicalRegisterDefinition reg{name, index, size};
       ddsim->classicalRegisters.push_back(reg);
 
-      correctLines.push_back(line);
+      correctLines.push_back(instruction.code);
       ddsim->instructionTypes.push_back(NOP);
-    } else if (isAssertion(line)) {
-      ddsim->instructionTypes.push_back(ASSERTION);
-      ddsim->assertionInstructions.insert({i, parseAssertion(line)});
     } else {
-      correctLines.push_back(line);
+      correctLines.push_back(instruction.code);
       ddsim->instructionTypes.push_back(SIMULATE);
     }
-    i++;
   }
 
   return std::accumulate(

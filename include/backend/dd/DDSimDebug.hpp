@@ -2,8 +2,8 @@
 
 #include "QuantumComputation.hpp"
 #include "backend/debug.h"
-#include "backend/parsing/AssertionParsing.hpp"
 #include "common.h"
+#include "common/parsing/AssertionParsing.hpp"
 #include "dd/Operations.hpp"
 #include "dd/Package.hpp"
 
@@ -54,6 +54,7 @@ bool ddsimIsFinished(SimulationState* self);
 bool ddsimDidAssertionFail(SimulationState* self);
 
 size_t ddsimGetCurrentLine(SimulationState* self);
+size_t ddsimGetNumQubits(SimulationState* self);
 Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
                               Complex* output);
 Result ddsimGetAmplitudeBitstring(SimulationState* self, const char* bitstring,
