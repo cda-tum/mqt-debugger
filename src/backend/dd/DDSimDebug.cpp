@@ -200,7 +200,21 @@ Result ddsimStepBackward(SimulationState* self) {
     ddsim->iterator--;
     qc::MatrixDD currDD{};
     if ((*ddsim->iterator)->isClassicControlledOperation()) {
-      // TODO this is for later
+      const auto* op = dynamic_cast<qc::ClassicControlledOperation*>(
+          (*ddsim->iterator).get());
+      const auto& controls = op->getControlRegister();
+      const auto& exp = op->getExpectedValue();
+      size_t registerValue = 0;
+      for (size_t i = 0; i < controls.second; i++) {
+        const auto name = getClassicalBitName(ddsim, controls.first + i);
+        const auto& value = ddsim->variables[name].value.boolValue;
+        registerValue |= (value ? 1ULL : 0ULL) << i;
+      }
+      if (registerValue == exp) {
+        currDD = dd::getInverseDD(ddsim->iterator->get(), *ddsim->dd);
+      } else {
+        currDD = ddsim->dd->makeIdent();
+      }
     } else {
       currDD = dd::getInverseDD(
           ddsim->iterator->get(),
