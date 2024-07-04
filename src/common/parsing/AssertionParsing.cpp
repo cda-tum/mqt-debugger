@@ -1,5 +1,6 @@
 #include "common/parsing/AssertionParsing.hpp"
 
+#include "common/parsing/ParsingError.hpp"
 #include "common/parsing/Utils.hpp"
 
 #include <algorithm>
@@ -29,7 +30,14 @@ SuperpositionAssertion::SuperpositionAssertion(
 SpanAssertion::SpanAssertion(std::vector<Statevector> inputSpanVectors,
                              std::vector<std::string> inputTargetQubits)
     : Assertion(std::move(inputTargetQubits), AssertionType::Span),
-      spanVectors(std::move(inputSpanVectors)) {}
+      spanVectors(std::move(inputSpanVectors)) {
+  for (auto& statevector : spanVectors) {
+    if (statevector.numQubits != getTargetQubits().size()) {
+      throw ParsingError(
+          "Number of target qubits must match number of qubits in statevector");
+    }
+  }
+}
 const std::vector<Statevector>& SpanAssertion::getSpanVectors() const {
   return spanVectors;
 }
@@ -43,7 +51,11 @@ EqualityAssertion::EqualityAssertion(double inputSimilarityThreshold,
                                      std::vector<std::string> inputTargetQubits,
                                      AssertionType assertionType)
     : Assertion(std::move(inputTargetQubits), assertionType),
-      similarityThreshold(inputSimilarityThreshold) {}
+      similarityThreshold(inputSimilarityThreshold) {
+  if (similarityThreshold < 0 || similarityThreshold > 1) {
+    throw ParsingError("Similarity threshold must be between 0 and 1");
+  }
+}
 double EqualityAssertion::getSimilarityThreshold() const {
   return similarityThreshold;
 }
@@ -53,7 +65,12 @@ StatevectorEqualityAssertion::StatevectorEqualityAssertion(
     std::vector<std::string> inputTargetQubits)
     : EqualityAssertion(inputSimilarityThreshold, std::move(inputTargetQubits),
                         AssertionType::StatevectorEquality),
-      targetStatevector(inputTargetStatevector) {}
+      targetStatevector(inputTargetStatevector) {
+  if (targetStatevector.numQubits != getTargetQubits().size()) {
+    throw ParsingError(
+        "Number of target qubits must match number of qubits in statevector");
+  }
+}
 const Statevector& StatevectorEqualityAssertion::getTargetStatevector() const {
   return targetStatevector;
 }
@@ -104,7 +121,7 @@ Statevector parseStatevector(std::string statevectorString) {
   size_t n = amplitudes->size();
   while (n > 0) {
     if ((n & 1) == 1 && n != 1) {
-      throw std::runtime_error("Invalid statevector size");
+      throw ParsingError("Invalid statevector size");
     }
     n >>= 1;
     numQubits++;
@@ -151,7 +168,7 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
     auto svSize = statevectorList[0].numStates;
     for (auto& sv : statevectorList) {
       if (sv.numStates != svSize) {
-        throw std::runtime_error(
+        throw ParsingError(
             "Statevectors in span assertion must have the same size");
       }
     }
@@ -179,5 +196,5 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
     return std::make_unique<CircuitEqualityAssertion>(
         circuitCode, similarityThreshold, targets);
   }
-  throw std::runtime_error("Expression is not a valid assertion");
+  throw ParsingError("Expression is not a valid assertion");
 }

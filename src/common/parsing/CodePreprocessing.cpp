@@ -3,7 +3,6 @@
 #include "common/parsing/Utils.hpp"
 
 #include <map>
-#include <sstream>
 #include <utility>
 
 Instruction::Instruction(size_t inputLineNumber, std::string inputCode,

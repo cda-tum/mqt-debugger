@@ -39,11 +39,13 @@ add_executable(
   include/common.h
   include/common/parsing/AssertionParsing.hpp
   include/common/parsing/CodePreprocessing.hpp
+  include/common/parsing/ParsingError.hpp
   include/common/parsing/Utils.hpp
   include/frontend/cli/CliFrontEnd.hpp
   src/backend/dd/DDSimDebug.cpp
   src/common/parsing/AssertionParsing.cpp
   src/common/parsing/CodePreprocessing.cpp
+  src/common/parsing/ParsingError.cpp
   src/common/parsing/Utils.cpp
   src/frontend/cli/CliFrontEnd.cpp
   test/testDDSimDebugger.cpp)

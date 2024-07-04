@@ -110,7 +110,7 @@ Result ddsimStepForward(SimulationState* self) {
     return OK;
   }
 
-  qc::MatrixDD currDD{};
+  qc::MatrixDD currDD;
   if ((*ddsim->iterator)->getType() == qc::Measure) {
     auto qubitsToMeasure = (*ddsim->iterator)->getTargets();
     auto classicalBits =
