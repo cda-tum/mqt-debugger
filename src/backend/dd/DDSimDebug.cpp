@@ -6,6 +6,7 @@
 #include "common.h"
 #include "common/parsing/AssertionParsing.hpp"
 #include "common/parsing/CodePreprocessing.hpp"
+#include "common/parsing/ParsingError.hpp"
 #include "common/parsing/Utils.hpp"
 
 #include <algorithm>
@@ -79,8 +80,13 @@ Result ddsimInit(SimulationState* self) {
 Result ddsimLoadCode(SimulationState* self, const char* code) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   ddsim->currentInstruction = 0;
-  std::stringstream ss{preprocessAssertionCode(code, ddsim)};
-  ddsim->qc->import(ss, qc::Format::OpenQASM3);
+
+  try {
+    std::stringstream ss{preprocessAssertionCode(code, ddsim)};
+    ddsim->qc->import(ss, qc::Format::OpenQASM3);
+  } catch (ParsingError& e) {
+    return ERROR;
+  }
 
   ddsim->iterator = ddsim->qc->begin();
   ddsim->dd->resize(ddsim->qc->getNqubits());

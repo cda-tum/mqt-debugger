@@ -21,7 +21,11 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
   initCode(code);
 
   std::string command;
-  state->loadCode(state, code);
+  const auto result = state->loadCode(state, code);
+  if (result == ERROR) {
+    std::cout << "Error loading code\n";
+    return;
+  }
   bool wasError = false;
   bool wasGet = false;
 
