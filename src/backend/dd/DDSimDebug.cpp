@@ -199,6 +199,11 @@ Result ddsimStepBackward(SimulationState* self) {
 
     ddsim->iterator--;
     qc::MatrixDD currDD{};
+
+    if ((*ddsim->iterator)->getType() == qc::Barrier) {
+      ddsim->iterator++;
+      return OK;
+    }
     if ((*ddsim->iterator)->isClassicControlledOperation()) {
       const auto* op = dynamic_cast<qc::ClassicControlledOperation*>(
           (*ddsim->iterator).get());
