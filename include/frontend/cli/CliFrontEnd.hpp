@@ -13,7 +13,7 @@ public:
   void run(const char* code, SimulationState* state);
 
 private:
-  std::vector<std::string> lines;
+  std::string currentCode;
 
   void printState(SimulationState* state);
   void initCode(const char* code);

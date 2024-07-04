@@ -126,10 +126,6 @@ bool isAssertion(std::string expression) {
          startsWith(expression, "assert-eq");
 }
 
-std::unique_ptr<Assertion> parseAssertion(std::string assertionString) {
-  return parseAssertion(std::move(assertionString), "");
-}
-
 std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
                                           std::string blockContent) {
   assertionString = trim(replaceString(assertionString, ";", ""));

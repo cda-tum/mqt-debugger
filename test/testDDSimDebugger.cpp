@@ -5,8 +5,7 @@
 #include <iostream>
 
 int main() {
-  // std::ifstream file("../test/code/statevector_equality_test.qasm");
-  std::ifstream file("../test/code/test.qasm");
+  std::ifstream file("../test/code/circuit_equality_test.qasm");
   if (!file.is_open()) {
     std::cerr << "Could not open file\n";
     file.close();

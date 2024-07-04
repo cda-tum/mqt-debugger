@@ -25,13 +25,15 @@ struct ClassicalRegisterDefinition {
 
 struct DDSimulationState {
   SimulationState interface;
-  size_t currentLine;
+  size_t currentInstruction;
 
   std::unique_ptr<qc::QuantumComputation> qc;
   std::unique_ptr<dd::Package<>> dd;
   std::vector<std::unique_ptr<qc::Operation>>::iterator iterator;
   qc::VectorDD simulationState;
   std::vector<InstructionType> instructionTypes;
+  std::vector<size_t> instructionStarts;
+  std::vector<size_t> instructionEnds;
   std::map<size_t, std::unique_ptr<Assertion>> assertionInstructions;
   std::vector<QubitRegisterDefinition> qubitRegisters;
   std::vector<ClassicalRegisterDefinition> classicalRegisters;
@@ -53,7 +55,10 @@ bool ddsimCanStepBackward(SimulationState* self);
 bool ddsimIsFinished(SimulationState* self);
 bool ddsimDidAssertionFail(SimulationState* self);
 
-size_t ddsimGetCurrentLine(SimulationState* self);
+size_t ddsimGetCurrentInstruction(SimulationState* self);
+Result ddsimGetCurrentInstructionPosition(SimulationState* self, size_t* start,
+                                          size_t* end);
+
 size_t ddsimGetNumQubits(SimulationState* self);
 Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
                               Complex* output);

@@ -76,7 +76,6 @@ public:
   [[nodiscard]] const std::string& getCircuitCode() const;
 };
 
-std::unique_ptr<Assertion> parseAssertion(std::string assertionString);
 std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
                                           std::string blockContent);
 bool isAssertion(std::string expression);

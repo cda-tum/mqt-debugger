@@ -14,9 +14,14 @@ struct Instruction {
   std::string code;
   std::unique_ptr<Assertion> assertion;
 
+  size_t originalCodeStartPosition;
+  size_t originalCodeEndPosition;
+
   Block block;
   Instruction(size_t lineNumber, std::string code,
-              std::unique_ptr<Assertion>& assertion, Block block);
+              std::unique_ptr<Assertion>& assertion,
+              size_t originalCodeStartPosition, size_t originalCodeEndPosition,
+              Block block);
 };
 
 std::vector<Instruction> preprocessCode(const std::string& code);

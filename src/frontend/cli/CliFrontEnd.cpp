@@ -15,18 +15,7 @@ void clearScreen() {
   std::cout << "\033[2J\033[1;1H";
 }
 
-void CliFrontEnd::initCode(const char* code) {
-  lines.clear();
-  std::string token;
-  std::istringstream tokenStream(code);
-  while (std::getline(tokenStream, token, ';')) {
-    if (trim(token).empty()) {
-      continue;
-    }
-    lines.push_back(trim(token));
-  }
-  lines.emplace_back("END");
-}
+void CliFrontEnd::initCode(const char* code) { currentCode = code; }
 
 void CliFrontEnd::run(const char* code, SimulationState* state) {
   initCode(code);
@@ -88,13 +77,21 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
 }
 
 void CliFrontEnd::printState(SimulationState* state) {
-  for (size_t i = 0; i < lines.size(); i++) {
-    if (i == state->getCurrentLine(state)) {
-      std::cout << ANSI_BG_YELLOW << " > ";
-    } else {
-      std::cout << ANSI_BG_RESET << " > ";
-    }
-    std::cout << lines[i].c_str() << "\t\t\t\t" << ANSI_BG_RESET << "\n";
+  size_t currentStart = 0;
+  size_t currentEnd = 0;
+  const Result result =
+      state->getCurrentInstructionPosition(state, &currentStart, &currentEnd);
+
+  std::cout << currentCode.substr(0, currentStart);
+  if (result == OK) {
+    std::cout << ANSI_BG_YELLOW
+              << currentCode.substr(currentStart,
+                                    currentEnd - currentStart + 1);
+    std::cout << ANSI_BG_RESET
+              << currentCode.substr(currentEnd + 1,
+                                    currentCode.length() - currentEnd);
+  } else {
+    std::cout << ANSI_BG_RESET << currentCode;
   }
   std::cout << "\n";
 

@@ -38,7 +38,9 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.isFinished = ddsimIsFinished;
   self->interface.didAssertionFail = ddsimDidAssertionFail;
 
-  self->interface.getCurrentLine = ddsimGetCurrentLine;
+  self->interface.getCurrentInstruction = ddsimGetCurrentInstruction;
+  self->interface.getCurrentInstructionPosition =
+      ddsimGetCurrentInstructionPosition;
   self->interface.getNumQubits = ddsimGetNumQubits;
   self->interface.getAmplitudeIndex = ddsimGetAmplitudeIndex;
   self->interface.getAmplitudeBitstring = ddsimGetAmplitudeBitstring;
@@ -65,7 +67,7 @@ Result ddsimInit(SimulationState* self) {
   ddsim->qc = std::make_unique<qc::QuantumComputation>();
   ddsim->dd = std::make_unique<dd::Package<>>(1);
   ddsim->iterator = ddsim->qc->begin();
-  ddsim->currentLine = 0;
+  ddsim->currentInstruction = 0;
   ddsim->assertionFailed = false;
   ddsim->lastIrreversibleStep = 0;
 
@@ -76,7 +78,7 @@ Result ddsimInit(SimulationState* self) {
 
 Result ddsimLoadCode(SimulationState* self, const char* code) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  ddsim->currentLine = 0;
+  ddsim->currentInstruction = 0;
   std::stringstream ss{preprocessAssertionCode(code, ddsim)};
   ddsim->qc->import(ss, qc::Format::OpenQASM3);
 
@@ -94,16 +96,17 @@ Result ddsimStepForward(SimulationState* self) {
   if (!self->canStepForward(self)) {
     return ERROR;
   }
-  ddsim->currentLine++;
+  ddsim->currentInstruction++;
 
-  if (ddsim->instructionTypes[ddsim->currentLine - 1] == ASSERTION) {
-    auto& assertion = ddsim->assertionInstructions[ddsim->currentLine - 1];
+  if (ddsim->instructionTypes[ddsim->currentInstruction - 1] == ASSERTION) {
+    auto& assertion =
+        ddsim->assertionInstructions[ddsim->currentInstruction - 1];
     ddsim->assertionFailed = !checkAssertion(ddsim, assertion);
     return OK;
   }
 
   ddsim->assertionFailed = false;
-  if (ddsim->instructionTypes[ddsim->currentLine - 1] != SIMULATE) {
+  if (ddsim->instructionTypes[ddsim->currentInstruction - 1] != SIMULATE) {
     return OK;
   }
 
@@ -137,7 +140,7 @@ Result ddsimStepForward(SimulationState* self) {
     }
 
     ddsim->iterator++;
-    ddsim->lastIrreversibleStep = ddsim->currentLine;
+    ddsim->lastIrreversibleStep = ddsim->currentInstruction;
     return OK;
   }
   if ((*ddsim->iterator)->getType() == qc::Reset) {
@@ -170,9 +173,9 @@ Result ddsimStepBackward(SimulationState* self) {
   if (!self->canStepBackward(self)) {
     return ERROR;
   }
-  ddsim->currentLine--;
+  ddsim->currentInstruction--;
 
-  if (ddsim->instructionTypes[ddsim->currentLine] == SIMULATE) {
+  if (ddsim->instructionTypes[ddsim->currentInstruction] == SIMULATE) {
 
     ddsim->iterator--;
     qc::MatrixDD currDD{};
@@ -191,9 +194,10 @@ Result ddsimStepBackward(SimulationState* self) {
     ddsim->dd->garbageCollect();
   }
 
-  if (ddsim->currentLine > 0 &&
-      ddsim->instructionTypes[ddsim->currentLine - 1] == ASSERTION) {
-    auto& assertion = ddsim->assertionInstructions[ddsim->currentLine - 1];
+  if (ddsim->currentInstruction > 0 &&
+      ddsim->instructionTypes[ddsim->currentInstruction - 1] == ASSERTION) {
+    auto& assertion =
+        ddsim->assertionInstructions[ddsim->currentInstruction - 1];
     ddsim->assertionFailed = !checkAssertion(ddsim, assertion);
   } else {
     ddsim->assertionFailed = false;
@@ -212,7 +216,7 @@ Result ddsimRunSimulation(SimulationState* self) {
 
 Result ddsimResetSimulation(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  ddsim->currentLine = 0;
+  ddsim->currentInstruction = 0;
 
   ddsim->iterator = ddsim->qc->begin();
   ddsim->assertionFailed = false;
@@ -225,17 +229,17 @@ Result ddsimResetSimulation(SimulationState* self) {
 
 bool ddsimCanStepForward(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  return ddsim->currentLine < ddsim->instructionTypes.size();
+  return ddsim->currentInstruction < ddsim->instructionTypes.size();
 }
 
 bool ddsimCanStepBackward(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  return ddsim->currentLine > ddsim->lastIrreversibleStep;
+  return ddsim->currentInstruction > ddsim->lastIrreversibleStep;
 }
 
 bool ddsimIsFinished(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  return ddsim->currentLine == ddsim->instructionTypes.size();
+  return ddsim->currentInstruction == ddsim->instructionTypes.size();
 }
 
 bool ddsimDidAssertionFail(SimulationState* self) {
@@ -243,9 +247,20 @@ bool ddsimDidAssertionFail(SimulationState* self) {
   return ddsim->assertionFailed;
 }
 
-size_t ddsimGetCurrentLine(SimulationState* self) {
+size_t ddsimGetCurrentInstruction(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  return ddsim->currentLine;
+  return ddsim->currentInstruction;
+}
+
+Result ddsimGetCurrentInstructionPosition(SimulationState* self, size_t* start,
+                                          size_t* end) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (ddsim->currentInstruction >= ddsim->instructionStarts.size()) {
+    return ERROR;
+  }
+  *start = ddsim->instructionStarts[ddsim->currentInstruction];
+  *end = ddsim->instructionEnds[ddsim->currentInstruction];
+  return OK;
 }
 
 size_t ddsimGetNumQubits(SimulationState* self) {
@@ -560,8 +575,13 @@ std::string preprocessAssertionCode(const char* code,
 
   auto instructions = preprocessCode(code);
   std::vector<std::string> correctLines;
+  ddsim->instructionTypes.clear();
+  ddsim->instructionStarts.clear();
+  ddsim->instructionEnds.clear();
 
   for (auto& instruction : instructions) {
+    ddsim->instructionStarts.push_back(instruction.originalCodeStartPosition);
+    ddsim->instructionEnds.push_back(instruction.originalCodeEndPosition);
     if (instruction.assertion != nullptr) {
       ddsim->instructionTypes.push_back(ASSERTION);
       ddsim->assertionInstructions.insert(
@@ -610,7 +630,7 @@ std::string preprocessAssertionCode(const char* code,
 
   return std::accumulate(
       correctLines.begin(), correctLines.end(), std::string(),
-      [](const std::string& a, const std::string& b) { return a + b + ";"; });
+      [](const std::string& a, const std::string& b) { return a + b; });
 }
 
 std::string getClassicalBitName(DDSimulationState* ddsim, size_t index) {

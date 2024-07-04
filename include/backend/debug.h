@@ -22,7 +22,9 @@ struct SimulationState {
   bool (*isFinished)(SimulationState* self);
   bool (*didAssertionFail)(SimulationState* self);
 
-  size_t (*getCurrentLine)(SimulationState* self);
+  size_t (*getCurrentInstruction)(SimulationState* self);
+  Result (*getCurrentInstructionPosition)(SimulationState* self, size_t* start,
+                                          size_t* end);
   size_t (*getNumQubits)(SimulationState* self);
   Result (*getAmplitudeIndex)(SimulationState* self, size_t qubit,
                               Complex* output);
