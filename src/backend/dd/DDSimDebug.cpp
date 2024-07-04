@@ -646,6 +646,12 @@ std::string preprocessAssertionCode(const char* code,
       ddsim->instructionTypes.push_back(ASSERTION);
       ddsim->assertionInstructions.insert(
           {instruction.lineNumber, std::move(instruction.assertion)});
+    } else if (instruction.code.find("gate") != std::string::npos) {
+      correctLines.push_back(instruction.code +
+                             (instruction.block.valid
+                                  ? ("{" + instruction.block.code + "}")
+                                  : ""));
+      ddsim->instructionTypes.push_back(NOP);
     } else if (instruction.code.find("qreg") != std::string::npos) {
       auto declaration = replaceString(instruction.code, "qreg", "");
       declaration = replaceString(declaration, " ", "");
@@ -683,7 +689,10 @@ std::string preprocessAssertionCode(const char* code,
       correctLines.push_back(instruction.code);
       ddsim->instructionTypes.push_back(NOP);
     } else {
-      correctLines.push_back(instruction.code);
+      correctLines.push_back(instruction.code +
+                             (instruction.block.valid
+                                  ? ("{" + instruction.block.code + "}")
+                                  : ""));
       ddsim->instructionTypes.push_back(SIMULATE);
     }
   }
