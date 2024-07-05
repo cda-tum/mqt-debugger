@@ -8,7 +8,6 @@
 
 #include <array>
 #include <iostream>
-#include <sstream>
 
 void clearScreen() {
   // Clear the screen using an ANSI escape sequence
@@ -66,7 +65,7 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
     std::getline(std::cin, command);
     if (command == "run") {
       state->runSimulation(state);
-    } else if (command == "step") {
+    } else if (command == "step" || command.empty()) {
       state->stepForward(state);
     } else if (command == "back") {
       state->stepBackward(state);

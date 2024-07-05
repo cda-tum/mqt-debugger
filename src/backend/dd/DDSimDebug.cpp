@@ -2,6 +2,7 @@
 
 #include "backend/dd/DDSimDebug.hpp"
 
+#include "CircuitOptimizer.hpp"
 #include "backend/debug.h"
 #include "common.h"
 #include "common/parsing/AssertionParsing.hpp"
@@ -69,8 +70,11 @@ Result ddsimInit(SimulationState* self) {
   ddsim->dd = std::make_unique<dd::Package<>>(1);
   ddsim->iterator = ddsim->qc->begin();
   ddsim->currentInstruction = 0;
+  ddsim->previousInstructionStack.clear();
+  ddsim->callReturnStack.clear();
+  ddsim->callSubstitutions.clear();
+  ddsim->restoreCallReturnStack.clear();
   ddsim->assertionFailed = false;
-  ddsim->lastIrreversibleStep = 0;
 
   resetSimulationState(ddsim);
 
@@ -80,12 +84,17 @@ Result ddsimInit(SimulationState* self) {
 Result ddsimLoadCode(SimulationState* self, const char* code) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   ddsim->currentInstruction = 0;
+  ddsim->previousInstructionStack.clear();
+  ddsim->callReturnStack.clear();
+  ddsim->callSubstitutions.clear();
+  ddsim->restoreCallReturnStack.clear();
 
   try {
     std::stringstream ss{preprocessAssertionCode(code, ddsim)};
     ddsim->qc->import(ss, qc::Format::OpenQASM3);
+    qc::CircuitOptimizer::flattenOperations(*ddsim->qc);
   } catch (ParsingError& e) {
-    std::cerr << e.what() << std::endl;
+    std::cerr << e.what() << "\n";
     return ERROR;
   }
 
@@ -103,17 +112,27 @@ Result ddsimStepForward(SimulationState* self) {
   if (!self->canStepForward(self)) {
     return ERROR;
   }
-  ddsim->currentInstruction++;
+  const auto currentInstruction = ddsim->currentInstruction;
+  ddsim->currentInstruction = ddsim->successorInstructions[currentInstruction];
+  if (ddsim->currentInstruction == 0) {
+    ddsim->currentInstruction = ddsim->callReturnStack.back() + 1;
+    ddsim->restoreCallReturnStack.emplace_back(ddsim->currentInstruction,
+                                               ddsim->callReturnStack.back());
+    ddsim->callReturnStack.pop_back();
+  }
+  if (ddsim->instructionTypes[currentInstruction] == CALL) {
+    ddsim->callReturnStack.push_back(currentInstruction);
+  }
+  ddsim->previousInstructionStack.emplace_back(currentInstruction);
 
-  if (ddsim->instructionTypes[ddsim->currentInstruction - 1] == ASSERTION) {
-    auto& assertion =
-        ddsim->assertionInstructions[ddsim->currentInstruction - 1];
+  if (ddsim->instructionTypes[currentInstruction] == ASSERTION) {
+    auto& assertion = ddsim->assertionInstructions[currentInstruction];
     ddsim->assertionFailed = !checkAssertion(ddsim, assertion);
     return OK;
   }
 
   ddsim->assertionFailed = false;
-  if (ddsim->instructionTypes[ddsim->currentInstruction - 1] != SIMULATE) {
+  if (ddsim->instructionTypes[currentInstruction] != SIMULATE) {
     return OK;
   }
 
@@ -147,13 +166,15 @@ Result ddsimStepForward(SimulationState* self) {
     }
 
     ddsim->iterator++;
-    ddsim->lastIrreversibleStep = ddsim->currentInstruction;
+    ddsim->previousInstructionStack.clear();
+    ddsim->restoreCallReturnStack.clear();
     return OK;
   }
   if ((*ddsim->iterator)->getType() == qc::Reset) {
     auto qubitsToMeasure = (*ddsim->iterator)->getTargets();
     ddsim->iterator++;
-    ddsim->lastIrreversibleStep = ddsim->currentInstruction;
+    ddsim->previousInstructionStack.clear();
+    ddsim->restoreCallReturnStack.clear();
 
     for (const auto qubit : qubitsToMeasure) {
       auto [pZero, pOne] = ddsim->dd->determineMeasurementProbabilities(
@@ -214,12 +235,25 @@ Result ddsimStepBackward(SimulationState* self) {
   if (!self->canStepBackward(self)) {
     return ERROR;
   }
-  ddsim->currentInstruction--;
+
+  if (!ddsim->restoreCallReturnStack.empty() &&
+      ddsim->currentInstruction == ddsim->restoreCallReturnStack.back().first) {
+    ddsim->callReturnStack.push_back(
+        ddsim->restoreCallReturnStack.back().second);
+    ddsim->restoreCallReturnStack.pop_back();
+  }
+
+  ddsim->currentInstruction = ddsim->previousInstructionStack.back();
+  ddsim->previousInstructionStack.pop_back();
+
+  if (ddsim->currentInstruction == ddsim->callReturnStack.back()) {
+    ddsim->callReturnStack.pop_back();
+  }
 
   if (ddsim->instructionTypes[ddsim->currentInstruction] == SIMULATE) {
 
     ddsim->iterator--;
-    qc::MatrixDD currDD{};
+    qc::MatrixDD currDD;
 
     if ((*ddsim->iterator)->getType() == qc::Barrier) {
       ddsim->iterator++;
@@ -277,10 +311,13 @@ Result ddsimRunSimulation(SimulationState* self) {
 Result ddsimResetSimulation(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   ddsim->currentInstruction = 0;
+  ddsim->previousInstructionStack.clear();
+  ddsim->callReturnStack.clear();
+  ddsim->callSubstitutions.clear();
+  ddsim->restoreCallReturnStack.clear();
 
   ddsim->iterator = ddsim->qc->begin();
   ddsim->assertionFailed = false;
-  ddsim->lastIrreversibleStep = 0;
   ddsim->variables.clear();
 
   resetSimulationState(ddsim);
@@ -294,7 +331,7 @@ bool ddsimCanStepForward(SimulationState* self) {
 
 bool ddsimCanStepBackward(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  return ddsim->currentInstruction > ddsim->lastIrreversibleStep;
+  return !ddsim->previousInstructionStack.empty();
 }
 
 bool ddsimIsFinished(SimulationState* self) {
@@ -405,9 +442,29 @@ Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self) {
 size_t variableToQubit(DDSimulationState* ddsim, std::string& variable) {
   auto declaration = replaceString(variable, " ", "");
   declaration = replaceString(declaration, "\t", "");
-  auto parts = splitString(declaration, '[');
-  auto var = parts[0];
-  const size_t idx = std::stoul(parts[1].substr(0, parts[1].size() - 1));
+  std::string var;
+  size_t idx = 0;
+  if (declaration.find('[') != std::string::npos) {
+    auto parts = splitString(declaration, '[');
+    var = parts[0];
+    idx = std::stoul(parts[1].substr(0, parts[1].size() - 1));
+  } else {
+    var = declaration;
+  }
+
+  for (size_t i = ddsim->callReturnStack.size() - 1; i != -1ULL; i--) {
+    const auto call = ddsim->callReturnStack[i];
+    if (ddsim->callSubstitutions[call].find(var) ==
+        ddsim->callSubstitutions[call].end()) {
+      continue;
+    }
+    var = ddsim->callSubstitutions[call][var];
+    if (var.find('[') != std::string::npos) {
+      auto parts = splitString(var, '[');
+      var = parts[0];
+      idx = std::stoul(parts[1].substr(0, parts[1].size() - 1));
+    }
+  }
 
   for (auto& reg : ddsim->qubitRegisters) {
     if (reg.name == var) {
@@ -608,9 +665,7 @@ bool checkAssertion(DDSimulationState* ddsim,
   if (assertion->getType() == AssertionType::Span) {
     std::unique_ptr<SpanAssertion> spanAssertion(
         dynamic_cast<SpanAssertion*>(assertion.release()));
-    auto result = checkAssertionSpan(ddsim, spanAssertion);
-    assertion = std::move(spanAssertion);
-    return result;
+    checkAssertionSpan(ddsim, spanAssertion);
   }
   if (assertion->getType() == AssertionType::StatevectorEquality) {
     std::unique_ptr<StatevectorEqualityAssertion> svEqualityAssertion(
@@ -630,6 +685,24 @@ bool checkAssertion(DDSimulationState* ddsim,
   throw std::runtime_error("Unknown assertion type");
 }
 
+std::string validCodeFromChildren(const Instruction& parent,
+                                  std::vector<Instruction>& allInstructions) {
+  std::string code = parent.code;
+  if (!parent.block.valid) {
+    return code;
+  }
+  code += " { ";
+  for (auto child : parent.childInstructions) {
+    const auto& childInstruction = allInstructions[child];
+    if (childInstruction.assertion != nullptr) {
+      continue;
+    }
+    code += validCodeFromChildren(childInstruction, allInstructions);
+  }
+  code += " } ";
+  return code;
+}
+
 std::string preprocessAssertionCode(const char* code,
                                     DDSimulationState* ddsim) {
 
@@ -638,20 +711,32 @@ std::string preprocessAssertionCode(const char* code,
   ddsim->instructionTypes.clear();
   ddsim->instructionStarts.clear();
   ddsim->instructionEnds.clear();
+  ddsim->callSubstitutions.clear();
 
   for (auto& instruction : instructions) {
+    ddsim->successorInstructions.insert(
+        {instruction.lineNumber, instruction.successorIndex});
     ddsim->instructionStarts.push_back(instruction.originalCodeStartPosition);
     ddsim->instructionEnds.push_back(instruction.originalCodeEndPosition);
-    if (instruction.assertion != nullptr) {
+    if (instruction.code == "RETURN") {
+      ddsim->instructionTypes.push_back(NOP);
+    } else if (instruction.assertion != nullptr) {
       ddsim->instructionTypes.push_back(ASSERTION);
       ddsim->assertionInstructions.insert(
           {instruction.lineNumber, std::move(instruction.assertion)});
     } else if (instruction.code.find("gate") != std::string::npos) {
-      correctLines.push_back(instruction.code +
-                             (instruction.block.valid
-                                  ? ("{" + instruction.block.code + "}")
-                                  : ""));
+      if (!instruction.inFunctionDefinition) {
+        correctLines.push_back(
+            validCodeFromChildren(instruction, instructions));
+      }
       ddsim->instructionTypes.push_back(NOP);
+    } else if (instruction.isFunctionCall) {
+      if (!instruction.inFunctionDefinition) {
+        correctLines.push_back(instruction.code);
+      }
+      ddsim->callSubstitutions.insert(
+          {instruction.lineNumber, instruction.callSubstitution});
+      ddsim->instructionTypes.push_back(CALL);
     } else if (instruction.code.find("qreg") != std::string::npos) {
       auto declaration = replaceString(instruction.code, "qreg", "");
       declaration = replaceString(declaration, " ", "");
@@ -668,7 +753,9 @@ std::string preprocessAssertionCode(const char* code,
       const QubitRegisterDefinition reg{name, index, size};
       ddsim->qubitRegisters.push_back(reg);
 
-      correctLines.push_back(instruction.code);
+      if (!instruction.inFunctionDefinition) {
+        correctLines.push_back(instruction.code);
+      }
       ddsim->instructionTypes.push_back(NOP);
     } else if (instruction.code.find("creg") != std::string::npos) {
       auto declaration = replaceString(instruction.code, "creg", "");
@@ -683,16 +770,19 @@ std::string preprocessAssertionCode(const char* code,
                                ? 0
                                : ddsim->classicalRegisters.back().index +
                                      ddsim->classicalRegisters.back().size;
-      const ClassicalRegisterDefinition reg{name, index, size};
+      const ClassicalRegisterDefinition reg{removeWhitespace(name), index,
+                                            size};
       ddsim->classicalRegisters.push_back(reg);
 
-      correctLines.push_back(instruction.code);
+      if (!instruction.inFunctionDefinition) {
+        correctLines.push_back(instruction.code);
+      }
       ddsim->instructionTypes.push_back(NOP);
     } else {
-      correctLines.push_back(instruction.code +
-                             (instruction.block.valid
-                                  ? ("{" + instruction.block.code + "}")
-                                  : ""));
+      if (!instruction.inFunctionDefinition) {
+        correctLines.push_back(
+            validCodeFromChildren(instruction, instructions));
+      }
       ddsim->instructionTypes.push_back(SIMULATE);
     }
   }

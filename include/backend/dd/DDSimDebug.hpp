@@ -9,7 +9,7 @@
 
 #include <string>
 
-enum InstructionType { NOP, SIMULATE, ASSERTION };
+enum InstructionType { NOP, SIMULATE, ASSERTION, CALL, RETURN };
 
 struct QubitRegisterDefinition {
   std::string name;
@@ -35,10 +35,14 @@ struct DDSimulationState {
   std::vector<size_t> instructionStarts;
   std::vector<size_t> instructionEnds;
   std::map<size_t, std::unique_ptr<Assertion>> assertionInstructions;
+  std::map<size_t, size_t> successorInstructions;
   std::vector<QubitRegisterDefinition> qubitRegisters;
   std::vector<ClassicalRegisterDefinition> classicalRegisters;
   std::map<std::string, Variable> variables;
-  size_t lastIrreversibleStep;
+  std::vector<size_t> previousInstructionStack;
+  std::vector<size_t> callReturnStack;
+  std::map<size_t, std::map<std::string, std::string>> callSubstitutions;
+  std::vector<std::pair<size_t, size_t>> restoreCallReturnStack;
 
   bool assertionFailed;
 };

@@ -1,7 +1,6 @@
 #include "common/parsing/Utils.hpp"
 
 #include <algorithm>
-#include <sstream>
 
 std::string trim(const std::string& str) {
   auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
@@ -13,12 +12,28 @@ bool startsWith(const std::string& str, const std::string& prefix) {
   return str.compare(0, prefix.size(), prefix) == 0;
 }
 
-std::vector<std::string> splitString(std::string& text, char delimiter) {
+std::vector<std::string> splitString(const std::string& text, char delimiter) {
+  const std::vector<char> delimiters{delimiter};
+  return splitString(text, delimiters);
+}
+
+std::vector<std::string> splitString(const std::string& text,
+                                     const std::vector<char>& delimiters) {
   std::vector<std::string> result;
-  std::istringstream iss(text);
-  for (std::string s; std::getline(iss, s, delimiter);) {
-    result.push_back(s);
+  size_t pos = 0;
+  while (true) {
+    size_t min = std::string ::npos;
+    for (const auto del : delimiters) {
+      const size_t newPos = text.find(del, pos);
+      min = newPos < min ? newPos : min;
+    }
+    if (min == std::string::npos) {
+      break;
+    }
+    result.push_back(text.substr(pos, min - pos));
+    pos = min + 1;
   }
+  result.push_back(text.substr(pos, text.length() - pos));
   return result;
 }
 
