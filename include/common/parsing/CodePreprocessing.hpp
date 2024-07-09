@@ -26,6 +26,8 @@ struct Instruction {
 
   std::map<std::string, std::string> callSubstitution;
 
+  std::vector<size_t> dataDependencies;
+
   Block block;
   std::vector<size_t> childInstructions;
   Instruction(size_t lineNumber, std::string code,

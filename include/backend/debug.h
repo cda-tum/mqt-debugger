@@ -23,8 +23,10 @@ struct SimulationState {
   bool (*didAssertionFail)(SimulationState* self);
 
   size_t (*getCurrentInstruction)(SimulationState* self);
-  Result (*getCurrentInstructionPosition)(SimulationState* self, size_t* start,
-                                          size_t* end);
+  size_t (*getPreviousInstruction)(SimulationState* self);
+  size_t (*getInstructionCount)(SimulationState* self);
+  Result (*getInstructionPosition)(SimulationState* self, size_t instruction,
+                                   size_t* start, size_t* end);
   size_t (*getNumQubits)(SimulationState* self);
   Result (*getAmplitudeIndex)(SimulationState* self, size_t qubit,
                               Complex* output);
@@ -35,6 +37,8 @@ struct SimulationState {
   Result (*getStateVectorFull)(SimulationState* self, Statevector* output);
   Result (*getStateVectorSub)(SimulationState* self, size_t subStateSize,
                               const size_t* qubits, Statevector* output);
+  Result (*getDataDependencies)(SimulationState* self, size_t instruction,
+                                bool* instructions);
 };
 
 #ifdef __cplusplus

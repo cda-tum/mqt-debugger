@@ -7,6 +7,7 @@
 
 #define ANSI_BG_YELLOW "\x1b[43m"
 #define ANSI_BG_RESET "\x1b[0m"
+#define ANSI_COL_GRAY "\x1b[90m"
 
 class CliFrontEnd {
 public:
@@ -15,6 +16,6 @@ public:
 private:
   std::string currentCode;
 
-  void printState(SimulationState* state);
+  void printState(SimulationState* state, size_t inspecting);
   void initCode(const char* code);
 };

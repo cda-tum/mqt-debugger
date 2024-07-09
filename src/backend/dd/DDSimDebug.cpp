@@ -41,14 +41,16 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.didAssertionFail = ddsimDidAssertionFail;
 
   self->interface.getCurrentInstruction = ddsimGetCurrentInstruction;
-  self->interface.getCurrentInstructionPosition =
-      ddsimGetCurrentInstructionPosition;
+  self->interface.getPreviousInstruction = ddsimGetPreviousInstruction;
+  self->interface.getInstructionCount = ddsimGetInstructionCount;
+  self->interface.getInstructionPosition = ddsimGetInstructionPosition;
   self->interface.getNumQubits = ddsimGetNumQubits;
   self->interface.getAmplitudeIndex = ddsimGetAmplitudeIndex;
   self->interface.getAmplitudeBitstring = ddsimGetAmplitudeBitstring;
   self->interface.getClassicalVariable = ddsimGetClassicalVariable;
   self->interface.getStateVectorFull = ddsimGetStateVectorFull;
   self->interface.getStateVectorSub = ddsimGetStateVectorSub;
+  self->interface.getDataDependencies = ddsimGetDataDependencies;
 
   return self->interface.init(reinterpret_cast<SimulationState*>(self));
 }
@@ -246,7 +248,8 @@ Result ddsimStepBackward(SimulationState* self) {
   ddsim->currentInstruction = ddsim->previousInstructionStack.back();
   ddsim->previousInstructionStack.pop_back();
 
-  if (ddsim->currentInstruction == ddsim->callReturnStack.back()) {
+  if (!ddsim->callReturnStack.empty() &&
+      ddsim->currentInstruction == ddsim->callReturnStack.back()) {
     ddsim->callReturnStack.pop_back();
   }
 
@@ -349,14 +352,24 @@ size_t ddsimGetCurrentInstruction(SimulationState* self) {
   return ddsim->currentInstruction;
 }
 
-Result ddsimGetCurrentInstructionPosition(SimulationState* self, size_t* start,
-                                          size_t* end) {
+size_t ddsimGetPreviousInstruction(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  if (ddsim->currentInstruction >= ddsim->instructionStarts.size()) {
+  return ddsim->previousInstructionStack.back();
+}
+
+size_t ddsimGetInstructionCount(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  return ddsim->instructionTypes.size();
+}
+
+Result ddsimGetInstructionPosition(SimulationState* self, size_t instruction,
+                                   size_t* start, size_t* end) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (instruction >= ddsim->instructionStarts.size()) {
     return ERROR;
   }
-  *start = ddsim->instructionStarts[ddsim->currentInstruction];
-  *end = ddsim->instructionEnds[ddsim->currentInstruction];
+  *start = ddsim->instructionStarts[instruction];
+  *end = ddsim->instructionEnds[instruction];
   return OK;
 }
 
@@ -429,6 +442,28 @@ Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
     }
     outAmplitudes[outputIndex].real += amplitudes[i].real;
     outAmplitudes[outputIndex].imaginary += amplitudes[i].imaginary;
+  }
+
+  return OK;
+}
+
+Result ddsimGetDataDependencies(SimulationState* self, size_t instruction,
+                                bool* instructions) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  const std::span<bool> isDependency(
+      instructions, ddsim->interface.getInstructionCount(&ddsim->interface));
+  std::set<size_t> toVisit{instruction};
+  std::set<size_t> visited;
+  while (!toVisit.empty()) {
+    auto current = *toVisit.begin();
+    isDependency[current] = true;
+    toVisit.erase(toVisit.begin());
+    visited.insert(current);
+    for (auto dep : ddsim->dataDependencies[current]) {
+      if (visited.find(dep) == visited.end()) {
+        toVisit.insert(dep);
+      }
+    }
   }
 
   return OK;
@@ -712,12 +747,20 @@ std::string preprocessAssertionCode(const char* code,
   ddsim->instructionStarts.clear();
   ddsim->instructionEnds.clear();
   ddsim->callSubstitutions.clear();
+  ddsim->classicalRegisters.clear();
+  ddsim->qubitRegisters.clear();
+  ddsim->successorInstructions.clear();
+  ddsim->dataDependencies.clear();
 
   for (auto& instruction : instructions) {
     ddsim->successorInstructions.insert(
         {instruction.lineNumber, instruction.successorIndex});
     ddsim->instructionStarts.push_back(instruction.originalCodeStartPosition);
     ddsim->instructionEnds.push_back(instruction.originalCodeEndPosition);
+    ddsim->dataDependencies.insert({instruction.lineNumber, {}});
+    for (const auto& dependency : instruction.dataDependencies) {
+      ddsim->dataDependencies[instruction.lineNumber].push_back(dependency);
+    }
     if (instruction.code == "RETURN") {
       ddsim->instructionTypes.push_back(NOP);
     } else if (instruction.assertion != nullptr) {

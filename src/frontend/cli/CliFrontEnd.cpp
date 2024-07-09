@@ -7,6 +7,7 @@
 #include "common/parsing/Utils.hpp"
 
 #include <array>
+#include <cstdint>
 #include <iostream>
 
 void clearScreen() {
@@ -27,16 +28,18 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
   }
   bool wasError = false;
   bool wasGet = false;
+  size_t inspecting = -1ULL;
 
   while (command != "exit") {
     clearScreen();
     if (wasError) {
       std::cout << "Invalid command. Choose one of:\n";
       std::cout << "run\t";
-      std::cout << "step\t";
-      std::cout << "back\t";
+      std::cout << "step [enter]\t";
+      std::cout << "back [b]\t";
       std::cout << "get <variable>\t";
       std::cout << "reset\t";
+      std::cout << "inspect\t";
       std::cout << "exit\n\n";
       wasError = false;
     }
@@ -60,41 +63,80 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
       }
       wasGet = false;
     }
-    printState(state);
+    printState(state, inspecting);
+
     std::cout << "Enter command: ";
     std::getline(std::cin, command);
     if (command == "run") {
       state->runSimulation(state);
     } else if (command == "step" || command.empty()) {
       state->stepForward(state);
-    } else if (command == "back") {
+    } else if (command == "back" || command == "b") {
       state->stepBackward(state);
     } else if (command == "reset") {
       state->resetSimulation(state);
     } else if (command.length() >= 5 && command.substr(0, 4) == "get ") {
       wasGet = true;
+    } else if (command == "inspect") {
+      inspecting = state->getCurrentInstruction(state);
     } else {
       wasError = true;
     }
   }
 }
 
-void CliFrontEnd::printState(SimulationState* state) {
+void CliFrontEnd::printState(SimulationState* state, size_t inspecting) {
+  std::vector<size_t> highlightIntervals;
+  if (inspecting != -1ULL) {
+    std::vector<uint8_t> inspectingDependencies(
+        state->getInstructionCount(state));
+    auto deps = inspectingDependencies.data();
+    state->getDataDependencies(state, inspecting,
+                               reinterpret_cast<bool*>(deps));
+    uint8_t on = 0;
+    for (size_t i = 0; i < inspectingDependencies.size(); i++) {
+      if (inspectingDependencies[i] != on) {
+        on = inspectingDependencies[i];
+        size_t start = 0;
+        size_t end = 0;
+        state->getInstructionPosition(state, i, &start, &end);
+        highlightIntervals.push_back(start);
+      }
+    }
+  }
+  if (highlightIntervals.empty()) {
+    highlightIntervals.push_back(0);
+  }
+  highlightIntervals.push_back(currentCode.length() + 1);
   size_t currentStart = 0;
   size_t currentEnd = 0;
-  const Result result =
-      state->getCurrentInstructionPosition(state, &currentStart, &currentEnd);
+  const Result res = state->getInstructionPosition(
+      state, state->getCurrentInstruction(state), &currentStart, &currentEnd);
 
-  std::cout << currentCode.substr(0, currentStart);
-  if (result == OK) {
-    std::cout << ANSI_BG_YELLOW
-              << currentCode.substr(currentStart,
-                                    currentEnd - currentStart + 1);
-    std::cout << ANSI_BG_RESET
-              << currentCode.substr(currentEnd + 1,
-                                    currentCode.length() - currentEnd);
-  } else {
-    std::cout << ANSI_BG_RESET << currentCode;
+  size_t currentPos = 0;
+  bool on = false;
+  for (const auto nextInterval : highlightIntervals) {
+    const auto textColor = on ? ANSI_BG_RESET : ANSI_COL_GRAY;
+    if (res == OK && currentStart >= currentPos &&
+        currentStart < nextInterval) {
+      std::cout << textColor
+                << currentCode.substr(currentPos, currentStart - currentPos)
+                << ANSI_BG_RESET;
+      std::cout << ANSI_BG_YELLOW
+                << currentCode.substr(currentStart,
+                                      currentEnd - currentStart + 1)
+                << ANSI_BG_RESET;
+      std::cout << textColor
+                << currentCode.substr(currentEnd + 1,
+                                      nextInterval - currentEnd - 1)
+                << ANSI_BG_RESET;
+    } else {
+      std::cout << textColor
+                << currentCode.substr(currentPos, nextInterval - currentPos)
+                << ANSI_BG_RESET;
+    }
+    on = !on;
+    currentPos = nextInterval;
   }
   std::cout << "\n";
 

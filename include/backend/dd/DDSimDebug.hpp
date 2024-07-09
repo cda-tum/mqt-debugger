@@ -43,6 +43,7 @@ struct DDSimulationState {
   std::vector<size_t> callReturnStack;
   std::map<size_t, std::map<std::string, std::string>> callSubstitutions;
   std::vector<std::pair<size_t, size_t>> restoreCallReturnStack;
+  std::map<size_t, std::vector<size_t>> dataDependencies;
 
   bool assertionFailed;
 };
@@ -60,8 +61,10 @@ bool ddsimIsFinished(SimulationState* self);
 bool ddsimDidAssertionFail(SimulationState* self);
 
 size_t ddsimGetCurrentInstruction(SimulationState* self);
-Result ddsimGetCurrentInstructionPosition(SimulationState* self, size_t* start,
-                                          size_t* end);
+size_t ddsimGetPreviousInstruction(SimulationState* self);
+size_t ddsimGetInstructionCount(SimulationState* self);
+Result ddsimGetInstructionPosition(SimulationState* self, size_t instruction,
+                                   size_t* start, size_t* end);
 
 size_t ddsimGetNumQubits(SimulationState* self);
 Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
@@ -73,6 +76,9 @@ Result ddsimGetClassicalVariable(SimulationState* self, const char* name,
 Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output);
 Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
                               const size_t* qubits, Statevector* output);
+
+Result ddsimGetDataDependencies(SimulationState* self, size_t instruction,
+                                bool* instructions);
 
 Result createDDSimulationState(DDSimulationState* self);
 Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self);

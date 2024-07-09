@@ -51,7 +51,10 @@ bool isFunctionDefinition(const std::string& line) {
 
 std::vector<std::string> parseParameters(const std::string& instruction) {
   auto parts = splitString(
-      replaceString(replaceString(instruction, "\n", " "), "\t", " "), ' ');
+      replaceString(
+          replaceString(replaceString(instruction, ";", " "), "\n", " "), "\t",
+          " "),
+      ' ');
   size_t index = 0;
   for (auto& part : parts) {
     index++;
@@ -119,6 +122,7 @@ preprocessCode(const std::string& code, size_t startIndex,
   std::map<std::string, std::string> blocks;
   std::map<std::string, size_t> functionFirstLine;
   std::map<std::string, FunctionDefinition> functionDefinitions;
+  std::map<size_t, std::vector<std::string>> variableUsages;
 
   const std::string blocksRemoved = sweepBlocks(code, blocks);
   std::vector<std::string> functionNames = sweepFunctionNames(code);
@@ -216,6 +220,8 @@ preprocessCode(const std::string& code, size_t startIndex,
       std::unique_ptr<Assertion> a(nullptr);
       instructions.emplace_back(i, line, a, trueStart, trueEnd, i + 1,
                                 isFunctionCall, calledFunction, false, block);
+
+      variableUsages.insert({i, parseParameters(line)});
     }
 
     i++;
@@ -223,6 +229,21 @@ preprocessCode(const std::string& code, size_t startIndex,
   }
 
   for (auto& instr : instructions) {
+    auto vars = parseParameters(instr.code);
+    size_t idx = instr.lineNumber - 1;
+    while (!vars.empty() && idx < instructions.size()) {
+      bool found = false;
+      for (const auto& var : variableUsages[idx]) {
+        if (std::find(vars.begin(), vars.end(), var) != vars.end()) {
+          found = true;
+          const auto rem = std::remove(vars.begin(), vars.end(), var);
+        }
+      }
+      if (found) {
+        instr.dataDependencies.push_back(idx);
+      }
+      idx--;
+    }
     if (instr.isFunctionCall) {
       instr.successorIndex = functionFirstLine[instr.calledFunction];
       if (functionDefinitions.find(instr.calledFunction) ==
