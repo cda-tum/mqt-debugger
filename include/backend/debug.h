@@ -14,7 +14,9 @@ struct SimulationState {
   Result (*loadCode)(SimulationState* self, const char* code);
 
   Result (*stepForward)(SimulationState* self);
+  Result (*stepOverForward)(SimulationState* self);
   Result (*stepBackward)(SimulationState* self);
+  Result (*stepOverBackward)(SimulationState* self);
   Result (*runSimulation)(SimulationState* self);
   Result (*resetSimulation)(SimulationState* self);
   bool (*canStepForward)(SimulationState* self);

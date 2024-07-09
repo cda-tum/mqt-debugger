@@ -33,6 +33,8 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.loadCode = ddsimLoadCode;
   self->interface.stepForward = ddsimStepForward;
   self->interface.stepBackward = ddsimStepBackward;
+  self->interface.stepOverForward = ddsimStepOverForward;
+  self->interface.stepOverBackward = ddsimStepOverBackward;
   self->interface.runSimulation = ddsimRunSimulation;
   self->interface.resetSimulation = ddsimResetSimulation;
   self->interface.canStepForward = ddsimCanStepForward;
@@ -107,6 +109,50 @@ Result ddsimLoadCode(SimulationState* self, const char* code) {
   resetSimulationState(ddsim);
 
   return OK;
+}
+
+Result ddsimStepOverForward(SimulationState* self) {
+  if (!self->canStepForward(self)) {
+    return ERROR;
+  }
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (ddsim->instructionTypes[ddsim->currentInstruction] != CALL) {
+    return self->stepForward(self);
+  }
+
+  Result res = OK;
+  const auto currentInstruction = ddsim->currentInstruction;
+  bool done = false;
+  while ((res == OK) && !done) {
+    if (ddsim->instructionTypes[ddsim->currentInstruction] == RETURN &&
+        ddsim->callReturnStack.back() == currentInstruction) {
+      done = true;
+    }
+    res = self->stepForward(self);
+  }
+  return res;
+}
+
+Result ddsimStepOverBackward(SimulationState* self) {
+  if (!self->canStepBackward(self)) {
+    return ERROR;
+  }
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  const auto prev = self->getPreviousInstruction(self);
+  if (ddsim->instructionTypes[prev] != RETURN) {
+    return self->stepBackward(self);
+  }
+
+  Result res = OK;
+  const auto stackSize = ddsim->callReturnStack.size();
+  while (res == OK) {
+    res = self->stepBackward(self);
+    if (ddsim->instructionTypes[ddsim->currentInstruction] == CALL &&
+        ddsim->callReturnStack.size() == stackSize) {
+      break;
+    }
+  }
+  return res;
 }
 
 Result ddsimStepForward(SimulationState* self) {
@@ -762,7 +808,7 @@ std::string preprocessAssertionCode(const char* code,
       ddsim->dataDependencies[instruction.lineNumber].push_back(dependency);
     }
     if (instruction.code == "RETURN") {
-      ddsim->instructionTypes.push_back(NOP);
+      ddsim->instructionTypes.push_back(RETURN);
     } else if (instruction.assertion != nullptr) {
       ddsim->instructionTypes.push_back(ASSERTION);
       ddsim->assertionInstructions.insert(

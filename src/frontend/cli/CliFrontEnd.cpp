@@ -36,7 +36,9 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
       std::cout << "Invalid command. Choose one of:\n";
       std::cout << "run\t";
       std::cout << "step [enter]\t";
+      std::cout << "step over [o]\t";
       std::cout << "back [b]\t";
+      std::cout << "back over [bo]\t";
       std::cout << "get <variable>\t";
       std::cout << "reset\t";
       std::cout << "inspect\t";
@@ -71,8 +73,12 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
       state->runSimulation(state);
     } else if (command == "step" || command.empty()) {
       state->stepForward(state);
+    } else if (command == "step over" || command == "o") {
+      state->stepOverForward(state);
     } else if (command == "back" || command == "b") {
       state->stepBackward(state);
+    } else if (command == "back over" || command == "bo") {
+      state->stepOverBackward(state);
     } else if (command == "reset") {
       state->resetSimulation(state);
     } else if (command.length() >= 5 && command.substr(0, 4) == "get ") {

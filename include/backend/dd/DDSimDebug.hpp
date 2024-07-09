@@ -53,6 +53,8 @@ Result ddsimInit(SimulationState* self);
 Result ddsimLoadCode(SimulationState* self, const char* code);
 Result ddsimStepForward(SimulationState* self);
 Result ddsimStepBackward(SimulationState* self);
+Result ddsimStepOverForward(SimulationState* self);
+Result ddsimStepOverBackward(SimulationState* self);
 Result ddsimRunSimulation(SimulationState* self);
 Result ddsimResetSimulation(SimulationState* self);
 bool ddsimCanStepForward(SimulationState* self);
