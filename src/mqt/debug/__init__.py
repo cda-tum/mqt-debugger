@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from .pydebug import (
     Complex,
-    Result,
     SimulationState,
     Statevector,
     Variable,
@@ -16,7 +15,6 @@ from .pydebug import (
 
 __all__ = [
     "Complex",
-    "Result",
     "SimulationState",
     "Statevector",
     "Variable",
