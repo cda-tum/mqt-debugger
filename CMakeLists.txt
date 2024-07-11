@@ -1,97 +1,53 @@
 cmake_minimum_required(VERSION 3.26)
-project(mqt_debug)
+project(
+  mqt_debug
+  LANGUAGES CXX
+  DESCRIPTION "MQT Debug - A debugging tool for Quantum Circuits")
 
-option(BUILD_MQT_DEBUG_BINDINGS "Build the MQT DEBUG Python bindings" ON)
-set(BUILD_MQT_DEBUG_BINDINGS ON)
+option(BUILD_MQT_DEBUG_BINDINGS "Build the MQT DEBUG Python bindings" OFF)
+option(BUILD_MQT_DEBUG_TESTS "Also build tests for the MQT QCEC project" ON)
 
 set(CMAKE_CXX_STANDARD 20)
 
-include(FetchContent)
-set(FETCH_PACKAGES "")
-
-# Fetch pybind11
-FetchContent_Declare(
-  pybind11
-  GIT_REPOSITORY https://github.com/pybind/pybind11.git
-  GIT_TAG v2.10.4 # Specify the version you need
-)
-list(APPEND FETCH_PACKAGES pybind11)
-
-set(MQT_CORE_VERSION
-    2.4.0
-    CACHE STRING "MQT Core version")
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
-  FetchContent_Declare(
-    mqt-core
-    GIT_REPOSITORY https://github.com/cda-tum/mqt-core.git
-    GIT_TAG v${MQT_CORE_VERSION}
-    FIND_PACKAGE_ARGS ${MQT_CORE_VERSION})
-  list(APPEND FETCH_PACKAGES mqt-core)
-else()
-  find_package(mqt-core ${MQT_CORE_VERSION} QUIET)
-  if(NOT mqt-core_FOUND)
-    FetchContent_Declare(
-      mqt-core
-      GIT_REPOSITORY https://github.com/cda-tum/mqt-core.git
-      GIT_TAG v${MQT_CORE_VERSION})
-    list(APPEND FETCH_PACKAGES mqt-core)
-  endif()
-endif()
-
-# Make all declared dependencies available.
-FetchContent_MakeAvailable(${FETCH_PACKAGES})
-
-include_directories(include)
-
-# Create a Python module
 if(BUILD_MQT_DEBUG_BINDINGS)
-  pybind11_add_module(mqt_debug_bindings src/python/bindings.cpp
-                      src/python/dd/DDSimDebugBindings.cpp)
+  # ensure that the BINDINGS option is set
+  set(BINDINGS
+      ON
+      CACHE INTERNAL "Enable settings related to Python bindings")
+  # Some common settings for finding Python
+  set(Python_FIND_VIRTUALENV
+      FIRST
+      CACHE STRING "Give precedence to virtualenvs when searching for Python")
+  set(Python_FIND_FRAMEWORK
+      LAST
+      CACHE STRING "Prefer Brew/Conda to Apple framework Python")
+  set(Python_FIND_STRATEGY
+      LOCATION
+      CACHE STRING "Prefer Brew/Conda to Apple framework Python")
+  set(Python_ARTIFACTS_INTERACTIVE
+      ON
+      CACHE BOOL "Prevent multiple searches for Python and instead cache the results.")
 
-  # Link against pybind11 and other necessary libraries
-  target_link_libraries(
-    mqt_debug_bindings
-    PRIVATE pybind11::module
-            nlohmann_json
-            boost_multiprecision
-            gtest
-            MQT::CoreDD
-            MQT::ProjectOptions
-            MQT::ProjectWarnings)
+  # top-level call to find Python
+  find_package(
+    Python 3.8 REQUIRED
+    COMPONENTS Interpreter Development.Module
+    OPTIONAL_COMPONENTS Development.SABIModule)
 endif()
+set(Python_EXECUTABLE /home/damian/miniconda3/envs/mqt-debug/bin/python)
 
-# For other parts of your project, you might still need to build an executable
-if(NOT BUILD_MQT_DEBUG_BINDINGS)
-  add_executable(
-    mqt_debug
-    include/backend/dd/DDSimDebug.hpp
-    include/backend/debug.h
-    include/common.h
-    include/common/parsing/AssertionParsing.hpp
-    include/common/parsing/CodePreprocessing.hpp
-    include/common/parsing/ParsingError.hpp
-    include/common/parsing/Utils.hpp
-    include/frontend/cli/CliFrontEnd.hpp
-    include/python/dd/DDSimDebugBindings.hpp
-    include/python/InterfaceBindings.hpp
-    src/backend/dd/DDSimDebug.cpp
-    src/common/parsing/AssertionParsing.cpp
-    src/common/parsing/CodePreprocessing.cpp
-    src/common/parsing/ParsingError.cpp
-    src/common/parsing/Utils.cpp
-    src/frontend/cli/CliFrontEnd.cpp
-    src/python/bindings.cpp
-    src/python/dd/DDSimDebugBindings.cpp
-    src/python/InterfaceBindings.cpp
-    test/testDDSimDebugger.cpp)
+include(cmake/ExternalDependencies.cmake)
 
-  # Link against mqt-core library
-  target_link_libraries(
-    mqt_debug
-    nlohmann_json
-    boost_multiprecision
-    gtest
-    MQT::CoreDD
-    MQT::ProjectOptions
-    MQT::ProjectWarnings)
-endif()
+# add main library code
+add_subdirectory(src)
+
+# add test app
+add_subdirectory(app)
+
+# add test code if(BUILD_MQT_DEBUG_TESTS) enable_testing() include(GoogleTest)
+# add_subdirectory(test) endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
+               ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
+add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P
+                                    ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)

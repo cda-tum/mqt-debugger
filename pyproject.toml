@@ -11,7 +11,7 @@ authors = [
     { name = "Lukas Burgholzer", email = "burgholzer@me.com" }
 ]
 keywords = ["MQT", "quantum-computing", "design-automation", "decision-diagrams", "debugging"]
-license = { file = "LICENSE.md" }
+license = { file = "LICENSE.txt" }
 
 classifiers = [
     "Development Status :: 5 - Production/Stable",
