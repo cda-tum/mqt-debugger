@@ -5,7 +5,9 @@ pybind11_add_module(
   # Optimize the bindings for size
   OPT_SIZE
   # Source code goes here
-  bindings.cpp)
+  bindings.cpp
+  InterfaceBindings.cpp
+  dd/DDSimDebugBindings.cpp)
 target_link_libraries(pydebug PRIVATE MQT::Debug MQT::CorePython pybind11_json MQT::ProjectOptions
                                       MQT::ProjectWarnings)
 message(STATUS "CMAKE_INSTALL_PREFIX is set to ${CMAKE_INSTALL_PREFIX}")

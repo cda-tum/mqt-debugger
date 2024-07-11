@@ -51,38 +51,44 @@ void bindFramework(py::module& m) {
 
   py::class_<SimulationState>(m, "SimulationState")
       .def(py::init<>())
-      .def_readwrite("init", &SimulationState::init)
-      .def_readwrite("load_code", &SimulationState::loadCode)
-      .def_readwrite("step_forward", &SimulationState::stepForward)
-      .def_readwrite("step_over_forward", &SimulationState::stepOverForward)
-      .def_readwrite("step_backward", &SimulationState::stepBackward)
-      .def_readwrite("step_over_backward", &SimulationState::stepOverBackward)
-      .def_readwrite("run_simulation", &SimulationState::runSimulation)
-      .def_readwrite("reset_simulation", &SimulationState::resetSimulation)
-      .def_readwrite("can_step_forward", &SimulationState::canStepForward)
-      .def_readwrite("can_step_backward", &SimulationState::canStepBackward)
-      .def_readwrite("is_finished", &SimulationState::isFinished)
-      .def_readwrite("did_assertion_fail", &SimulationState::didAssertionFail)
-      .def_readwrite("get_current_instruction",
-                     &SimulationState::getCurrentInstruction)
-      .def_readwrite("get_previous_instruction",
-                     &SimulationState::getPreviousInstruction)
-      .def_readwrite("get_instruction_count",
-                     &SimulationState::getInstructionCount)
-      .def_readwrite("get_instruction_position",
-                     &SimulationState::getInstructionPosition)
-      .def_readwrite("get_num_qubits", &SimulationState::getNumQubits)
-      .def_readwrite("get_amplitude_index", &SimulationState::getAmplitudeIndex)
-      .def_readwrite("get_amplitude_bitstring",
-                     &SimulationState::getAmplitudeBitstring)
-      .def_readwrite("get_classical_variable",
-                     &SimulationState::getClassicalVariable)
-      .def_readwrite("get_state_vector_full",
-                     &SimulationState::getStateVectorFull)
-      .def_readwrite("get_state_vector_sub",
-                     &SimulationState::getStateVectorSub)
-      .def_readwrite("get_data_dependencies",
-                     &SimulationState::getDataDependencies)
+      // uncomment the following lines to trigger some compilation errors.
+
+      //      .def_readwrite("init", &SimulationState::init)
+      //      .def_readwrite("loadCode", &SimulationState::loadCode)
+      //      .def_readwrite("stepForward", &SimulationState::stepForward)
+      //      .def_readwrite("stepOverForward",
+      //      &SimulationState::stepOverForward) .def_readwrite("stepBackward",
+      //      &SimulationState::stepBackward) .def_readwrite("stepOverBackward",
+      //      &SimulationState::stepOverBackward)
+      //      .def_readwrite("runSimulation", &SimulationState::runSimulation)
+      //      .def_readwrite("resetSimulation",
+      //      &SimulationState::resetSimulation)
+      //      .def_readwrite("canStepForward", &SimulationState::canStepForward)
+      //      .def_readwrite("canStepBackward",
+      //      &SimulationState::canStepBackward) .def_readwrite("isFinished",
+      //      &SimulationState::isFinished) .def_readwrite("didAssertionFail",
+      //      &SimulationState::didAssertionFail)
+      //      .def_readwrite("getCurrentInstruction",
+      //                     &SimulationState::getCurrentInstruction)
+      //      .def_readwrite("getPreviousInstruction",
+      //                     &SimulationState::getPreviousInstruction)
+      //      .def_readwrite("getInstructionCount",
+      //                     &SimulationState::getInstructionCount)
+      //      .def_readwrite("getInstructionPosition",
+      //                     &SimulationState::getInstructionPosition)
+      //      .def_readwrite("getNumQubits", &SimulationState::getNumQubits)
+      //      .def_readwrite("getAmplitudeIndex",
+      //      &SimulationState::getAmplitudeIndex)
+      //      .def_readwrite("getAmplitudeBitstring",
+      //                     &SimulationState::getAmplitudeBitstring)
+      //      .def_readwrite("getClassicalVariable",
+      //                     &SimulationState::getClassicalVariable)
+      //      .def_readwrite("getStateVectorFull",
+      //      &SimulationState::getStateVectorFull)
+      //      .def_readwrite("getStateVectorSub",
+      //      &SimulationState::getStateVectorSub)
+      //      .def_readwrite("getDataDependencies",
+      //                     &SimulationState::getDataDependencies)
       .def("call_init", [](SimulationState* self) { return self->init(self); })
       .def("call_load_code",
            [](SimulationState* self, const char* code) {
