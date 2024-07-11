@@ -34,7 +34,6 @@ if(BUILD_MQT_DEBUG_BINDINGS)
     COMPONENTS Interpreter Development.Module
     OPTIONAL_COMPONENTS Development.SABIModule)
 endif()
-set(Python_EXECUTABLE /home/damian/miniconda3/envs/mqt-debug/bin/python)
 
 include(cmake/ExternalDependencies.cmake)
 

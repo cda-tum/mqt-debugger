@@ -51,109 +51,71 @@ void bindFramework(py::module& m) {
 
   py::class_<SimulationState>(m, "SimulationState")
       .def(py::init<>())
-      // uncomment the following lines to trigger some compilation errors.
-
-      //      .def_readwrite("init", &SimulationState::init)
-      //      .def_readwrite("loadCode", &SimulationState::loadCode)
-      //      .def_readwrite("stepForward", &SimulationState::stepForward)
-      //      .def_readwrite("stepOverForward",
-      //      &SimulationState::stepOverForward) .def_readwrite("stepBackward",
-      //      &SimulationState::stepBackward) .def_readwrite("stepOverBackward",
-      //      &SimulationState::stepOverBackward)
-      //      .def_readwrite("runSimulation", &SimulationState::runSimulation)
-      //      .def_readwrite("resetSimulation",
-      //      &SimulationState::resetSimulation)
-      //      .def_readwrite("canStepForward", &SimulationState::canStepForward)
-      //      .def_readwrite("canStepBackward",
-      //      &SimulationState::canStepBackward) .def_readwrite("isFinished",
-      //      &SimulationState::isFinished) .def_readwrite("didAssertionFail",
-      //      &SimulationState::didAssertionFail)
-      //      .def_readwrite("getCurrentInstruction",
-      //                     &SimulationState::getCurrentInstruction)
-      //      .def_readwrite("getPreviousInstruction",
-      //                     &SimulationState::getPreviousInstruction)
-      //      .def_readwrite("getInstructionCount",
-      //                     &SimulationState::getInstructionCount)
-      //      .def_readwrite("getInstructionPosition",
-      //                     &SimulationState::getInstructionPosition)
-      //      .def_readwrite("getNumQubits", &SimulationState::getNumQubits)
-      //      .def_readwrite("getAmplitudeIndex",
-      //      &SimulationState::getAmplitudeIndex)
-      //      .def_readwrite("getAmplitudeBitstring",
-      //                     &SimulationState::getAmplitudeBitstring)
-      //      .def_readwrite("getClassicalVariable",
-      //                     &SimulationState::getClassicalVariable)
-      //      .def_readwrite("getStateVectorFull",
-      //      &SimulationState::getStateVectorFull)
-      //      .def_readwrite("getStateVectorSub",
-      //      &SimulationState::getStateVectorSub)
-      //      .def_readwrite("getDataDependencies",
-      //                     &SimulationState::getDataDependencies)
-      .def("call_init", [](SimulationState* self) { return self->init(self); })
-      .def("call_load_code",
+      .def("init", [](SimulationState* self) { return self->init(self); })
+      .def("load_code",
            [](SimulationState* self, const char* code) {
              return self->loadCode(self, code);
            })
-      .def("call_step_forward",
+      .def("step_forward",
            [](SimulationState* self) { return self->stepForward(self); })
-      .def("call_step_over_forward",
+      .def("step_over_forward",
            [](SimulationState* self) { return self->stepOverForward(self); })
-      .def("call_step_backward",
+      .def("step_backward",
            [](SimulationState* self) { return self->stepBackward(self); })
-      .def("call_step_over_backward",
+      .def("step_over_backward",
            [](SimulationState* self) { return self->stepOverBackward(self); })
-      .def("call_run_simulation",
+      .def("run_simulation",
            [](SimulationState* self) { return self->runSimulation(self); })
-      .def("call_reset_simulation",
+      .def("reset_simulation",
            [](SimulationState* self) { return self->resetSimulation(self); })
-      .def("call_can_step_forward",
+      .def("can_step_forward",
            [](SimulationState* self) { return self->canStepForward(self); })
-      .def("call_can_step_backward",
+      .def("can_step_backward",
            [](SimulationState* self) { return self->canStepBackward(self); })
-      .def("call_is_finished",
+      .def("is_finished",
            [](SimulationState* self) { return self->isFinished(self); })
-      .def("call_did_assertion_fail",
+      .def("did_assertion_fail",
            [](SimulationState* self) { return self->didAssertionFail(self); })
-      .def("call_get_current_instruction",
+      .def("get_current_instruction",
            [](SimulationState* self) {
              return self->getCurrentInstruction(self);
            })
-      .def("call_get_previous_instruction",
+      .def("get_previous_instruction",
            [](SimulationState* self) {
              return self->getPreviousInstruction(self);
            })
       .def(
-          "call_get_instruction_count",
+          "get_instruction_count",
           [](SimulationState* self) { return self->getInstructionCount(self); })
-      .def("call_get_instruction_position",
+      .def("get_instruction_position",
            [](SimulationState* self, size_t instruction, size_t* start,
               size_t* end) {
              return self->getInstructionPosition(self, instruction, start, end);
            })
-      .def("call_get_num_qubits",
+      .def("get_num_qubits",
            [](SimulationState* self) { return self->getNumQubits(self); })
-      .def("call_get_amplitude_index",
+      .def("get_amplitude_index",
            [](SimulationState* self, size_t qubit, Complex* output) {
              return self->getAmplitudeIndex(self, qubit, output);
            })
-      .def("call_get_amplitude_bitstring",
+      .def("get_amplitude_bitstring",
            [](SimulationState* self, const char* bitstring, Complex* output) {
              return self->getAmplitudeBitstring(self, bitstring, output);
            })
-      .def("call_get_classical_variable",
+      .def("get_classical_variable",
            [](SimulationState* self, const char* name, Variable* output) {
              return self->getClassicalVariable(self, name, output);
            })
-      .def("call_get_state_vector_full",
+      .def("get_state_vector_full",
            [](SimulationState* self, Statevector* output) {
              return self->getStateVectorFull(self, output);
            })
-      .def("call_get_state_vector_sub",
+      .def("get_state_vector_sub",
            [](SimulationState* self, size_t subStateSize, const size_t* qubits,
               Statevector* output) {
              return self->getStateVectorSub(self, subStateSize, qubits, output);
            })
-      .def("call_get_data_dependencies",
+      .def("get_data_dependencies",
            [](SimulationState* self, size_t instruction, bool* instructions) {
              return self->getDataDependencies(self, instruction, instructions);
            });
