@@ -2,7 +2,7 @@
 
 #include "backend/dd/DDSimDebug.hpp"
 
-void bind_backend(pybind11::module& m) {
+void bindBackend(pybind11::module& m) {
 
   m.def("create_ddsim_simulation_state", []() {
     auto* state = new DDSimulationState();

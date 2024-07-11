@@ -6,6 +6,6 @@
 namespace py = pybind11;
 
 PYBIND11_MODULE(pydebug, m) {
-  bind_framework(m);
-  bind_backend(m);
+  bindFramework(m);
+  bindBackend(m);
 }
