@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from . import messages
+from .DAPServer import DAPServer
 from .pydebug import (
     Complex,
     SimulationState,
@@ -15,6 +17,7 @@ from .pydebug import (
 
 __all__ = [
     "Complex",
+    "DAPServer",
     "SimulationState",
     "Statevector",
     "Variable",
@@ -22,4 +25,5 @@ __all__ = [
     "VariableValue",
     "create_ddsim_simulation_state",
     "destroy_ddsim_simulation_state",
+    "messages",
 ]

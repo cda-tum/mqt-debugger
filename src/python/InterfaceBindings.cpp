@@ -78,6 +78,10 @@ void bindFramework(py::module& m) {
            [](SimulationState* self) {
              checkOrThrow(self->stepOverForward(self));
            })
+      .def("step_out_forward",
+           [](SimulationState* self) {
+             checkOrThrow(self->stepOutForward(self));
+           })
       .def(
           "step_backward",
           [](SimulationState* self) { checkOrThrow(self->stepBackward(self)); })
@@ -85,13 +89,25 @@ void bindFramework(py::module& m) {
            [](SimulationState* self) {
              checkOrThrow(self->stepOverBackward(self));
            })
+      .def("step_out_backward",
+           [](SimulationState* self) {
+             checkOrThrow(self->stepOutBackward(self));
+           })
       .def("run_simulation",
            [](SimulationState* self) {
              checkOrThrow(self->runSimulation(self));
            })
+      .def("run_simulation_backward",
+           [](SimulationState* self) {
+             checkOrThrow(self->runSimulationBackward(self));
+           })
       .def("reset_simulation",
            [](SimulationState* self) {
              checkOrThrow(self->resetSimulation(self));
+           })
+      .def("pause_simulation",
+           [](SimulationState* self) {
+             checkOrThrow(self->pauseSimulation(self));
            })
       .def("can_step_forward",
            [](SimulationState* self) { return self->canStepForward(self); })
@@ -141,10 +157,25 @@ void bindFramework(py::module& m) {
              checkOrThrow(self->getClassicalVariable(self, name, &output));
              return output;
            })
+      .def("get_num_classical_variables",
+           [](SimulationState* self) {
+             return self->getNumClassicalVariables(self);
+           })
+      .def("get_classical_variable_name",
+           [](SimulationState* self, size_t variableIndex) {
+             std::string output(255, '\0');
+             checkOrThrow(self->getClassicalVariableName(self, variableIndex,
+                                                         output.data()));
+             const std::size_t pos = output.find_first_of('\0');
+             if (pos != std::string::npos) {
+               output = output.substr(0, pos);
+             }
+             return output;
+           })
       .def("get_state_vector_full",
            [](SimulationState* self) {
-             size_t numQubits = self->getNumQubits(self);
-             std::vector<Complex> amplitudes(1 << numQubits);
+             const size_t numQubits = self->getNumQubits(self);
+             const std::vector<Complex> amplitudes(1 << numQubits);
              StatevectorCPP result{numQubits, 1ULL << numQubits, amplitudes};
              Statevector output{numQubits, result.numStates,
                                 result.amplitudes.data()};
@@ -153,8 +184,8 @@ void bindFramework(py::module& m) {
            })
       .def("get_state_vector_sub",
            [](SimulationState* self, std::vector<size_t> qubits) {
-             size_t numQubits = qubits.size();
-             std::vector<Complex> amplitudes(1 << numQubits);
+             const size_t numQubits = qubits.size();
+             const std::vector<Complex> amplitudes(1 << numQubits);
              StatevectorCPP result{numQubits, 1ULL << numQubits, amplitudes};
              Statevector output{numQubits, result.numStates,
                                 result.amplitudes.data()};

@@ -35,8 +35,12 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.stepBackward = ddsimStepBackward;
   self->interface.stepOverForward = ddsimStepOverForward;
   self->interface.stepOverBackward = ddsimStepOverBackward;
+  self->interface.stepOutForward = ddsimStepOutForward;
+  self->interface.stepOutBackward = ddsimStepOutBackward;
   self->interface.runSimulation = ddsimRunSimulation;
+  self->interface.runSimulationBackward = ddsimRunSimulationBackward;
   self->interface.resetSimulation = ddsimResetSimulation;
+  self->interface.pauseSimulation = ddsimPauseSimulation;
   self->interface.canStepForward = ddsimCanStepForward;
   self->interface.canStepBackward = ddsimCanStepBackward;
   self->interface.isFinished = ddsimIsFinished;
@@ -50,6 +54,8 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.getAmplitudeIndex = ddsimGetAmplitudeIndex;
   self->interface.getAmplitudeBitstring = ddsimGetAmplitudeBitstring;
   self->interface.getClassicalVariable = ddsimGetClassicalVariable;
+  self->interface.getNumClassicalVariables = ddsimGetNumClassicalVariables;
+  self->interface.getClassicalVariableName = ddsimGetClassicalVariableName;
   self->interface.getStateVectorFull = ddsimGetStateVectorFull;
   self->interface.getStateVectorSub = ddsimGetStateVectorSub;
   self->interface.getDataDependencies = ddsimGetDataDependencies;
@@ -124,6 +130,10 @@ Result ddsimStepOverForward(SimulationState* self) {
   const auto currentInstruction = ddsim->currentInstruction;
   bool done = false;
   while ((res == OK) && !done) {
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
     if (ddsim->instructionTypes[ddsim->currentInstruction] == RETURN &&
         ddsim->callReturnStack.back() == currentInstruction) {
       done = true;
@@ -146,9 +156,53 @@ Result ddsimStepOverBackward(SimulationState* self) {
   Result res = OK;
   const auto stackSize = ddsim->callReturnStack.size();
   while (res == OK) {
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
     res = self->stepBackward(self);
     if (ddsim->instructionTypes[ddsim->currentInstruction] == CALL &&
         ddsim->callReturnStack.size() == stackSize) {
+      break;
+    }
+  }
+  return res;
+}
+
+Result ddsimStepOutForward(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (ddsim->callReturnStack.empty()) {
+    return self->runSimulation(self);
+  }
+
+  const auto size = ddsim->callReturnStack.size();
+  Result res = OK;
+  while ((res = self->stepForward(self)) == OK) {
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
+    if (ddsim->callReturnStack.size() == size - 1) {
+      break;
+    }
+  }
+  return res;
+}
+
+Result ddsimStepOutBackward(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (ddsim->callReturnStack.empty()) {
+    return self->runSimulationBackward(self);
+  }
+
+  const auto size = ddsim->callReturnStack.size();
+  Result res = OK;
+  while ((res = self->stepBackward(self)) == OK) {
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
+    if (ddsim->callReturnStack.size() == size - 1) {
       break;
     }
   }
@@ -207,8 +261,10 @@ Result ddsimStepForward(SimulationState* self) {
         value.boolValue = !result;
         ddsim->variables[name].value = value;
       } else {
-        const Variable newVariable{
-            name.c_str(), VariableType::VarBool, {!result}};
+        ddsim->variableNames.push_back(std::make_unique<std::string>(name));
+        const Variable newVariable{ddsim->variableNames.back()->data(),
+                                   VariableType::VarBool,
+                                   {!result}};
         ddsim->variables.insert({name, newVariable});
       }
     }
@@ -352,7 +408,29 @@ Result ddsimStepBackward(SimulationState* self) {
 Result ddsimRunSimulation(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   while (!self->isFinished(self) && !ddsim->assertionFailed) {
-    self->stepForward(self);
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
+    Result res = self->stepForward(self);
+    if (res != OK) {
+      return res;
+    }
+  }
+  return OK;
+}
+
+Result ddsimRunSimulationBackward(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  while (self->canStepBackward(self) && !ddsim->assertionFailed) {
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
+    Result res = self->stepBackward(self);
+    if (res != OK) {
+      return res;
+    }
   }
   return OK;
 }
@@ -368,8 +446,15 @@ Result ddsimResetSimulation(SimulationState* self) {
   ddsim->iterator = ddsim->qc->begin();
   ddsim->assertionFailed = false;
   ddsim->variables.clear();
+  ddsim->variableNames.clear();
 
   resetSimulationState(ddsim);
+  return OK;
+}
+
+Result ddsimPauseSimulation(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  ddsim->paused = true;
   return OK;
 }
 
@@ -453,6 +538,22 @@ Result ddsimGetClassicalVariable(SimulationState* self, const char* name,
     return OK;
   }
   return ERROR;
+}
+size_t ddsimGetNumClassicalVariables(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  return ddsim->variables.size();
+}
+Result ddsimGetClassicalVariableName(SimulationState* self,
+                                     size_t variableIndex, char* output) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+
+  if (variableIndex >= ddsim->variables.size()) {
+    return ERROR;
+  }
+
+  const auto name = getClassicalBitName(ddsim, variableIndex);
+  strcpy(output, name.c_str());
+  return OK;
 }
 
 Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
@@ -862,6 +963,16 @@ std::string preprocessAssertionCode(const char* code,
       const ClassicalRegisterDefinition reg{removeWhitespace(name), index,
                                             size};
       ddsim->classicalRegisters.push_back(reg);
+      for (auto i = 0ULL; i < size; i++) {
+        const auto variableName =
+            removeWhitespace(name) + "[" + std::to_string(i) + "]";
+        ddsim->variableNames.push_back(
+            std::make_unique<std::string>(variableName));
+        const Variable newVariable{ddsim->variableNames.back()->data(),
+                                   VariableType::VarBool,
+                                   {false}};
+        ddsim->variables.insert({newVariable.name, newVariable});
+      }
 
       if (!instruction.inFunctionDefinition) {
         correctLines.push_back(instruction.code);
