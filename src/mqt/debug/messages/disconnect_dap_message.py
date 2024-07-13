@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .. import DAPServer, destroy_ddsim_simulation_state
+import mqt.debug
+
 from .dap_message import DAPMessage
 
 
@@ -24,14 +25,14 @@ class DisconnectDAPMessage(DAPMessage):
     def validate(self) -> None:
         """Validates the 'DisconnectDAPMessage' instance."""
 
-    def handle(self, server: DAPServer) -> dict[str, Any]:
+    def handle(self, server: mqt.debug.DAPServer) -> dict[str, Any]:
         """Performs the action requested by the 'disconnect' DAP request.
 
         Args:
-            server (DAPServer): The DAP server that received the request.
+            server (mqt.debug.DAPServer): The DAP server that received the request.
 
         Returns:
             dict[str, Any]: The response to the request.
         """
-        destroy_ddsim_simulation_state(server.simulation_state)
+        mqt.debug.destroy_ddsim_simulation_state(server.simulation_state)
         return super().handle(server)

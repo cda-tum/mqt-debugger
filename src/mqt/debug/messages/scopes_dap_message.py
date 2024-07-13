@@ -39,11 +39,11 @@ class ScopesDAPMessage(DAPMessage):
             dict[str, Any]: The response to the request.
         """
         d = super().handle(server)
-        d["body"] = {"scopes": [__get_classical_scope(server), __get_quantum_state_scope(server)]}
+        d["body"] = {"scopes": [_get_classical_scope(server), _get_quantum_state_scope(server)]}
         return d
 
 
-def __get_classical_scope(server: DAPServer) -> dict[str, Any]:
+def _get_classical_scope(server: DAPServer) -> dict[str, Any]:
     start_pos = 0
     end_pos = len(server.source_code) - 1
     start_line, start_col = server.code_pos_to_coordinates(start_pos)
@@ -63,7 +63,7 @@ def __get_classical_scope(server: DAPServer) -> dict[str, Any]:
     }
 
 
-def __get_quantum_state_scope(server: DAPServer) -> dict[str, Any]:
+def _get_quantum_state_scope(server: DAPServer) -> dict[str, Any]:
     start_pos = 0
     end_pos = len(server.source_code) - 1
     start_line, start_col = server.code_pos_to_coordinates(start_pos)

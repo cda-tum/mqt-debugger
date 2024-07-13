@@ -44,11 +44,11 @@ class VariablesDAPMessage(DAPMessage):
         """
         d = super().handle(server)
         variables = (
-            __get_classical_variables(server)
+            _get_classical_variables(server)
             if self.reference == 1
-            else __get_quantum_state_variables(server)
+            else _get_quantum_state_variables(server)
             if self.reference == 2
-            else __get_classical_children(server, self.reference - 10)
+            else _get_classical_children(server, self.reference - 10)
             if self.reference >= 10
             else []
         )
@@ -56,7 +56,7 @@ class VariablesDAPMessage(DAPMessage):
         return d
 
 
-def __get_classical_children(server: DAPServer, index: int) -> list[dict[str, Any]]:
+def _get_classical_children(server: DAPServer, index: int) -> list[dict[str, Any]]:
     result = []
     num = server.simulation_state.get_num_classical_variables()
     name = server.simulation_state.get_classical_variable_name(index).split("[")[0]
@@ -74,7 +74,7 @@ def __get_classical_children(server: DAPServer, index: int) -> list[dict[str, An
     return result
 
 
-def __get_classical_variables(server: DAPServer) -> list[dict[str, Any]]:
+def _get_classical_variables(server: DAPServer) -> list[dict[str, Any]]:
     result = []
     num = server.simulation_state.get_num_classical_variables()
     variable_groupings: dict[str, tuple[int, list[str]]] = {}
@@ -114,7 +114,7 @@ def __get_classical_variables(server: DAPServer) -> list[dict[str, Any]]:
     return result
 
 
-def __get_quantum_state_variables(server: DAPServer) -> list[dict[str, Any]]:
+def _get_quantum_state_variables(server: DAPServer) -> list[dict[str, Any]]:
     result = []
     num_q = server.simulation_state.get_num_qubits()
     for i in range(2**num_q):

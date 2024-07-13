@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .. import DAPServer, create_ddsim_simulation_state
+import mqt.debug
+
 from .dap_message import DAPMessage
 from .utils import get_default_capabilities
 
@@ -45,16 +46,16 @@ class InitializeDAPMessage(DAPMessage):
             msg = f"Adapter ID must be `mqtqasm`, was {self.adapter_id}"
             raise ValueError(msg)
 
-    def handle(self, server: DAPServer) -> dict[str, Any]:
+    def handle(self, server: mqt.debug.DAPServer) -> dict[str, Any]:
         """Performs the action requested by the 'initialize' DAP request.
 
         Args:
-            server (DAPServer): The DAP server that received the request.
+            server (mqt.debug.DAPServer): The DAP server that received the request.
 
         Returns:
             dict[str, Any]: The response to the request.
         """
-        server.simulation_state = create_ddsim_simulation_state()
+        server.simulation_state = mqt.debug.create_ddsim_simulation_state()
         return {
             "type": "response",
             "request_seq": self.sequence_number,

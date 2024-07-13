@@ -6,27 +6,49 @@ import json
 import socket
 from typing import Any
 
-from . import SimulationState, messages
+import mqt.debug
 
-supported_messages: list[type[messages.Request]] = [
-    messages.InitializeDAPMessage,
-    messages.DisconnectDAPMessage,
-    messages.LaunchDAPMessage,
-    messages.SetBreakpointsDAPMessage,
-    messages.ThreadsDAPMessage,
-    messages.StackTraceDAPMessage,
-    messages.ConfigurationDoneDAPMessage,
-    messages.NextDAPMessage,
-    messages.StepBackDAPMessage,
-    messages.StepInDAPMessage,
-    messages.ContinueDAPMessage,
-    messages.TerminateDAPMessage,
-    messages.RestartDAPMessage,
-    messages.ScopesDAPMessage,
-    messages.VariablesDAPMessage,
-    messages.ReverseContinueDAPMessage,
-    messages.StepOutDAPMessage,
-    messages.PauseDAPMessage,
+from .messages import (
+    ConfigurationDoneDAPMessage,
+    ContinueDAPMessage,
+    DisconnectDAPMessage,
+    InitializeDAPMessage,
+    LaunchDAPMessage,
+    NextDAPMessage,
+    PauseDAPMessage,
+    RestartDAPMessage,
+    ReverseContinueDAPMessage,
+    ScopesDAPMessage,
+    SetBreakpointsDAPMessage,
+    StackTraceDAPMessage,
+    StepBackDAPMessage,
+    StepInDAPMessage,
+    StepOutDAPMessage,
+    TerminateDAPMessage,
+    ThreadsDAPMessage,
+    VariablesDAPMessage,
+)
+from .pydebug import SimulationState
+
+supported_messages: list[type[mqt.debug.messages.Request]] = [
+    InitializeDAPMessage,
+    DisconnectDAPMessage,
+    LaunchDAPMessage,
+    SetBreakpointsDAPMessage,
+    ThreadsDAPMessage,
+    StackTraceDAPMessage,
+    ConfigurationDoneDAPMessage,
+    NextDAPMessage,
+    StepBackDAPMessage,
+    StepInDAPMessage,
+    ContinueDAPMessage,
+    TerminateDAPMessage,
+    RestartDAPMessage,
+    ScopesDAPMessage,
+    VariablesDAPMessage,
+    ReverseContinueDAPMessage,
+    StepOutDAPMessage,
+    PauseDAPMessage,
 ]
 
 
@@ -96,44 +118,50 @@ class DAPServer:
             result_payload = json.dumps(result)
             send_message(result_payload, connection)
 
-            e: messages.DAPEvent | None = None
-            if isinstance(cmd, messages.InitializeDAPMessage):
-                e = messages.InitializedDAPEvent()
+            e: mqt.debug.messages.DAPEvent | None = None
+            if isinstance(cmd, mqt.debug.messages.InitializeDAPMessage):
+                e = mqt.debug.messages.InitializedDAPEvent()
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
-            if isinstance(cmd, (messages.LaunchDAPMessage, messages.RestartDAPMessage)) and cmd.stop_on_entry:
-                e = messages.StoppedDAPEvent(messages.StopReason.ENTRY, "Stopped on entry")
+            if (
+                isinstance(cmd, (mqt.debug.messages.LaunchDAPMessage, mqt.debug.messages.RestartDAPMessage))
+                and cmd.stop_on_entry
+            ):
+                e = mqt.debug.messages.StoppedDAPEvent(mqt.debug.messages.StopReason.ENTRY, "Stopped on entry")
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
             if (
                 isinstance(
                     cmd,
                     (
-                        messages.NextDAPMessage,
-                        messages.StepBackDAPMessage,
-                        messages.StepInDAPMessage,
-                        messages.StepOutDAPMessage,
-                        messages.ContinueDAPMessage,
+                        mqt.debug.messages.NextDAPMessage,
+                        mqt.debug.messages.StepBackDAPMessage,
+                        mqt.debug.messages.StepInDAPMessage,
+                        mqt.debug.messages.StepOutDAPMessage,
+                        mqt.debug.messages.ContinueDAPMessage,
                     ),
                 )
                 and not self.simulation_state.did_assertion_fail()
             ):
-                e = messages.StoppedDAPEvent(messages.StopReason.STEP, "Stopped after step")
+                e = mqt.debug.messages.StoppedDAPEvent(mqt.debug.messages.StopReason.STEP, "Stopped after step")
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
-            if isinstance(cmd, (messages.ReverseContinueDAPMessage)) and not self.simulation_state.did_assertion_fail():
-                e = messages.StoppedDAPEvent(messages.StopReason.STEP, "Stopped after reverse")
+            if (
+                isinstance(cmd, (mqt.debug.messages.ReverseContinueDAPMessage))
+                and not self.simulation_state.did_assertion_fail()
+            ):
+                e = mqt.debug.messages.StoppedDAPEvent(mqt.debug.messages.StopReason.STEP, "Stopped after reverse")
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
-            if isinstance(cmd, messages.TerminateDAPMessage):
-                e = messages.TerminatedDAPEvent()
+            if isinstance(cmd, mqt.debug.messages.TerminateDAPMessage):
+                e = mqt.debug.messages.TerminatedDAPEvent()
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
-                e = messages.ExitedDAPEvent(143)
+                e = mqt.debug.messages.ExitedDAPEvent(143)
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
-            if isinstance(cmd, messages.PauseDAPMessage):
-                e = messages.StoppedDAPEvent(messages.StopReason.PAUSE, "Stopped after pause")
+            if isinstance(cmd, mqt.debug.messages.PauseDAPMessage):
+                e = mqt.debug.messages.StoppedDAPEvent(mqt.debug.messages.StopReason.PAUSE, "Stopped after pause")
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
             self.regular_checks(connection)
@@ -144,21 +172,21 @@ class DAPServer:
         Args:
             connection (socket.socket): The client socket.
         """
-        e: messages.DAPEvent | None = None
+        e: mqt.debug.messages.DAPEvent | None = None
         if self.simulation_state.is_finished() and self.simulation_state.get_instruction_count() != 0:
-            e = messages.ExitedDAPEvent(0)
+            e = mqt.debug.messages.ExitedDAPEvent(0)
             event_payload = json.dumps(e.encode())
             send_message(event_payload, connection)
         if self.simulation_state.did_assertion_fail():
-            e = messages.StoppedDAPEvent(messages.StopReason.EXCEPTION, "Assertion failed")
+            e = mqt.debug.messages.StoppedDAPEvent(mqt.debug.messages.StopReason.EXCEPTION, "Assertion failed")
             event_payload = json.dumps(e.encode())
             send_message(event_payload, connection)
         if self.can_step_back != self.simulation_state.can_step_backward():
             self.can_step_back = self.simulation_state.can_step_backward()
-            e = messages.CapabilitiesDAPEvent({"supportsStepBack": self.can_step_back})
+            e = mqt.debug.messages.CapabilitiesDAPEvent({"supportsStepBack": self.can_step_back})
             event_payload = json.dumps(e.encode())
 
-    def handle_command(self, command: dict[str, Any]) -> tuple[dict[str, Any], messages.DAPMessage]:
+    def handle_command(self, command: dict[str, Any]) -> tuple[dict[str, Any], mqt.debug.messages.DAPMessage]:
         """Handle an incoming command from the client and return the corresponding response.
 
         Args:
@@ -168,7 +196,7 @@ class DAPServer:
             RuntimeError: If the command is not supported.
 
         Returns:
-            tuple[dict[str, Any], messages.DAPMessage]: The response to the message as a dictionary and the message object.
+            tuple[dict[str, Any], mqt.debug.messages.DAPMessage]: The response to the message as a dictionary and the message object.
         """
         for message_type in supported_messages:
             if message_type.message_type_name == command["command"]:
