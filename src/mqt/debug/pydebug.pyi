@@ -1,3 +1,5 @@
+"""Type stubs for python bindings of the debug module."""
+
 # Enums
 class Result:
     OK: Result

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from . import messages
-from .DAPServer import DAPServer
+from .dap_server import DAPServer
 from .pydebug import (
     Complex,
     SimulationState,
