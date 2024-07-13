@@ -16,6 +16,7 @@ from .messages import (
     LaunchDAPMessage,
     NextDAPMessage,
     PauseDAPMessage,
+    Request,
     RestartDAPMessage,
     ReverseContinueDAPMessage,
     ScopesDAPMessage,
@@ -30,7 +31,7 @@ from .messages import (
 )
 from .pydebug import SimulationState
 
-supported_messages: list[type[mqt.debug.messages.Request]] = [
+supported_messages: list[type[Request]] = [
     InitializeDAPMessage,
     DisconnectDAPMessage,
     LaunchDAPMessage,
