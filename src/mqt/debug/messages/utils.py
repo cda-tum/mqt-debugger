@@ -17,11 +17,47 @@ def get_default_capabilities() -> dict[str, Any]:
         "supportsConditionalBreakpoints": False,
         "supportsHitConditionalBreakpoints": False,
         "supportsEvaluateForHovers": False,
-        "exceptionBreakpointFilters": [],
+        "supportsExceptionInfoRequest": True,
+        "exceptionBreakpointFilters": get_exception_filters(),
         "supportsStepBack": True,
         "supportsSetVariable": False,
-        "supportsRestartFrame": True,
+        "supportsRestartFrame": False,
         "supportsTerminateRequest": True,
         "supportsRestartRequest": True,
         "supportsVariableType": True,
+        "supportsDelayedStackTraceLoading": False,
     }
+
+
+def get_exception_filters() -> list[dict[str, Any]]:
+    """Returns the exception filters supported by DAP server.
+
+    Returns:
+        list[dict[str, Any]]: The exception filters of the DAP server.
+    """
+    return [
+        {
+            "filter": "all",
+            "label": "All Assertions",
+            "description": "Filters for all assertion failures.",
+            "default": True,
+        },
+        {
+            "filter": "ent",
+            "label": "Entanglement Assertions",
+            "description": "Filters for entanglement assertion failures.",
+            "default": False,
+        },
+        {
+            "filter": "sup",
+            "label": "Superposition Assertions",
+            "description": "Filters for superposition assertion failures.",
+            "default": False,
+        },
+        {
+            "filter": "eq",
+            "label": "Equality Assertions",
+            "description": "Filters for equality assertion failures.",
+            "default": False,
+        },
+    ]

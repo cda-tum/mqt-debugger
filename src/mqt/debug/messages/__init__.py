@@ -8,6 +8,7 @@ from .continue_dap_message import ContinueDAPMessage
 from .dap_event import DAPEvent
 from .dap_message import DAPMessage
 from .disconnect_dap_message import DisconnectDAPMessage
+from .exception_info_message import ExceptionInfoDAPMessage
 from .exited_dap_event import ExitedDAPEvent
 from .initialize_dap_message import InitializeDAPMessage
 from .initialized_dap_event import InitializedDAPEvent
@@ -18,6 +19,7 @@ from .restart_dap_message import RestartDAPMessage
 from .reverse_continue_dap_message import ReverseContinueDAPMessage
 from .scopes_dap_message import ScopesDAPMessage
 from .set_breakpoints_dap_message import SetBreakpointsDAPMessage
+from .set_exception_breakpoints_dap_message import SetExceptionBreakpointsDAPMessage
 from .stack_trace_dap_message import StackTraceDAPMessage
 from .step_back_dap_message import StepBackDAPMessage
 from .step_in_dap_message import StepInDAPMessage
@@ -37,6 +39,7 @@ __all__ = [
     "DAPEvent",
     "DAPMessage",
     "DisconnectDAPMessage",
+    "ExceptionInfoDAPMessage",
     "ExitedDAPEvent",
     "InitializeDAPMessage",
     "InitializedDAPEvent",
@@ -48,6 +51,7 @@ __all__ = [
     "ReverseContinueDAPMessage",
     "ScopesDAPMessage",
     "SetBreakpointsDAPMessage",
+    "SetExceptionBreakpointsDAPMessage",
     "StackTraceDAPMessage",
     "StepBackDAPMessage",
     "StepInDAPMessage",

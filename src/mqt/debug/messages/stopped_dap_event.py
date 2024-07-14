@@ -54,4 +54,6 @@ class StoppedDAPEvent(DAPEvent):
         d["body"]["reason"] = self.reason.value
         d["body"]["description"] = self.description
         d["body"]["threadId"] = 1
+        d["body"]["text"] = self.description
+        d["body"]["allThreadsStopped"] = True
         return d
