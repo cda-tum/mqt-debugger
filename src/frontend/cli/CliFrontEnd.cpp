@@ -26,6 +26,13 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
     std::cout << "Error loading code\n";
     return;
   }
+
+  size_t breakpoint;
+  Result r = state->setBreakpoint(
+      state, 38,
+      &breakpoint); // set breakpoint at line 38 (entanglement_test_wrong.qasm
+  std::cout << "Breakpoint set at " << breakpoint << " " << r << "\n";
+
   bool wasError = false;
   bool wasGet = false;
   size_t inspecting = -1ULL;
@@ -35,6 +42,7 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
     if (wasError) {
       std::cout << "Invalid command. Choose one of:\n";
       std::cout << "run\t";
+      std::cout << "run back [rb]\t";
       std::cout << "step [enter]\t";
       std::cout << "step over [o]\t";
       std::cout << "back [b]\t";
@@ -71,6 +79,8 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
     std::getline(std::cin, command);
     if (command == "run") {
       state->runSimulation(state);
+    } else if (command == "run back" || command == "rb") {
+      state->runSimulationBackward(state);
     } else if (command == "step" || command.empty()) {
       state->stepForward(state);
     } else if (command == "step over" || command == "o") {
@@ -155,6 +165,6 @@ void CliFrontEnd::printState(SimulationState* state, size_t inspecting) {
   }
   std::cout << "\n";
   if (state->didAssertionFail(state)) {
-    std::cout << "THE PREVIOUS LINE FAILED AN ASSERTION\n";
+    std::cout << "THIS LINE FAILED AN ASSERTION\n";
   }
 }

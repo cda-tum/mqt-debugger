@@ -27,6 +27,7 @@ struct SimulationState {
   bool (*canStepBackward)(SimulationState* self);
   bool (*isFinished)(SimulationState* self);
   bool (*didAssertionFail)(SimulationState* self);
+  bool (*wasBreakpointHit)(SimulationState* self);
 
   size_t (*getCurrentInstruction)(SimulationState* self);
   size_t (*getPreviousInstruction)(SimulationState* self);
@@ -50,6 +51,10 @@ struct SimulationState {
                               const size_t* qubits, Statevector* output);
   Result (*getDataDependencies)(SimulationState* self, size_t instruction,
                                 bool* instructions);
+
+  Result (*setBreakpoint)(SimulationState* self, size_t desiredPosition,
+                          size_t* tergetInstruction);
+  Result (*clearBreakpoints)(SimulationState* self);
 };
 
 #ifdef __cplusplus

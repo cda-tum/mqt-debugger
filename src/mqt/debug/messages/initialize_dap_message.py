@@ -32,8 +32,8 @@ class InitializeDAPMessage(DAPMessage):
         self.client_name = message["arguments"].get("clientName", "")
         self.adapter_id = message["arguments"].get("adapterID", "")
         self.path_format = message["arguments"].get("pathFormat", "")
-        self.lines_start_at1 = message["arguments"].get("linesStartAt1", False)
-        self.columns_start_at1 = message["arguments"].get("columnsStartAt1", False)
+        self.lines_start_at1 = message["arguments"].get("linesStartAt1", True)
+        self.columns_start_at1 = message["arguments"].get("columnsStartAt1", True)
         super().__init__(message)
 
     def validate(self) -> None:
@@ -55,6 +55,8 @@ class InitializeDAPMessage(DAPMessage):
         Returns:
             dict[str, Any]: The response to the request.
         """
+        server.columns_start_at_one = self.columns_start_at1
+        server.lines_start_at_one = self.lines_start_at1
         server.simulation_state = mqt.debug.create_ddsim_simulation_state()
         return {
             "type": "response",

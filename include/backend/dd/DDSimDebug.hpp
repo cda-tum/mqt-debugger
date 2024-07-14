@@ -45,10 +45,12 @@ struct DDSimulationState {
   std::map<size_t, std::map<std::string, std::string>> callSubstitutions;
   std::vector<std::pair<size_t, size_t>> restoreCallReturnStack;
   std::map<size_t, std::vector<size_t>> dataDependencies;
+  std::set<size_t> breakpoints;
 
   bool paused;
 
   size_t lastFailedAssertion;
+  size_t lastMetBreakpoint;
 };
 
 Result ddsimInit(SimulationState* self);
@@ -68,6 +70,7 @@ bool ddsimCanStepForward(SimulationState* self);
 bool ddsimCanStepBackward(SimulationState* self);
 bool ddsimIsFinished(SimulationState* self);
 bool ddsimDidAssertionFail(SimulationState* self);
+bool ddsimWasBreakpointHit(SimulationState* self);
 
 size_t ddsimGetCurrentInstruction(SimulationState* self);
 size_t ddsimGetPreviousInstruction(SimulationState* self);
@@ -93,6 +96,10 @@ Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
 
 Result ddsimGetDataDependencies(SimulationState* self, size_t instruction,
                                 bool* instructions);
+
+Result ddsimSetBreakpoint(SimulationState* self, size_t desiredPosition,
+                          size_t* targetInstruction);
+Result ddsimClearBreakpoints(SimulationState* self);
 
 Result createDDSimulationState(DDSimulationState* self);
 Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self);

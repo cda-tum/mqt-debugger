@@ -117,6 +117,8 @@ void bindFramework(py::module& m) {
            [](SimulationState* self) { return self->isFinished(self); })
       .def("did_assertion_fail",
            [](SimulationState* self) { return self->didAssertionFail(self); })
+      .def("was_breakpoint_hit",
+           [](SimulationState* self) { return self->wasBreakpointHit(self); })
       .def("get_current_instruction",
            [](SimulationState* self) {
              return self->getCurrentInstruction(self);
@@ -193,10 +195,21 @@ void bindFramework(py::module& m) {
                                                   qubits.data(), &output));
              return result;
            })
-      .def("get_data_dependencies", [](SimulationState* self,
-                                       size_t instruction,
-                                       std::vector<uint8_t>& instructions) {
-        checkOrThrow(self->getDataDependencies(
-            self, instruction, reinterpret_cast<bool*>(instructions.data())));
+      .def("get_data_dependencies",
+           [](SimulationState* self, size_t instruction,
+              std::vector<uint8_t>& instructions) {
+             checkOrThrow(self->getDataDependencies(
+                 self, instruction,
+                 reinterpret_cast<bool*>(instructions.data())));
+           })
+      .def("set_breakpoint",
+           [](SimulationState* self, size_t desiredPosition) {
+             size_t actualPosition;
+             checkOrThrow(
+                 self->setBreakpoint(self, desiredPosition, &actualPosition));
+             return actualPosition;
+           })
+      .def("clear_breakpoints", [](SimulationState* self) {
+        checkOrThrow(self->clearBreakpoints(self));
       });
 }

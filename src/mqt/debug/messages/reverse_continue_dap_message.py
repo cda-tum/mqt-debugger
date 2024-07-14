@@ -35,7 +35,7 @@ class ReverseContinueDAPMessage(DAPMessage):
         Returns:
             dict[str, Any]: The response to the request.
         """
-        server.simulation_state.run_simulation_backwards()
+        server.simulation_state.run_simulation_backward()
         d = super().handle(server)
         d["body"] = {}
         return d

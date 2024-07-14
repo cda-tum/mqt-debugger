@@ -81,6 +81,8 @@ class DAPServer:
     source_code: str
     can_step_back: bool
     exception_breakpoints: list[str]
+    lines_start_at_one: bool
+    columns_start_at_one: bool
 
     def __init__(self, host: str = "127.0.0.1", port: int = 4711) -> None:
         """Create a new DAP server instance.
@@ -93,11 +95,13 @@ class DAPServer:
         self.port = port
         self.can_step_back = False
         self.simulation_state = SimulationState()
+        self.lines_start_at_one = True
+        self.columns_start_at_one = True
 
     def start(self) -> None:
         """Start the DAP server and listen for one connection."""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # TODO remove
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind((self.host, self.port))
             s.listen()
 
@@ -159,9 +163,17 @@ class DAPServer:
                 event = (
                     mqt.debug.messages.StopReason.EXCEPTION
                     if self.simulation_state.did_assertion_fail()
+                    else mqt.debug.messages.StopReason.BREAKPOINT_INSTRUCTION
+                    if self.simulation_state.was_breakpoint_hit()
                     else mqt.debug.messages.StopReason.STEP
                 )
-                message = "An assertion failed" if self.simulation_state.did_assertion_fail() else "Stopped after step"
+                message = (
+                    "An assertion failed"
+                    if self.simulation_state.did_assertion_fail()
+                    else "Stopped at breakpoint"
+                    if self.simulation_state.was_breakpoint_hit()
+                    else "Stopped after step"
+                )
                 e = mqt.debug.messages.StoppedDAPEvent(event, message)
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
@@ -213,15 +225,14 @@ class DAPServer:
         msg = f"Unsupported command: {command['command']}"
         raise RuntimeError(msg)
 
-    def code_pos_to_coordinates(self, pos: int, start_col_at_1: bool = True) -> tuple[int, int]:
+    def code_pos_to_coordinates(self, pos: int) -> tuple[int, int]:
         """Helper method to convert a code position to line and column.
 
         Args:
             pos (int): The 0-indexed position in the code.
-            start_col_at_1 (bool, optional): Indicates, whether columns start at index 1. Defaults to True.
 
         Returns:
-            tuple[int, int]: The line and column. Lines are 1-indexed.
+            tuple[int, int]: The line and column, 0-or-1-indexed.
         """
         lines = self.source_code.split("\n")
         line = 0
@@ -232,9 +243,32 @@ class DAPServer:
                 col = pos
                 break
             pos -= len(line_code) + 1
-        if start_col_at_1:
+        if self.columns_start_at_one:
             col += 1
+        if not self.lines_start_at_one:
+            line -= 1
         return (line, col)
+
+    def code_coordinates_to_pos(self, line: int, col: int) -> int:
+        """Helper method to convert a code line and column to its position idnex.
+
+        Args:
+            line (int): The 0-or-1-indexed line in the code.
+            col (int): The 0-or-1-indexed column in the line.
+
+        Returns:
+            int: The 0-indexed position in the code.
+        """
+        lines = self.source_code.split("\n")
+        if not self.lines_start_at_one:
+            line += 1
+        pos = 0
+        for line_index in range(line - 1):
+            pos += len(lines[line_index]) + 1
+        pos += col
+        if self.columns_start_at_one:
+            pos -= 1
+        return pos
 
 
 if __name__ == "__main__":
