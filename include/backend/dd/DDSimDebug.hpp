@@ -26,6 +26,7 @@ struct ClassicalRegisterDefinition {
 struct DDSimulationState {
   SimulationState interface;
   size_t currentInstruction;
+  std::string code;
 
   std::unique_ptr<qc::QuantumComputation> qc;
   std::unique_ptr<dd::Package<>> dd;

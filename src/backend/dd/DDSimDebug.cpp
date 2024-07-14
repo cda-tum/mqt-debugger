@@ -105,6 +105,7 @@ Result ddsimLoadCode(SimulationState* self, const char* code) {
   ddsim->callReturnStack.clear();
   ddsim->callSubstitutions.clear();
   ddsim->restoreCallReturnStack.clear();
+  ddsim->code = code;
 
   try {
     std::stringstream ss{preprocessAssertionCode(code, ddsim)};
@@ -545,8 +546,19 @@ Result ddsimGetInstructionPosition(SimulationState* self, size_t instruction,
   if (instruction >= ddsim->instructionStarts.size()) {
     return ERROR;
   }
-  *start = ddsim->instructionStarts[instruction];
-  *end = ddsim->instructionEnds[instruction];
+  size_t start_index = ddsim->instructionStarts[instruction];
+  size_t end_index = ddsim->instructionEnds[instruction];
+
+  while (ddsim->code[start_index] == ' ' || ddsim->code[start_index] == '\n' ||
+         ddsim->code[start_index] == '\r' || ddsim->code[start_index] == '\t') {
+    start_index++;
+  }
+  while (ddsim->code[end_index] == ' ' || ddsim->code[end_index] == '\n' ||
+         ddsim->code[end_index] == '\r' || ddsim->code[end_index] == '\t') {
+    end_index++;
+  }
+  *start = start_index;
+  *end = end_index;
   return OK;
 }
 
@@ -666,9 +678,8 @@ Result ddsimSetBreakpoint(SimulationState* self, size_t desiredPosition,
                           size_t* targetInstruction) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   for (auto i = 0ULL; i < ddsim->instructionTypes.size(); i++) {
-    size_t start = 0ULL;
-    size_t end = 0ULL;
-    self->getInstructionPosition(self, i, &start, &end);
+    size_t start = ddsim->instructionStarts[i];
+    size_t end = ddsim->instructionEnds[i];
     if (desiredPosition >= start && desiredPosition <= end) {
       *targetInstruction = i;
       ddsim->breakpoints.insert(i);
