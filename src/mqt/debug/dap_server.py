@@ -146,6 +146,15 @@ class DAPServer:
                     mqt.debug.messages.ContinueDAPMessage,
                     mqt.debug.messages.ReverseContinueDAPMessage,
                 ),
+            ) or (
+                isinstance(
+                    cmd,
+                    (
+                        mqt.debug.messages.LaunchDAPMessage,
+                        mqt.debug.messages.RestartDAPMessage,
+                    ),
+                )
+                and not cmd.stop_on_entry
             ):
                 event = (
                     mqt.debug.messages.StopReason.EXCEPTION
