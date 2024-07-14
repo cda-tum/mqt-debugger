@@ -48,7 +48,7 @@ struct DDSimulationState {
 
   bool paused;
 
-  bool assertionFailed;
+  size_t lastFailedAssertion;
 };
 
 Result ddsimInit(SimulationState* self);

@@ -84,7 +84,7 @@ Result ddsimInit(SimulationState* self) {
   ddsim->callReturnStack.clear();
   ddsim->callSubstitutions.clear();
   ddsim->restoreCallReturnStack.clear();
-  ddsim->assertionFailed = false;
+  ddsim->lastFailedAssertion = -1ULL;
 
   resetSimulationState(ddsim);
 
@@ -103,14 +103,14 @@ Result ddsimLoadCode(SimulationState* self, const char* code) {
     std::stringstream ss{preprocessAssertionCode(code, ddsim)};
     ddsim->qc->import(ss, qc::Format::OpenQASM3);
     qc::CircuitOptimizer::flattenOperations(*ddsim->qc);
-  } catch (ParsingError& e) {
+  } catch (const std::exception& e) {
     std::cerr << e.what() << "\n";
     return ERROR;
   }
 
   ddsim->iterator = ddsim->qc->begin();
   ddsim->dd->resize(ddsim->qc->getNqubits());
-  ddsim->assertionFailed = false;
+  ddsim->lastFailedAssertion = -1ULL;
 
   resetSimulationState(ddsim);
 
@@ -229,11 +229,15 @@ Result ddsimStepForward(SimulationState* self) {
 
   if (ddsim->instructionTypes[currentInstruction] == ASSERTION) {
     auto& assertion = ddsim->assertionInstructions[currentInstruction];
-    ddsim->assertionFailed = !checkAssertion(ddsim, assertion);
+    const auto failed = !checkAssertion(ddsim, assertion);
+    if (failed && ddsim->lastFailedAssertion != currentInstruction) {
+      ddsim->lastFailedAssertion = currentInstruction;
+      self->stepBackward(self);
+    }
     return OK;
   }
 
-  ddsim->assertionFailed = false;
+  ddsim->lastFailedAssertion = -1ULL;
   if (ddsim->instructionTypes[currentInstruction] != SIMULATE) {
     return OK;
   }
@@ -393,13 +397,8 @@ Result ddsimStepBackward(SimulationState* self) {
     ddsim->dd->garbageCollect();
   }
 
-  if (ddsim->currentInstruction > 0 &&
-      ddsim->instructionTypes[ddsim->currentInstruction - 1] == ASSERTION) {
-    auto& assertion =
-        ddsim->assertionInstructions[ddsim->currentInstruction - 1];
-    ddsim->assertionFailed = !checkAssertion(ddsim, assertion);
-  } else {
-    ddsim->assertionFailed = false;
+  if (ddsim->lastFailedAssertion != ddsim->currentInstruction) {
+    ddsim->lastFailedAssertion = -1ULL;
   }
 
   return OK;
@@ -407,7 +406,7 @@ Result ddsimStepBackward(SimulationState* self) {
 
 Result ddsimRunSimulation(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  while (!self->isFinished(self) && !ddsim->assertionFailed) {
+  while (!self->isFinished(self) && !self->didAssertionFail(self)) {
     if (ddsim->paused) {
       ddsim->paused = false;
       return OK;
@@ -422,7 +421,7 @@ Result ddsimRunSimulation(SimulationState* self) {
 
 Result ddsimRunSimulationBackward(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  while (self->canStepBackward(self) && !ddsim->assertionFailed) {
+  while (self->canStepBackward(self) && !self->didAssertionFail(self)) {
     if (ddsim->paused) {
       ddsim->paused = false;
       return OK;
@@ -444,7 +443,7 @@ Result ddsimResetSimulation(SimulationState* self) {
   ddsim->restoreCallReturnStack.clear();
 
   ddsim->iterator = ddsim->qc->begin();
-  ddsim->assertionFailed = false;
+  ddsim->lastFailedAssertion = -1ULL;
   ddsim->variables.clear();
   ddsim->variableNames.clear();
 
@@ -475,7 +474,7 @@ bool ddsimIsFinished(SimulationState* self) {
 
 bool ddsimDidAssertionFail(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  return ddsim->assertionFailed;
+  return ddsim->lastFailedAssertion == ddsim->currentInstruction;
 }
 
 size_t ddsimGetCurrentInstruction(SimulationState* self) {

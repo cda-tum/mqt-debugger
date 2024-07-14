@@ -5,7 +5,7 @@
 #include <iostream>
 
 int main() {
-  std::ifstream file("../../app/code/classical_registers_test"
+  std::ifstream file("../../app/code/entanglement_test_wrong"
                      ".qasm");
   if (!file.is_open()) {
     std::cerr << "Could not open file\n";
