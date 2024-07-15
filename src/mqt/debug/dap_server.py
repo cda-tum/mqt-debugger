@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import socket
+import sys
 from typing import Any
 
 import mqt.debug
@@ -102,7 +103,13 @@ class DAPServer:
         """Start the DAP server and listen for one connection."""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind((self.host, self.port))
+            try:
+                s.bind((self.host, self.port))
+            except OSError:
+                return
+
+            sys.stdout.flush()  # we need to flush stdout so  that the client can read the message
+
             s.listen()
 
             try:
@@ -177,6 +184,8 @@ class DAPServer:
                 e = mqt.debug.messages.StoppedDAPEvent(event, message)
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
+                if self.simulation_state.did_assertion_fail():
+                    self.handle_assertion_fail(connection)
             if isinstance(cmd, mqt.debug.messages.TerminateDAPMessage):
                 e = mqt.debug.messages.TerminatedDAPEvent()
                 event_payload = json.dumps(e.encode())
@@ -225,6 +234,40 @@ class DAPServer:
         msg = f"Unsupported command: {command['command']}"
         raise RuntimeError(msg)
 
+    def handle_assertion_fail(self, connection: socket.socket) -> None:
+        """Handles the sending of output events when an assertion fails.
+
+        Args:
+            connection (socket.socket): The client socket.
+        """
+        current_instruction = self.simulation_state.get_current_instruction()
+        dependencies = self.simulation_state.get_data_dependencies(current_instruction)
+        gray_out_areas: list[tuple[int, int]] = []
+        for i in range(self.simulation_state.get_instruction_count()):
+            if i in dependencies:
+                continue
+            start, end = self.simulation_state.get_instruction_position(i)
+            gray_out_areas.append((start, end))
+
+        e = mqt.debug.messages.GrayOutDAPEvent(gray_out_areas, self.source_file)
+        event_payload = json.dumps(e.encode())
+        send_message(event_payload, connection)
+
+        (start, end) = self.simulation_state.get_instruction_position(current_instruction)
+        line, column = self.code_pos_to_coordinates(start)
+        instruction_code = self.source_code[start:end].replace("\r", "").replace("\n", "").strip()
+        self.send_message_chain(
+            f"Assertion failed on line {line}",
+            [
+                f"    {instruction_code}",
+                "○ Highlighting dependent predecessors",
+            ],
+            None,
+            line,
+            column,
+            connection,
+        )
+
     def code_pos_to_coordinates(self, pos: int) -> tuple[int, int]:
         """Helper method to convert a code position to line and column.
 
@@ -269,6 +312,27 @@ class DAPServer:
         if self.columns_start_at_one:
             pos -= 1
         return pos
+
+    def send_message_chain(
+        self, title: str, contents: list[str], end: str | None, line: int, column: int, connection: socket.socket
+    ) -> None:
+        """Send a chain of messages to the client.
+
+        Args:
+            title (str): The title of the message chain.
+            contents (list[str]): The contents of the message chain.
+            end (str | None): The end of the message chain.
+            line (int): The line number.
+            column (int): The column number.
+            connection (socket.socket): The client socket.
+        """
+        title_event = mqt.debug.messages.OutputDAPEvent("console", title, "start", line, column, self.source_file)
+        send_message(json.dumps(title_event.encode()), connection)
+        for message in contents:
+            output_event = mqt.debug.messages.OutputDAPEvent("console", message, None, line, column, self.source_file)
+            send_message(json.dumps(output_event.encode()), connection)
+        end_event = mqt.debug.messages.OutputDAPEvent("console", end, "end", line, column, self.source_file)
+        send_message(json.dumps(end_event.encode()), connection)
 
 
 if __name__ == "__main__":

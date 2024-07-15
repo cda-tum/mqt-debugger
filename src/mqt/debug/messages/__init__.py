@@ -10,10 +10,12 @@ from .dap_message import DAPMessage
 from .disconnect_dap_message import DisconnectDAPMessage
 from .exception_info_message import ExceptionInfoDAPMessage
 from .exited_dap_event import ExitedDAPEvent
+from .gray_out_event import GrayOutDAPEvent
 from .initialize_dap_message import InitializeDAPMessage
 from .initialized_dap_event import InitializedDAPEvent
 from .launch_dap_message import LaunchDAPMessage
 from .next_dap_message import NextDAPMessage
+from .output_dap_event import OutputDAPEvent
 from .pause_dap_message import PauseDAPMessage
 from .restart_dap_message import RestartDAPMessage
 from .reverse_continue_dap_message import ReverseContinueDAPMessage
@@ -41,10 +43,12 @@ __all__ = [
     "DisconnectDAPMessage",
     "ExceptionInfoDAPMessage",
     "ExitedDAPEvent",
+    "GrayOutDAPEvent",
     "InitializeDAPMessage",
     "InitializedDAPEvent",
     "LaunchDAPMessage",
     "NextDAPMessage",
+    "OutputDAPEvent",
     "PauseDAPMessage",
     "Request",
     "RestartDAPMessage",
