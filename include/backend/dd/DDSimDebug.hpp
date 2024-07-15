@@ -26,6 +26,8 @@ struct ClassicalRegisterDefinition {
 struct DDSimulationState {
   SimulationState interface;
   size_t currentInstruction;
+  std::string code;
+  bool ready;
 
   std::unique_ptr<qc::QuantumComputation> qc;
   std::unique_ptr<dd::Package<>> dd;
@@ -39,13 +41,18 @@ struct DDSimulationState {
   std::vector<QubitRegisterDefinition> qubitRegisters;
   std::vector<ClassicalRegisterDefinition> classicalRegisters;
   std::map<std::string, Variable> variables;
+  std::vector<std::unique_ptr<std::string>> variableNames;
   std::vector<size_t> previousInstructionStack;
   std::vector<size_t> callReturnStack;
   std::map<size_t, std::map<std::string, std::string>> callSubstitutions;
   std::vector<std::pair<size_t, size_t>> restoreCallReturnStack;
   std::map<size_t, std::vector<size_t>> dataDependencies;
+  std::set<size_t> breakpoints;
 
-  bool assertionFailed;
+  bool paused;
+
+  size_t lastFailedAssertion;
+  size_t lastMetBreakpoint;
 };
 
 Result ddsimInit(SimulationState* self);
@@ -55,12 +62,17 @@ Result ddsimStepForward(SimulationState* self);
 Result ddsimStepBackward(SimulationState* self);
 Result ddsimStepOverForward(SimulationState* self);
 Result ddsimStepOverBackward(SimulationState* self);
+Result ddsimStepOutForward(SimulationState* self);
+Result ddsimStepOutBackward(SimulationState* self);
 Result ddsimRunSimulation(SimulationState* self);
+Result ddsimRunSimulationBackward(SimulationState* self);
 Result ddsimResetSimulation(SimulationState* self);
+Result ddsimPauseSimulation(SimulationState* self);
 bool ddsimCanStepForward(SimulationState* self);
 bool ddsimCanStepBackward(SimulationState* self);
 bool ddsimIsFinished(SimulationState* self);
 bool ddsimDidAssertionFail(SimulationState* self);
+bool ddsimWasBreakpointHit(SimulationState* self);
 
 size_t ddsimGetCurrentInstruction(SimulationState* self);
 size_t ddsimGetPreviousInstruction(SimulationState* self);
@@ -73,14 +85,26 @@ Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
                               Complex* output);
 Result ddsimGetAmplitudeBitstring(SimulationState* self, const char* bitstring,
                                   Complex* output);
+
 Result ddsimGetClassicalVariable(SimulationState* self, const char* name,
                                  Variable* output);
+size_t ddsimGetNumClassicalVariables(SimulationState* self);
+Result ddsimGetClassicalVariableName(SimulationState* self,
+                                     size_t variableIndex, char* output);
+
 Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output);
 Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
                               const size_t* qubits, Statevector* output);
 
 Result ddsimGetDataDependencies(SimulationState* self, size_t instruction,
                                 bool* instructions);
+
+Result ddsimSetBreakpoint(SimulationState* self, size_t desiredPosition,
+                          size_t* targetInstruction);
+Result ddsimClearBreakpoints(SimulationState* self);
+Result ddsimGetStackDepth(SimulationState* self, size_t* depth);
+Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
+                          size_t* output);
 
 Result createDDSimulationState(DDSimulationState* self);
 Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self);

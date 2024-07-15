@@ -35,12 +35,17 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.stepBackward = ddsimStepBackward;
   self->interface.stepOverForward = ddsimStepOverForward;
   self->interface.stepOverBackward = ddsimStepOverBackward;
+  self->interface.stepOutForward = ddsimStepOutForward;
+  self->interface.stepOutBackward = ddsimStepOutBackward;
   self->interface.runSimulation = ddsimRunSimulation;
+  self->interface.runSimulationBackward = ddsimRunSimulationBackward;
   self->interface.resetSimulation = ddsimResetSimulation;
+  self->interface.pauseSimulation = ddsimPauseSimulation;
   self->interface.canStepForward = ddsimCanStepForward;
   self->interface.canStepBackward = ddsimCanStepBackward;
   self->interface.isFinished = ddsimIsFinished;
   self->interface.didAssertionFail = ddsimDidAssertionFail;
+  self->interface.wasBreakpointHit = ddsimWasBreakpointHit;
 
   self->interface.getCurrentInstruction = ddsimGetCurrentInstruction;
   self->interface.getPreviousInstruction = ddsimGetPreviousInstruction;
@@ -50,9 +55,15 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.getAmplitudeIndex = ddsimGetAmplitudeIndex;
   self->interface.getAmplitudeBitstring = ddsimGetAmplitudeBitstring;
   self->interface.getClassicalVariable = ddsimGetClassicalVariable;
+  self->interface.getNumClassicalVariables = ddsimGetNumClassicalVariables;
+  self->interface.getClassicalVariableName = ddsimGetClassicalVariableName;
   self->interface.getStateVectorFull = ddsimGetStateVectorFull;
   self->interface.getStateVectorSub = ddsimGetStateVectorSub;
   self->interface.getDataDependencies = ddsimGetDataDependencies;
+  self->interface.setBreakpoint = ddsimSetBreakpoint;
+  self->interface.clearBreakpoints = ddsimClearBreakpoints;
+  self->interface.getStackDepth = ddsimGetStackDepth;
+  self->interface.getStackTrace = ddsimGetStackTrace;
 
   return self->interface.init(reinterpret_cast<SimulationState*>(self));
 }
@@ -64,6 +75,8 @@ void resetSimulationState(DDSimulationState* ddsim) {
   }
   ddsim->simulationState = ddsim->dd->makeZeroState(ddsim->qc->getNqubits());
   ddsim->dd->incRef(ddsim->simulationState);
+  ddsim->breakpoints.clear();
+  ddsim->paused = false;
 }
 
 Result ddsimInit(SimulationState* self) {
@@ -78,9 +91,13 @@ Result ddsimInit(SimulationState* self) {
   ddsim->callReturnStack.clear();
   ddsim->callSubstitutions.clear();
   ddsim->restoreCallReturnStack.clear();
-  ddsim->assertionFailed = false;
+  ddsim->breakpoints.clear();
+  ddsim->lastFailedAssertion = -1ULL;
+  ddsim->lastMetBreakpoint = -1ULL;
 
   resetSimulationState(ddsim);
+
+  ddsim->ready = false;
 
   return OK;
 }
@@ -92,21 +109,25 @@ Result ddsimLoadCode(SimulationState* self, const char* code) {
   ddsim->callReturnStack.clear();
   ddsim->callSubstitutions.clear();
   ddsim->restoreCallReturnStack.clear();
+  ddsim->code = code;
 
   try {
     std::stringstream ss{preprocessAssertionCode(code, ddsim)};
     ddsim->qc->import(ss, qc::Format::OpenQASM3);
     qc::CircuitOptimizer::flattenOperations(*ddsim->qc);
-  } catch (ParsingError& e) {
+  } catch (const std::exception& e) {
     std::cerr << e.what() << "\n";
     return ERROR;
   }
 
   ddsim->iterator = ddsim->qc->begin();
   ddsim->dd->resize(ddsim->qc->getNqubits());
-  ddsim->assertionFailed = false;
+  ddsim->lastFailedAssertion = -1ULL;
+  ddsim->lastMetBreakpoint = -1ULL;
 
   resetSimulationState(ddsim);
+
+  ddsim->ready = true;
 
   return OK;
 }
@@ -124,11 +145,18 @@ Result ddsimStepOverForward(SimulationState* self) {
   const auto currentInstruction = ddsim->currentInstruction;
   bool done = false;
   while ((res == OK) && !done) {
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
     if (ddsim->instructionTypes[ddsim->currentInstruction] == RETURN &&
         ddsim->callReturnStack.back() == currentInstruction) {
       done = true;
     }
     res = self->stepForward(self);
+    if (self->didAssertionFail(self) || self->wasBreakpointHit(self)) {
+      break;
+    }
   }
   return res;
 }
@@ -146,9 +174,65 @@ Result ddsimStepOverBackward(SimulationState* self) {
   Result res = OK;
   const auto stackSize = ddsim->callReturnStack.size();
   while (res == OK) {
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
     res = self->stepBackward(self);
     if (ddsim->instructionTypes[ddsim->currentInstruction] == CALL &&
         ddsim->callReturnStack.size() == stackSize) {
+      break;
+    }
+    if (self->wasBreakpointHit(self)) {
+      break;
+    }
+  }
+  return res;
+}
+
+Result ddsimStepOutForward(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (ddsim->callReturnStack.empty()) {
+    return self->runSimulation(self);
+  }
+
+  const auto size = ddsim->callReturnStack.size();
+  Result res = OK;
+  while ((res = self->stepForward(self)) == OK) {
+    if (self->didAssertionFail(self) || self->wasBreakpointHit(self)) {
+      break;
+    }
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
+    if (ddsim->callReturnStack.size() == size - 1) {
+      break;
+    }
+  }
+  return res;
+}
+
+Result ddsimStepOutBackward(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (ddsim->callReturnStack.empty()) {
+    return self->runSimulationBackward(self);
+  }
+
+  const auto size = ddsim->callReturnStack.size();
+  Result res = OK;
+  while ((res = self->stepBackward(self)) == OK) {
+    if (self->wasBreakpointHit(self)) {
+      break;
+    }
+    if (self->wasBreakpointHit(self)) {
+      break;
+    }
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
+    if (ddsim->callReturnStack.size() == size - 1) {
       break;
     }
   }
@@ -160,8 +244,13 @@ Result ddsimStepForward(SimulationState* self) {
   if (!self->canStepForward(self)) {
     return ERROR;
   }
+  ddsim->lastMetBreakpoint = -1ULL;
   const auto currentInstruction = ddsim->currentInstruction;
   ddsim->currentInstruction = ddsim->successorInstructions[currentInstruction];
+  if (ddsim->breakpoints.contains(ddsim->currentInstruction)) {
+    ddsim->lastMetBreakpoint = ddsim->currentInstruction;
+  }
+
   if (ddsim->currentInstruction == 0) {
     ddsim->currentInstruction = ddsim->callReturnStack.back() + 1;
     ddsim->restoreCallReturnStack.emplace_back(ddsim->currentInstruction,
@@ -175,11 +264,15 @@ Result ddsimStepForward(SimulationState* self) {
 
   if (ddsim->instructionTypes[currentInstruction] == ASSERTION) {
     auto& assertion = ddsim->assertionInstructions[currentInstruction];
-    ddsim->assertionFailed = !checkAssertion(ddsim, assertion);
+    const auto failed = !checkAssertion(ddsim, assertion);
+    if (failed && ddsim->lastFailedAssertion != currentInstruction) {
+      ddsim->lastFailedAssertion = currentInstruction;
+      self->stepBackward(self);
+    }
     return OK;
   }
 
-  ddsim->assertionFailed = false;
+  ddsim->lastFailedAssertion = -1ULL;
   if (ddsim->instructionTypes[currentInstruction] != SIMULATE) {
     return OK;
   }
@@ -207,8 +300,10 @@ Result ddsimStepForward(SimulationState* self) {
         value.boolValue = !result;
         ddsim->variables[name].value = value;
       } else {
-        const Variable newVariable{
-            name.c_str(), VariableType::VarBool, {!result}};
+        ddsim->variableNames.push_back(std::make_unique<std::string>(name));
+        const Variable newVariable{ddsim->variableNames.back()->data(),
+                                   VariableType::VarBool,
+                                   {!result}};
         ddsim->variables.insert({name, newVariable});
       }
     }
@@ -284,6 +379,7 @@ Result ddsimStepBackward(SimulationState* self) {
     return ERROR;
   }
 
+  ddsim->lastMetBreakpoint = -1ULL;
   if (!ddsim->restoreCallReturnStack.empty() &&
       ddsim->currentInstruction == ddsim->restoreCallReturnStack.back().first) {
     ddsim->callReturnStack.push_back(
@@ -299,60 +395,89 @@ Result ddsimStepBackward(SimulationState* self) {
     ddsim->callReturnStack.pop_back();
   }
 
-  if (ddsim->instructionTypes[ddsim->currentInstruction] == SIMULATE) {
+  // When going backwards, we still run the instruction that hits the breakpoint
+  // because we want to stop *before* it.
+  if (ddsim->breakpoints.contains(ddsim->currentInstruction)) {
+    ddsim->lastMetBreakpoint = ddsim->currentInstruction;
+  }
 
-    ddsim->iterator--;
-    qc::MatrixDD currDD;
+  if (ddsim->lastFailedAssertion != ddsim->currentInstruction) {
+    ddsim->lastFailedAssertion = -1ULL;
+  }
 
-    if ((*ddsim->iterator)->getType() == qc::Barrier) {
-      ddsim->iterator++;
-      return OK;
+  if (ddsim->instructionTypes[ddsim->currentInstruction] != SIMULATE) {
+    return OK;
+  }
+
+  ddsim->iterator--;
+  qc::MatrixDD currDD;
+
+  if ((*ddsim->iterator)->getType() == qc::Barrier) {
+    return OK;
+  }
+  if ((*ddsim->iterator)->isClassicControlledOperation()) {
+    const auto* op =
+        dynamic_cast<qc::ClassicControlledOperation*>((*ddsim->iterator).get());
+    const auto& controls = op->getControlRegister();
+    const auto& exp = op->getExpectedValue();
+    size_t registerValue = 0;
+    for (size_t i = 0; i < controls.second; i++) {
+      const auto name = getClassicalBitName(ddsim, controls.first + i);
+      const auto& value = ddsim->variables[name].value.boolValue;
+      registerValue |= (value ? 1ULL : 0ULL) << i;
     }
-    if ((*ddsim->iterator)->isClassicControlledOperation()) {
-      const auto* op = dynamic_cast<qc::ClassicControlledOperation*>(
-          (*ddsim->iterator).get());
-      const auto& controls = op->getControlRegister();
-      const auto& exp = op->getExpectedValue();
-      size_t registerValue = 0;
-      for (size_t i = 0; i < controls.second; i++) {
-        const auto name = getClassicalBitName(ddsim, controls.first + i);
-        const auto& value = ddsim->variables[name].value.boolValue;
-        registerValue |= (value ? 1ULL : 0ULL) << i;
-      }
-      if (registerValue == exp) {
-        currDD = dd::getInverseDD(ddsim->iterator->get(), *ddsim->dd);
-      } else {
-        currDD = ddsim->dd->makeIdent();
-      }
+    if (registerValue == exp) {
+      currDD = dd::getInverseDD(ddsim->iterator->get(), *ddsim->dd);
     } else {
-      currDD = dd::getInverseDD(
-          ddsim->iterator->get(),
-          *ddsim->dd); // get the inverse of the current operation
+      currDD = ddsim->dd->makeIdent();
     }
-
-    auto temp = ddsim->dd->multiply(currDD, ddsim->simulationState);
-    ddsim->dd->incRef(temp);
-    ddsim->dd->decRef(ddsim->simulationState);
-    ddsim->simulationState = temp;
-    ddsim->dd->garbageCollect();
-  }
-
-  if (ddsim->currentInstruction > 0 &&
-      ddsim->instructionTypes[ddsim->currentInstruction - 1] == ASSERTION) {
-    auto& assertion =
-        ddsim->assertionInstructions[ddsim->currentInstruction - 1];
-    ddsim->assertionFailed = !checkAssertion(ddsim, assertion);
   } else {
-    ddsim->assertionFailed = false;
+    currDD = dd::getInverseDD(
+        ddsim->iterator->get(),
+        *ddsim->dd); // get the inverse of the current operation
   }
+
+  auto temp = ddsim->dd->multiply(currDD, ddsim->simulationState);
+  ddsim->dd->incRef(temp);
+  ddsim->dd->decRef(ddsim->simulationState);
+  ddsim->simulationState = temp;
+  ddsim->dd->garbageCollect();
 
   return OK;
 }
 
 Result ddsimRunSimulation(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  while (!self->isFinished(self) && !ddsim->assertionFailed) {
-    self->stepForward(self);
+  while (!self->isFinished(self)) {
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
+    Result res = self->stepForward(self);
+    if (res != OK) {
+      return res;
+    }
+    if (self->didAssertionFail(self) || self->wasBreakpointHit(self)) {
+      break;
+    }
+  }
+  return OK;
+}
+
+Result ddsimRunSimulationBackward(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  while (self->canStepBackward(self)) {
+    if (ddsim->paused) {
+      ddsim->paused = false;
+      return OK;
+    }
+    Result res = self->stepBackward(self);
+    if (res != OK) {
+      return res;
+    }
+    if (self->didAssertionFail(self) || self->wasBreakpointHit(self)) {
+      break;
+    }
   }
   return OK;
 }
@@ -366,10 +491,18 @@ Result ddsimResetSimulation(SimulationState* self) {
   ddsim->restoreCallReturnStack.clear();
 
   ddsim->iterator = ddsim->qc->begin();
-  ddsim->assertionFailed = false;
+  ddsim->lastFailedAssertion = -1ULL;
+  ddsim->lastMetBreakpoint = -1ULL;
   ddsim->variables.clear();
+  ddsim->variableNames.clear();
 
   resetSimulationState(ddsim);
+  return OK;
+}
+
+Result ddsimPauseSimulation(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  ddsim->paused = true;
   return OK;
 }
 
@@ -390,7 +523,12 @@ bool ddsimIsFinished(SimulationState* self) {
 
 bool ddsimDidAssertionFail(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  return ddsim->assertionFailed;
+  return ddsim->lastFailedAssertion == ddsim->currentInstruction;
+}
+
+bool ddsimWasBreakpointHit(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  return ddsim->lastMetBreakpoint == ddsim->currentInstruction;
 }
 
 size_t ddsimGetCurrentInstruction(SimulationState* self) {
@@ -414,8 +552,19 @@ Result ddsimGetInstructionPosition(SimulationState* self, size_t instruction,
   if (instruction >= ddsim->instructionStarts.size()) {
     return ERROR;
   }
-  *start = ddsim->instructionStarts[instruction];
-  *end = ddsim->instructionEnds[instruction];
+  size_t start_index = ddsim->instructionStarts[instruction];
+  size_t end_index = ddsim->instructionEnds[instruction];
+
+  while (ddsim->code[start_index] == ' ' || ddsim->code[start_index] == '\n' ||
+         ddsim->code[start_index] == '\r' || ddsim->code[start_index] == '\t') {
+    start_index++;
+  }
+  while (ddsim->code[end_index] == ' ' || ddsim->code[end_index] == '\n' ||
+         ddsim->code[end_index] == '\r' || ddsim->code[end_index] == '\t') {
+    end_index++;
+  }
+  *start = start_index;
+  *end = end_index;
   return OK;
 }
 
@@ -453,6 +602,22 @@ Result ddsimGetClassicalVariable(SimulationState* self, const char* name,
     return OK;
   }
   return ERROR;
+}
+size_t ddsimGetNumClassicalVariables(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  return ddsim->variables.size();
+}
+Result ddsimGetClassicalVariableName(SimulationState* self,
+                                     size_t variableIndex, char* output) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+
+  if (variableIndex >= ddsim->variables.size()) {
+    return ERROR;
+  }
+
+  const auto name = getClassicalBitName(ddsim, variableIndex);
+  strcpy(output, name.c_str());
+  return OK;
 }
 
 Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
@@ -515,7 +680,56 @@ Result ddsimGetDataDependencies(SimulationState* self, size_t instruction,
   return OK;
 }
 
-Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self) {
+Result ddsimSetBreakpoint(SimulationState* self, size_t desiredPosition,
+                          size_t* targetInstruction) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  for (auto i = 0ULL; i < ddsim->instructionTypes.size(); i++) {
+    size_t start = ddsim->instructionStarts[i];
+    size_t end = ddsim->instructionEnds[i];
+    if (desiredPosition >= start && desiredPosition <= end) {
+      *targetInstruction = i;
+      ddsim->breakpoints.insert(i);
+      return OK;
+    }
+  }
+  return ERROR;
+}
+
+Result ddsimClearBreakpoints(SimulationState* self) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  ddsim->breakpoints.clear();
+  return OK;
+}
+
+Result ddsimGetStackDepth(SimulationState* self, size_t* depth) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (!ddsim->ready)
+    return ERROR;
+  *depth = ddsim->callReturnStack.size() + 1;
+  return OK;
+}
+
+Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
+                          size_t* output) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (!ddsim->ready || maxDepth == 0)
+    return ERROR;
+  size_t depth = 0;
+  self->getStackDepth(self, &depth);
+  std::span<size_t> stackFrames(output, maxDepth);
+  stackFrames[0] = self->getCurrentInstruction(self);
+  for (auto i = 1ULL; i < maxDepth; i++) {
+    if (i >= depth) {
+      stackFrames[i] = -1ULL;
+      continue;
+    }
+    stackFrames[i] = ddsim->callReturnStack[depth - i - 1];
+  }
+  return OK;
+}
+
+Result destroyDDSimulationState(DDSimulationState* self) {
+  self->ready = false;
   return OK;
 }
 
@@ -797,6 +1011,7 @@ std::string preprocessAssertionCode(const char* code,
   ddsim->qubitRegisters.clear();
   ddsim->successorInstructions.clear();
   ddsim->dataDependencies.clear();
+  ddsim->breakpoints.clear();
 
   for (auto& instruction : instructions) {
     ddsim->successorInstructions.insert(
@@ -862,6 +1077,16 @@ std::string preprocessAssertionCode(const char* code,
       const ClassicalRegisterDefinition reg{removeWhitespace(name), index,
                                             size};
       ddsim->classicalRegisters.push_back(reg);
+      for (auto i = 0ULL; i < size; i++) {
+        const auto variableName =
+            removeWhitespace(name) + "[" + std::to_string(i) + "]";
+        ddsim->variableNames.push_back(
+            std::make_unique<std::string>(variableName));
+        const Variable newVariable{ddsim->variableNames.back()->data(),
+                                   VariableType::VarBool,
+                                   {false}};
+        ddsim->variables.insert({newVariable.name, newVariable});
+      }
 
       if (!instruction.inFunctionDefinition) {
         correctLines.push_back(instruction.code);

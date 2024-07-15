@@ -1,61 +1,52 @@
 cmake_minimum_required(VERSION 3.26)
-project(mqt_debug)
+project(
+  mqt_debug
+  LANGUAGES CXX
+  DESCRIPTION "MQT Debug - A debugging tool for Quantum Circuits")
+
+option(BUILD_MQT_DEBUG_BINDINGS "Build the MQT DEBUG Python bindings" OFF)
+option(BUILD_MQT_DEBUG_TESTS "Also build tests for the MQT QCEC project" ON)
 
 set(CMAKE_CXX_STANDARD 20)
 
-include(FetchContent)
-set(FETCH_PACKAGES "")
+if(BUILD_MQT_DEBUG_BINDINGS)
+  # ensure that the BINDINGS option is set
+  set(BINDINGS
+      ON
+      CACHE INTERNAL "Enable settings related to Python bindings")
+  # Some common settings for finding Python
+  set(Python_FIND_VIRTUALENV
+      FIRST
+      CACHE STRING "Give precedence to virtualenvs when searching for Python")
+  set(Python_FIND_FRAMEWORK
+      LAST
+      CACHE STRING "Prefer Brew/Conda to Apple framework Python")
+  set(Python_FIND_STRATEGY
+      LOCATION
+      CACHE STRING "Prefer Brew/Conda to Apple framework Python")
+  set(Python_ARTIFACTS_INTERACTIVE
+      ON
+      CACHE BOOL "Prevent multiple searches for Python and instead cache the results.")
 
-set(MQT_CORE_VERSION
-    2.4.0
-    CACHE STRING "MQT Core version")
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
-  FetchContent_Declare(
-    mqt-core
-    GIT_REPOSITORY https://github.com/cda-tum/mqt-core.git
-    GIT_TAG v${MQT_CORE_VERSION}
-    FIND_PACKAGE_ARGS ${MQT_CORE_VERSION})
-  list(APPEND FETCH_PACKAGES mqt-core)
-else()
-  find_package(mqt-core ${MQT_CORE_VERSION} QUIET)
-  if(NOT mqt-core_FOUND)
-    FetchContent_Declare(
-      mqt-core
-      GIT_REPOSITORY https://github.com/cda-tum/mqt-core.git
-      GIT_TAG v${MQT_CORE_VERSION})
-    list(APPEND FETCH_PACKAGES mqt-core)
-  endif()
+  # top-level call to find Python
+  find_package(
+    Python 3.8 REQUIRED
+    COMPONENTS Interpreter Development.Module
+    OPTIONAL_COMPONENTS Development.SABIModule)
 endif()
 
-# Make all declared dependencies available.
-FetchContent_MakeAvailable(${FETCH_PACKAGES})
+include(cmake/ExternalDependencies.cmake)
 
-include_directories(include)
+# add main library code
+add_subdirectory(src)
 
-add_executable(
-  mqt_debug
-  include/backend/dd/DDSimDebug.hpp
-  include/backend/debug.h
-  include/common.h
-  include/common/parsing/AssertionParsing.hpp
-  include/common/parsing/CodePreprocessing.hpp
-  include/common/parsing/ParsingError.hpp
-  include/common/parsing/Utils.hpp
-  include/frontend/cli/CliFrontEnd.hpp
-  src/backend/dd/DDSimDebug.cpp
-  src/common/parsing/AssertionParsing.cpp
-  src/common/parsing/CodePreprocessing.cpp
-  src/common/parsing/ParsingError.cpp
-  src/common/parsing/Utils.cpp
-  src/frontend/cli/CliFrontEnd.cpp
-  test/testDDSimDebugger.cpp)
+# add test app
+add_subdirectory(app)
 
-# Link against mqt-core library
-target_link_libraries(
-  mqt_debug
-  nlohmann_json
-  boost_multiprecision
-  gtest
-  MQT::CoreDD
-  MQT::ProjectOptions
-  MQT::ProjectWarnings)
+# add test code if(BUILD_MQT_DEBUG_TESTS) enable_testing() include(GoogleTest)
+# add_subdirectory(test) endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
+               ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
+add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P
+                                    ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
