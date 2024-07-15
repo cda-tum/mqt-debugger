@@ -37,6 +37,7 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.stepOverBackward = ddsimStepOverBackward;
   self->interface.stepOutForward = ddsimStepOutForward;
   self->interface.stepOutBackward = ddsimStepOutBackward;
+  self->interface.runAll = ddsimRunAll;
   self->interface.runSimulation = ddsimRunSimulation;
   self->interface.runSimulationBackward = ddsimRunSimulationBackward;
   self->interface.resetSimulation = ddsimResetSimulation;
@@ -443,6 +444,21 @@ Result ddsimStepBackward(SimulationState* self) {
   ddsim->simulationState = temp;
   ddsim->dd->garbageCollect();
 
+  return OK;
+}
+
+Result ddsimRunAll(SimulationState* self, size_t* failedAssertions) {
+  size_t errorCount = 0;
+  while (!self->isFinished(self)) {
+    Result result = self->runSimulation(self);
+    if (result != OK) {
+      return result;
+    }
+    if (self->didAssertionFail(self)) {
+      errorCount++;
+    }
+  }
+  *failedAssertions = errorCount;
   return OK;
 }
 

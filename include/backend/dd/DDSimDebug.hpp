@@ -64,6 +64,7 @@ Result ddsimStepOverForward(SimulationState* self);
 Result ddsimStepOverBackward(SimulationState* self);
 Result ddsimStepOutForward(SimulationState* self);
 Result ddsimStepOutBackward(SimulationState* self);
+Result ddsimRunAll(SimulationState* self, size_t* failedAssertions);
 Result ddsimRunSimulation(SimulationState* self);
 Result ddsimRunSimulationBackward(SimulationState* self);
 Result ddsimResetSimulation(SimulationState* self);

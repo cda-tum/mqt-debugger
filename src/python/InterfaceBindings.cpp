@@ -93,6 +93,12 @@ void bindFramework(py::module& m) {
            [](SimulationState* self) {
              checkOrThrow(self->stepOutBackward(self));
            })
+      .def("run_all",
+           [](SimulationState* self) {
+             size_t errors = 0;
+             checkOrThrow(self->runAll(self, &errors));
+             return errors;
+           })
       .def("run_simulation",
            [](SimulationState* self) {
              checkOrThrow(self->runSimulation(self));

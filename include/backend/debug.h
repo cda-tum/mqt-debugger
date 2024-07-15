@@ -19,6 +19,7 @@ struct SimulationState {
   Result (*stepBackward)(SimulationState* self);
   Result (*stepOverBackward)(SimulationState* self);
   Result (*stepOutBackward)(SimulationState* self);
+  Result (*runAll)(SimulationState* self, size_t* failedAssertions);
   Result (*runSimulation)(SimulationState* self);
   Result (*runSimulationBackward)(SimulationState* self);
   Result (*resetSimulation)(SimulationState* self);
