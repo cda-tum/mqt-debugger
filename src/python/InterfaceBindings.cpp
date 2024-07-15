@@ -196,11 +196,18 @@ void bindFramework(py::module& m) {
              return result;
            })
       .def("get_data_dependencies",
-           [](SimulationState* self, size_t instruction,
-              std::vector<uint8_t>& instructions) {
+           [](SimulationState* self, size_t instruction) {
+             std::vector<uint8_t> instructions(self->getInstructionCount(self));
              checkOrThrow(self->getDataDependencies(
                  self, instruction,
                  reinterpret_cast<bool*>(instructions.data())));
+             std::vector<size_t> result;
+             for (size_t i = 0; i < instructions.size(); i++) {
+               if (instructions[i]) {
+                 result.push_back(i);
+               }
+             }
+             return result;
            })
       .def("set_breakpoint",
            [](SimulationState* self, size_t desiredPosition) {
