@@ -41,7 +41,7 @@ class ExceptionInfoDAPMessage(DAPMessage):
         Returns:
             dict[str, Any]: The response to the request.
         """
-        previous_instruction = server.simulation_state.get_previous_instruction()
+        previous_instruction = server.simulation_state.get_current_instruction()
         (start, end) = server.simulation_state.get_instruction_position(previous_instruction)
         instruction = server.source_code[start:end]
         assertion_type = next(x for x in ("assert-ent", "assert-sup", "assert-eq") if x in instruction)
