@@ -216,7 +216,22 @@ void bindFramework(py::module& m) {
                  self->setBreakpoint(self, desiredPosition, &actualPosition));
              return actualPosition;
            })
-      .def("clear_breakpoints", [](SimulationState* self) {
-        checkOrThrow(self->clearBreakpoints(self));
+      .def("clear_breakpoints",
+           [](SimulationState* self) {
+             checkOrThrow(self->clearBreakpoints(self));
+           })
+      .def("get_stack_depth",
+           [](SimulationState* self) {
+             size_t depth;
+             checkOrThrow(self->getStackDepth(self, &depth));
+             return depth;
+           })
+      .def("get_stack_trace", [](SimulationState* self, size_t maxDepth) {
+        size_t trueSize;
+        checkOrThrow(self->getStackDepth(self, &trueSize));
+        size_t stackSize = std::min(maxDepth, trueSize);
+        std::vector<size_t> stackTrace(stackSize);
+        checkOrThrow(self->getStackTrace(self, maxDepth, stackTrace.data()));
+        return stackTrace;
       });
 }

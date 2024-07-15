@@ -20,6 +20,7 @@ from .messages import (
     PauseDAPMessage,
     Request,
     RestartDAPMessage,
+    RestartFrameDAPMessage,
     ReverseContinueDAPMessage,
     ScopesDAPMessage,
     SetBreakpointsDAPMessage,
@@ -55,6 +56,7 @@ supported_messages: list[type[Request]] = [
     PauseDAPMessage,
     SetExceptionBreakpointsDAPMessage,
     ExceptionInfoDAPMessage,
+    RestartFrameDAPMessage,
 ]
 
 
@@ -156,6 +158,7 @@ class DAPServer:
                     mqt.debug.messages.StepOutDAPMessage,
                     mqt.debug.messages.ContinueDAPMessage,
                     mqt.debug.messages.ReverseContinueDAPMessage,
+                    mqt.debug.messages.RestartFrameDAPMessage,
                 ),
             ) or (
                 isinstance(

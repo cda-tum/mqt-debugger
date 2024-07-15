@@ -27,6 +27,7 @@ struct DDSimulationState {
   SimulationState interface;
   size_t currentInstruction;
   std::string code;
+  bool ready;
 
   std::unique_ptr<qc::QuantumComputation> qc;
   std::unique_ptr<dd::Package<>> dd;
@@ -101,6 +102,9 @@ Result ddsimGetDataDependencies(SimulationState* self, size_t instruction,
 Result ddsimSetBreakpoint(SimulationState* self, size_t desiredPosition,
                           size_t* targetInstruction);
 Result ddsimClearBreakpoints(SimulationState* self);
+Result ddsimGetStackDepth(SimulationState* self, size_t* depth);
+Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
+                          size_t* output);
 
 Result createDDSimulationState(DDSimulationState* self);
 Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self);

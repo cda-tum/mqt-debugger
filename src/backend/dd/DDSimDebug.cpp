@@ -62,6 +62,8 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.getDataDependencies = ddsimGetDataDependencies;
   self->interface.setBreakpoint = ddsimSetBreakpoint;
   self->interface.clearBreakpoints = ddsimClearBreakpoints;
+  self->interface.getStackDepth = ddsimGetStackDepth;
+  self->interface.getStackTrace = ddsimGetStackTrace;
 
   return self->interface.init(reinterpret_cast<SimulationState*>(self));
 }
@@ -95,6 +97,8 @@ Result ddsimInit(SimulationState* self) {
 
   resetSimulationState(ddsim);
 
+  ddsim->ready = false;
+
   return OK;
 }
 
@@ -122,6 +126,8 @@ Result ddsimLoadCode(SimulationState* self, const char* code) {
   ddsim->lastMetBreakpoint = -1ULL;
 
   resetSimulationState(ddsim);
+
+  ddsim->ready = true;
 
   return OK;
 }
@@ -695,7 +701,35 @@ Result ddsimClearBreakpoints(SimulationState* self) {
   return OK;
 }
 
-Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self) {
+Result ddsimGetStackDepth(SimulationState* self, size_t* depth) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (!ddsim->ready)
+    return ERROR;
+  *depth = ddsim->callReturnStack.size() + 1;
+  return OK;
+}
+
+Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
+                          size_t* output) {
+  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  if (!ddsim->ready || maxDepth == 0)
+    return ERROR;
+  size_t depth = 0;
+  self->getStackDepth(self, &depth);
+  std::span<size_t> stackFrames(output, maxDepth);
+  stackFrames[0] = self->getCurrentInstruction(self);
+  for (auto i = 1ULL; i < maxDepth; i++) {
+    if (i >= depth) {
+      stackFrames[i] = -1ULL;
+      continue;
+    }
+    stackFrames[i] = ddsim->callReturnStack[depth - i - 1];
+  }
+  return OK;
+}
+
+Result destroyDDSimulationState(DDSimulationState* self) {
+  self->ready = false;
   return OK;
 }
 

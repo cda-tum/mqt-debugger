@@ -18,6 +18,7 @@ from .next_dap_message import NextDAPMessage
 from .output_dap_event import OutputDAPEvent
 from .pause_dap_message import PauseDAPMessage
 from .restart_dap_message import RestartDAPMessage
+from .restart_frame_dap_message import RestartFrameDAPMessage
 from .reverse_continue_dap_message import ReverseContinueDAPMessage
 from .scopes_dap_message import ScopesDAPMessage
 from .set_breakpoints_dap_message import SetBreakpointsDAPMessage
@@ -52,6 +53,7 @@ __all__ = [
     "PauseDAPMessage",
     "Request",
     "RestartDAPMessage",
+    "RestartFrameDAPMessage",
     "ReverseContinueDAPMessage",
     "ScopesDAPMessage",
     "SetBreakpointsDAPMessage",

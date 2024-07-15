@@ -21,7 +21,7 @@ def get_default_capabilities() -> dict[str, Any]:
         "exceptionBreakpointFilters": get_exception_filters(),
         "supportsStepBack": True,
         "supportsSetVariable": False,
-        "supportsRestartFrame": False,
+        "supportsRestartFrame": True,
         "supportsTerminateRequest": True,
         "supportsRestartRequest": True,
         "supportsVariableType": True,

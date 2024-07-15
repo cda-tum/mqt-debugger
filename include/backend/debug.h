@@ -55,6 +55,10 @@ struct SimulationState {
   Result (*setBreakpoint)(SimulationState* self, size_t desiredPosition,
                           size_t* tergetInstruction);
   Result (*clearBreakpoints)(SimulationState* self);
+
+  Result (*getStackDepth)(SimulationState* self, size_t* depth);
+  Result (*getStackTrace)(SimulationState* self, size_t maxDepth,
+                          size_t* output);
 };
 
 #ifdef __cplusplus
