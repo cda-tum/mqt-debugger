@@ -111,6 +111,8 @@ Result ddsimLoadCode(SimulationState* self, const char* code) {
   ddsim->callSubstitutions.clear();
   ddsim->restoreCallReturnStack.clear();
   ddsim->code = code;
+  ddsim->variables.clear();
+  ddsim->variableNames.clear();
 
   try {
     std::stringstream ss{preprocessAssertionCode(code, ddsim)};
@@ -503,14 +505,11 @@ Result ddsimResetSimulation(SimulationState* self) {
   ddsim->currentInstruction = 0;
   ddsim->previousInstructionStack.clear();
   ddsim->callReturnStack.clear();
-  ddsim->callSubstitutions.clear();
   ddsim->restoreCallReturnStack.clear();
 
   ddsim->iterator = ddsim->qc->begin();
   ddsim->lastFailedAssertion = -1ULL;
   ddsim->lastMetBreakpoint = -1ULL;
-  ddsim->variables.clear();
-  ddsim->variableNames.clear();
 
   resetSimulationState(ddsim);
   return OK;

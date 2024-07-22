@@ -5,7 +5,7 @@
 #include <iostream>
 
 int main() {
-  std::ifstream file("../../app/code/entanglement_test_wrong"
+  std::ifstream file("../../app/code/test"
                      ".qasm");
   if (!file.is_open()) {
     std::cerr << "Could not open file\n";
@@ -20,12 +20,12 @@ int main() {
 
   file.close();
 
-  size_t errors = 0;
-  Result result = ddsimLoadCode(&state.interface, code.c_str());
-  result = state.interface.runAll(&state.interface, &errors);
-  std::cout << errors << "\n";
-  // CliFrontEnd cli;
-  // cli.run(code.c_str(), &state.interface);
+  // size_t errors = 0;
+  // Result result = ddsimLoadCode(&state.interface, code.c_str());
+  // result = state.interface.runAll(&state.interface, &errors);
+  // std::cout << errors << "\n";
+  CliFrontEnd cli;
+  cli.run(code.c_str(), &state.interface);
 
   destroyDDSimulationState(&state);
 

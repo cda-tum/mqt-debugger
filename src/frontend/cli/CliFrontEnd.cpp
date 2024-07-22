@@ -22,16 +22,11 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
 
   std::string command;
   const auto result = state->loadCode(state, code);
+  state->resetSimulation(state);
   if (result == ERROR) {
     std::cout << "Error loading code\n";
     return;
   }
-
-  size_t breakpoint;
-  Result r = state->setBreakpoint(
-      state, 38,
-      &breakpoint); // set breakpoint at line 38 (entanglement_test_wrong.qasm
-  std::cout << "Breakpoint set at " << breakpoint << " " << r << "\n";
 
   bool wasError = false;
   bool wasGet = false;
