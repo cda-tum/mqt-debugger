@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DDSimDiagnostics.hpp"
 #include "QuantumComputation.hpp"
 #include "backend/debug.h"
 #include "common.h"
@@ -48,11 +49,14 @@ struct DDSimulationState {
   std::vector<std::pair<size_t, size_t>> restoreCallReturnStack;
   std::map<size_t, std::vector<size_t>> dataDependencies;
   std::set<size_t> breakpoints;
+  std::vector<std::set<std::string>> targetQubits;
 
   bool paused;
 
   size_t lastFailedAssertion;
   size_t lastMetBreakpoint;
+
+  DDDiagnostics diagnostics;
 };
 
 Result ddsimInit(SimulationState* self);
@@ -96,9 +100,6 @@ Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output);
 Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
                               const size_t* qubits, Statevector* output);
 
-Result ddsimGetDataDependencies(SimulationState* self, size_t instruction,
-                                bool* instructions);
-
 Result ddsimSetBreakpoint(SimulationState* self, size_t desiredPosition,
                           size_t* targetInstruction);
 Result ddsimClearBreakpoints(SimulationState* self);
@@ -106,10 +107,13 @@ Result ddsimGetStackDepth(SimulationState* self, size_t* depth);
 Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
                           size_t* output);
 
+Diagnostics* ddsimGetDiagnostics(SimulationState* self);
+
 Result createDDSimulationState(DDSimulationState* self);
-Result destroyDDSimulationState([[maybe_unused]] DDSimulationState* self);
+Result destroyDDSimulationState(DDSimulationState* self);
 
 std::string preprocessAssertionCode(const char* code, DDSimulationState* ddsim);
 bool checkAssertion(DDSimulationState* ddsim,
                     std::unique_ptr<Assertion>& assertion);
 std::string getClassicalBitName(DDSimulationState* ddsim, size_t index);
+size_t variableToQubit(DDSimulationState* ddsim, const std::string& variable);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "diagnostics.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,8 +50,6 @@ struct SimulationState {
   Result (*getStateVectorFull)(SimulationState* self, Statevector* output);
   Result (*getStateVectorSub)(SimulationState* self, size_t subStateSize,
                               const size_t* qubits, Statevector* output);
-  Result (*getDataDependencies)(SimulationState* self, size_t instruction,
-                                bool* instructions);
 
   Result (*setBreakpoint)(SimulationState* self, size_t desiredPosition,
                           size_t* tergetInstruction);
@@ -59,6 +58,8 @@ struct SimulationState {
   Result (*getStackDepth)(SimulationState* self, size_t* depth);
   Result (*getStackTrace)(SimulationState* self, size_t maxDepth,
                           size_t* output);
+
+  Diagnostics* (*getDiagnostics)(SimulationState* self);
 };
 
 #ifdef __cplusplus

@@ -1,5 +1,7 @@
 #include "python/InterfaceBindings.hpp"
 
+#include "backend/dd/DDSimDiagnostics.hpp"
+
 #include <backend/debug.h>
 #include <common.h>
 #include <pybind11/pybind11.h>
@@ -195,20 +197,6 @@ void bindFramework(py::module& m) {
                                                   qubits.data(), &output));
              return result;
            })
-      .def("get_data_dependencies",
-           [](SimulationState* self, size_t instruction) {
-             std::vector<uint8_t> instructions(self->getInstructionCount(self));
-             checkOrThrow(self->getDataDependencies(
-                 self, instruction,
-                 reinterpret_cast<bool*>(instructions.data())));
-             std::vector<size_t> result;
-             for (size_t i = 0; i < instructions.size(); i++) {
-               if (instructions[i]) {
-                 result.push_back(i);
-               }
-             }
-             return result;
-           })
       .def("set_breakpoint",
            [](SimulationState* self, size_t desiredPosition) {
              size_t actualPosition;
@@ -222,16 +210,58 @@ void bindFramework(py::module& m) {
            })
       .def("get_stack_depth",
            [](SimulationState* self) {
-             size_t depth;
+             size_t depth = 0;
              checkOrThrow(self->getStackDepth(self, &depth));
              return depth;
            })
-      .def("get_stack_trace", [](SimulationState* self, size_t maxDepth) {
-        size_t trueSize;
-        checkOrThrow(self->getStackDepth(self, &trueSize));
-        size_t stackSize = std::min(maxDepth, trueSize);
-        std::vector<size_t> stackTrace(stackSize);
-        checkOrThrow(self->getStackTrace(self, maxDepth, stackTrace.data()));
-        return stackTrace;
-      });
+      .def("get_stack_trace",
+           [](SimulationState* self, size_t maxDepth) {
+             size_t trueSize = 0;
+             checkOrThrow(self->getStackDepth(self, &trueSize));
+             const size_t stackSize = std::min(maxDepth, trueSize);
+             std::vector<size_t> stackTrace(stackSize);
+             checkOrThrow(
+                 self->getStackTrace(self, maxDepth, stackTrace.data()));
+             return stackTrace;
+           })
+      .def(
+          "get_diagnostics",
+          [](SimulationState* self) { return self->getDiagnostics(self); },
+          py::return_value_policy::reference_internal);
+}
+
+void bindDiagnostics(py::module& m) {
+  py::class_<Diagnostics>(m, "Diagnostics")
+      .def(py::init<>())
+      .def("init", [](Diagnostics* self) { checkOrThrow(self->init(self)); })
+      .def("get_num_qubits",
+           [](Diagnostics* self) { return self->getNumQubits(self); })
+      .def("get_data_dependencies",
+           [](Diagnostics* self, size_t instruction) {
+             std::vector<uint8_t> instructions(self->getNumQubits(self));
+             checkOrThrow(self->getDataDependencies(
+                 self, instruction,
+                 reinterpret_cast<bool*>(instructions.data())));
+             std::vector<size_t> result;
+             for (size_t i = 0; i < instructions.size(); i++) {
+               if (instructions[i] != 0) {
+                 result.push_back(i);
+               }
+             }
+             return result;
+           })
+      .def("get_interactions",
+           [](Diagnostics* self, size_t beforeInstruction, size_t qubit) {
+             std::vector<uint8_t> qubits(self->getNumQubits(self));
+             checkOrThrow(
+                 self->getInteractions(self, beforeInstruction, qubit,
+                                       reinterpret_cast<bool*>(qubits.data())));
+             std::vector<size_t> result;
+             for (size_t i = 0; i < qubits.size(); i++) {
+               if (qubits[i] != 0) {
+                 result.push_back(i);
+               }
+             }
+             return result;
+           });
 }

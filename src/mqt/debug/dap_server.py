@@ -246,7 +246,7 @@ class DAPServer:
             connection (socket.socket): The client socket.
         """
         current_instruction = self.simulation_state.get_current_instruction()
-        dependencies = self.simulation_state.get_data_dependencies(current_instruction)
+        dependencies = self.simulation_state.get_diagnostics().get_data_dependencies(current_instruction)
         gray_out_areas: list[tuple[int, int]] = []
         for i in range(self.simulation_state.get_instruction_count()):
             if i in dependencies:

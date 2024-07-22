@@ -1,7 +1,11 @@
 add_library(
   ${PROJECT_NAME}
-  backend/dd/DDSimDebug.cpp common/parsing/AssertionParsing.cpp
-  common/parsing/CodePreprocessing.cpp common/parsing/ParsingError.cpp common/parsing/Utils.cpp
+  backend/dd/DDSimDebug.cpp
+  backend/dd/DDSimDiagnostics.cpp
+  common/parsing/AssertionParsing.cpp
+  common/parsing/CodePreprocessing.cpp
+  common/parsing/ParsingError.cpp
+  common/parsing/Utils.cpp
   frontend/cli/CliFrontEnd.cpp)
 
 # set include directories

@@ -107,8 +107,9 @@ void CliFrontEnd::printState(SimulationState* state, size_t inspecting) {
     std::vector<uint8_t> inspectingDependencies(
         state->getInstructionCount(state));
     auto deps = inspectingDependencies.data();
-    state->getDataDependencies(state, inspecting,
-                               reinterpret_cast<bool*>(deps));
+    state->getDiagnostics(state)->getDataDependencies(
+        state->getDiagnostics(state), inspecting,
+        reinterpret_cast<bool*>(deps));
     uint8_t on = 0;
     for (size_t i = 0; i < inspectingDependencies.size(); i++) {
       if (inspectingDependencies[i] != on) {
