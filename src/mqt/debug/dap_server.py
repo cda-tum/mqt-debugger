@@ -259,12 +259,7 @@ class DAPServer:
         send_message(event_payload, connection)
 
         error_causes = self.simulation_state.get_diagnostics().potential_error_causes()
-        error_cause_messages = [
-            "The qubits never interact with each other. Are you missing a CX gate?"
-            if cause.type == ErrorCauseType.MissingInteraction
-            else ""
-            for cause in error_causes
-        ]
+        error_cause_messages = [self.format_error_cause(cause) for cause in error_causes]
         error_cause_messages = [msg for msg in error_cause_messages if msg]
         error_causes_body: str | dict[str, Any] = ""
         if not error_cause_messages:
@@ -333,6 +328,25 @@ class DAPServer:
         if self.columns_start_at_one:
             pos -= 1
         return pos
+
+    def format_error_cause(self, cause: mqt.debug.ErrorCause) -> str:
+        """Format an error cause for output.
+
+        Args:
+            cause (mqt.debug.ErrorCause): The error cause.
+
+        Returns:
+            str: The formatted error cause.
+        """
+        (start_pos, _) = self.simulation_state.get_instruction_position(cause.instruction)
+        start_line, _ = self.code_pos_to_coordinates(start_pos)
+        return (
+            "The qubits never interact with each other. Are you missing a CX gate?"
+            if cause.type == ErrorCauseType.MissingInteraction
+            else f"Control qubit is always zero in line {start_line}."
+            if cause.type == ErrorCauseType.ControlAlwaysZero
+            else ""
+        )
 
     def send_message_hierarchy(
         self, message: dict[str, str | list[Any] | dict[str, Any]], line: int, column: int, connection: socket.socket

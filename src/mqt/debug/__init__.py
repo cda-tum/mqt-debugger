@@ -6,6 +6,8 @@ from . import messages
 from .dap_server import DAPServer
 from .pydebug import (
     Complex,
+    ErrorCause,
+    ErrorCauseType,
     SimulationState,
     Statevector,
     Variable,
@@ -18,6 +20,8 @@ from .pydebug import (
 __all__ = [
     "Complex",
     "DAPServer",
+    "ErrorCause",
+    "ErrorCauseType",
     "SimulationState",
     "Statevector",
     "Variable",

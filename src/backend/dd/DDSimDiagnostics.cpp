@@ -111,6 +111,7 @@ size_t dddiagnosticsPotentialErrorCauses(Diagnostics* self, ErrorCause* output,
         tryFindMissingInteraction(ddd, ddsim, assertion, assertionInstruction,
                                   &outputs[index], count - index);
   }
+  index += tryFindZeroControls(ddd, assertion, &outputs[index], count - index);
 
   return index;
 }
@@ -148,4 +149,68 @@ size_t tryFindMissingInteraction(DDDiagnostics* diagnostics,
   }
 
   return index;
+}
+
+size_t tryFindZeroControls(DDDiagnostics* diagnostics, size_t instruction,
+                           ErrorCause* output, size_t count) {
+  std::vector<uint8_t> dependencies(
+      diagnostics->interface.getInstructionCount(&diagnostics->interface));
+  diagnostics->interface.getDataDependencies(
+      &diagnostics->interface, instruction,
+      reinterpret_cast<bool*>(dependencies.data()));
+  auto outputs = std::span(output, count);
+  size_t index = 0;
+
+  for (size_t i = 0; i < dependencies.size(); i++) {
+    if (dependencies[i] == 0) {
+      continue;
+    }
+    if (diagnostics->zeroControls.find(i) == diagnostics->zeroControls.end()) {
+      continue;
+    }
+    const auto& zeroControls = diagnostics->zeroControls[i];
+    if (!zeroControls.empty()) {
+      outputs[index].type = ErrorCauseType::ControlAlwaysZero;
+      outputs[index].instruction = i;
+      index++;
+      if (index == count) {
+        return index;
+      }
+    }
+  }
+
+  return index;
+}
+
+void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics,
+                                size_t instruction) {
+  auto* ddsim = diagnostics->simulationState;
+  if (ddsim->instructionTypes[instruction] != SIMULATE) {
+    return;
+  }
+  const auto& op = (*ddsim->iterator);
+  const auto& controls = op->getControls();
+
+  std::vector<Complex> amplitudes(2);
+  Statevector sv{1, 2, amplitudes.data()};
+  std::vector<size_t> qubits{0};
+  const double epsilon = 1e-10;
+
+  for (const auto& control : controls) {
+    const auto pos = control.type == qc::Control::Type::Pos;
+    const auto qubit = control.qubit;
+    qubits[0] = qubit;
+    if (ddsim->interface.getStateVectorSub(&ddsim->interface, 1, qubits.data(),
+                                           &sv) == OK) {
+      const auto amplitude = amplitudes[pos ? 1 : 0];
+      if (amplitude.real < epsilon && amplitude.real > -epsilon &&
+          amplitude.imaginary < epsilon && amplitude.imaginary > -epsilon) {
+        if (diagnostics->zeroControls.find(instruction) ==
+            diagnostics->zeroControls.end()) {
+          diagnostics->zeroControls[instruction] = std::set<size_t>();
+        }
+        diagnostics->zeroControls[instruction].insert(qubit);
+      }
+    }
+  }
 }

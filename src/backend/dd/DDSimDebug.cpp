@@ -249,6 +249,7 @@ Result ddsimStepForward(SimulationState* self) {
   }
   ddsim->lastMetBreakpoint = -1ULL;
   const auto currentInstruction = ddsim->currentInstruction;
+  dddiagnosticsOnStepForward(&ddsim->diagnostics, currentInstruction);
   ddsim->currentInstruction = ddsim->successorInstructions[currentInstruction];
   if (ddsim->breakpoints.contains(ddsim->currentInstruction)) {
     ddsim->lastMetBreakpoint = ddsim->currentInstruction;
