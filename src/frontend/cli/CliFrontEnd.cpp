@@ -90,6 +90,11 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
       wasGet = true;
     } else if (command == "inspect") {
       inspecting = state->getCurrentInstruction(state);
+    } else if (command == "diagnose") {
+      std::vector<ErrorCause> problems(10);
+      const auto count = state->getDiagnostics(state)->potentialErrorCauses(
+          state->getDiagnostics(state), problems.data(), problems.size());
+      std::cout << count << " potential problems found\n";
     } else {
       wasError = true;
     }
@@ -102,8 +107,9 @@ void CliFrontEnd::printState(SimulationState* state, size_t inspecting) {
     std::vector<uint8_t> inspectingDependencies(
         state->getInstructionCount(state));
     auto deps = inspectingDependencies.data();
-    state->getDataDependencies(state, inspecting,
-                               reinterpret_cast<bool*>(deps));
+    state->getDiagnostics(state)->getDataDependencies(
+        state->getDiagnostics(state), inspecting,
+        reinterpret_cast<bool*>(deps));
     uint8_t on = 0;
     for (size_t i = 0; i < inspectingDependencies.size(); i++) {
       if (inspectingDependencies[i] != on) {

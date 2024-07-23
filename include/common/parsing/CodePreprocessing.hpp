@@ -3,6 +3,7 @@
 #include "AssertionParsing.hpp"
 
 #include <map>
+#include <set>
 #include <string>
 
 struct Block {
@@ -14,6 +15,7 @@ struct Instruction {
   size_t lineNumber;
   std::string code;
   std::unique_ptr<Assertion> assertion;
+  std::set<std::string> targets;
 
   size_t originalCodeStartPosition;
   size_t originalCodeEndPosition;
@@ -32,10 +34,10 @@ struct Instruction {
   std::vector<size_t> childInstructions;
   Instruction(size_t lineNumber, std::string code,
               std::unique_ptr<Assertion>& assertion,
-              size_t originalCodeStartPosition, size_t originalCodeEndPosition,
-              size_t successorIndex, bool isFunctionCall,
-              std::string calledFunction, bool inFunctionDefinition,
-              Block block);
+              std::set<std::string> targets, size_t originalCodeStartPosition,
+              size_t originalCodeEndPosition, size_t successorIndex,
+              bool isFunctionCall, std::string calledFunction,
+              bool inFunctionDefinition, Block block);
 };
 
 struct FunctionDefinition {

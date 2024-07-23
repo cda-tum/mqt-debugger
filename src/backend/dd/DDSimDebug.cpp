@@ -60,7 +60,7 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.getClassicalVariableName = ddsimGetClassicalVariableName;
   self->interface.getStateVectorFull = ddsimGetStateVectorFull;
   self->interface.getStateVectorSub = ddsimGetStateVectorSub;
-  self->interface.getDataDependencies = ddsimGetDataDependencies;
+  self->interface.getDiagnostics = ddsimGetDiagnostics;
   self->interface.setBreakpoint = ddsimSetBreakpoint;
   self->interface.clearBreakpoints = ddsimClearBreakpoints;
   self->interface.getStackDepth = ddsimGetStackDepth;
@@ -95,6 +95,9 @@ Result ddsimInit(SimulationState* self) {
   ddsim->breakpoints.clear();
   ddsim->lastFailedAssertion = -1ULL;
   ddsim->lastMetBreakpoint = -1ULL;
+
+  destroyDDDiagnostics(&ddsim->diagnostics);
+  createDDDiagnostics(&ddsim->diagnostics, ddsim);
 
   resetSimulationState(ddsim);
 
@@ -249,6 +252,7 @@ Result ddsimStepForward(SimulationState* self) {
   }
   ddsim->lastMetBreakpoint = -1ULL;
   const auto currentInstruction = ddsim->currentInstruction;
+  dddiagnosticsOnStepForward(&ddsim->diagnostics, currentInstruction);
   ddsim->currentInstruction = ddsim->successorInstructions[currentInstruction];
   if (ddsim->breakpoints.contains(ddsim->currentInstruction)) {
     ddsim->lastMetBreakpoint = ddsim->currentInstruction;
@@ -673,26 +677,9 @@ Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
   return OK;
 }
 
-Result ddsimGetDataDependencies(SimulationState* self, size_t instruction,
-                                bool* instructions) {
+Diagnostics* ddsimGetDiagnostics(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  const std::span<bool> isDependency(
-      instructions, ddsim->interface.getInstructionCount(&ddsim->interface));
-  std::set<size_t> toVisit{instruction};
-  std::set<size_t> visited;
-  while (!toVisit.empty()) {
-    auto current = *toVisit.begin();
-    isDependency[current] = true;
-    toVisit.erase(toVisit.begin());
-    visited.insert(current);
-    for (auto dep : ddsim->dataDependencies[current]) {
-      if (visited.find(dep) == visited.end()) {
-        toVisit.insert(dep);
-      }
-    }
-  }
-
-  return OK;
+  return &ddsim->diagnostics.interface;
 }
 
 Result ddsimSetBreakpoint(SimulationState* self, size_t desiredPosition,
@@ -745,11 +732,12 @@ Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
 
 Result destroyDDSimulationState(DDSimulationState* self) {
   self->ready = false;
+  destroyDDDiagnostics(&self->diagnostics);
   return OK;
 }
 
 //-----------------------------------------------------------------------------------------
-size_t variableToQubit(DDSimulationState* ddsim, std::string& variable) {
+size_t variableToQubit(DDSimulationState* ddsim, const std::string& variable) {
   auto declaration = replaceString(variable, " ", "");
   declaration = replaceString(declaration, "\t", "");
   std::string var;
@@ -914,8 +902,8 @@ bool checkAssertionEqualityStatevector(
 }
 
 bool checkAssertionEqualityCircuit(
-    [[maybe_unused]] DDSimulationState* ddsim,
-    [[maybe_unused]] std::unique_ptr<CircuitEqualityAssertion>& assertion) {
+    DDSimulationState* ddsim,
+    std::unique_ptr<CircuitEqualityAssertion>& assertion) {
   DDSimulationState secondSimulation;
   createDDSimulationState(&secondSimulation);
   secondSimulation.interface.loadCode(&secondSimulation.interface,
@@ -1027,8 +1015,10 @@ std::string preprocessAssertionCode(const char* code,
   ddsim->successorInstructions.clear();
   ddsim->dataDependencies.clear();
   ddsim->breakpoints.clear();
+  ddsim->targetQubits.clear();
 
   for (auto& instruction : instructions) {
+    ddsim->targetQubits.push_back(instruction.targets);
     ddsim->successorInstructions.insert(
         {instruction.lineNumber, instruction.successorIndex});
     ddsim->instructionStarts.push_back(instruction.originalCodeStartPosition);

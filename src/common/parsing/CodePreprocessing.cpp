@@ -9,14 +9,15 @@
 
 Instruction::Instruction(size_t inputLineNumber, std::string inputCode,
                          std::unique_ptr<Assertion>& inputAssertion,
-                         size_t startPos, size_t endPos, size_t successor,
-                         bool isFuncCall, std::string function, bool inFuncDef,
-                         Block inputBlock)
+                         std::set<std::string> inputTargets, size_t startPos,
+                         size_t endPos, size_t successor, bool isFuncCall,
+                         std::string function, bool inFuncDef, Block inputBlock)
     : lineNumber(inputLineNumber), code(std::move(inputCode)),
-      assertion(std::move(inputAssertion)), originalCodeStartPosition(startPos),
-      originalCodeEndPosition(endPos), successorIndex(successor),
-      isFunctionCall(isFuncCall), calledFunction(std::move(function)),
-      inFunctionDefinition(inFuncDef), block(std::move(inputBlock)) {}
+      assertion(std::move(inputAssertion)), targets(std::move(inputTargets)),
+      originalCodeStartPosition(startPos), originalCodeEndPosition(endPos),
+      successorIndex(successor), isFunctionCall(isFuncCall),
+      calledFunction(std::move(function)), inFunctionDefinition(inFuncDef),
+      block(std::move(inputBlock)) {}
 
 std::string sweepBlocks(const std::string& code,
                         std::map<std::string, std::string>& blocks) {
@@ -147,6 +148,9 @@ preprocessCode(const std::string& code, size_t startIndex,
     auto tokens = splitString(trimmedLine, ' ');
     auto isAssert = isAssertion(line);
     auto blockPos = line.find("$__block");
+    const auto targetsVector = parseParameters(line);
+    const std::set<std::string> targets(targetsVector.begin(),
+                                        targetsVector.end());
 
     const size_t trueStart = pos + blocksOffset;
 
@@ -185,8 +189,8 @@ preprocessCode(const std::string& code, size_t startIndex,
 
       std::unique_ptr<Assertion> a(nullptr);
       instructions.emplace_back(i - subInstructions.size() - 1, line, a,
-                                trueStart, trueEnd, i + 1, false, "", false,
-                                block);
+                                targets, trueStart, trueEnd, i + 1, false, "",
+                                false, block);
       for (auto& instr : subInstructions) {
         instructions.back().childInstructions.push_back(instr.lineNumber);
       }
@@ -196,8 +200,8 @@ preprocessCode(const std::string& code, size_t startIndex,
       const auto closingBrace = code.find(
           '}', instructions[instructions.size() - 1].originalCodeEndPosition);
       const Block noBlock{false, ""};
-      instructions.emplace_back(i, "RETURN", a, closingBrace, closingBrace + 1,
-                                0, false, "", true, noBlock);
+      instructions.emplace_back(i, "RETURN", a, targets, closingBrace,
+                                closingBrace + 1, 0, false, "", true, noBlock);
       i++;
       pos = end + 1;
 
@@ -214,11 +218,11 @@ preprocessCode(const std::string& code, size_t startIndex,
 
     if (isAssert) {
       auto a = parseAssertion(line, block.code);
-      instructions.emplace_back(i, line, a, trueStart, trueEnd, i + 1,
+      instructions.emplace_back(i, line, a, targets, trueStart, trueEnd, i + 1,
                                 isFunctionCall, calledFunction, false, block);
     } else {
       std::unique_ptr<Assertion> a(nullptr);
-      instructions.emplace_back(i, line, a, trueStart, trueEnd, i + 1,
+      instructions.emplace_back(i, line, a, targets, trueStart, trueEnd, i + 1,
                                 isFunctionCall, calledFunction, false, block);
 
       variableUsages.insert({i, parseParameters(line)});
