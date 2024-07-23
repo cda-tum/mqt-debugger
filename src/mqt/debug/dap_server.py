@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import socket
 import sys
-from typing import Any
+from typing import Any, cast
 
 import mqt.debug
 
@@ -266,18 +266,24 @@ class DAPServer:
             for cause in error_causes
         ]
         error_cause_messages = [msg for msg in error_cause_messages if msg]
+        error_causes_body: str | dict[str, Any] = ""
+        if not error_cause_messages:
+            error_causes_body = "○ No potential error causes found"
+        else:
+            error_causes_body = {
+                "title": f"Found {len(error_causes)} potential error cause{"s" if len(error_causes) > 1 else ""}:",
+                "body": [f"({i + 1}) {msg}" for i, msg in enumerate(error_cause_messages)],
+                "end": None,
+            }
 
         (start, end) = self.simulation_state.get_instruction_position(current_instruction)
         line, column = self.code_pos_to_coordinates(start)
         instruction_code = self.source_code[start:end].replace("\r", "").replace("\n", "").strip()
-        self.send_message_chain(
-            f"Assertion failed on line {line}",
-            [
-                f"    {instruction_code}",
-                "○ Highlighting dependent predecessors",
-            ]
-            + [f"○ {msg}" for msg in error_cause_messages],
-            None,
+        self.send_message_hierarchy(
+            {
+                "title": f"Assertion failed on line {line}",
+                "body": [f"    {instruction_code}", "○ Highlighting dependent predecessors", error_causes_body],
+            },
             line,
             column,
             connection,
@@ -328,26 +334,45 @@ class DAPServer:
             pos -= 1
         return pos
 
-    def send_message_chain(
-        self, title: str, contents: list[str], end: str | None, line: int, column: int, connection: socket.socket
+    def send_message_hierarchy(
+        self, message: dict[str, str | list[Any] | dict[str, Any]], line: int, column: int, connection: socket.socket
     ) -> None:
-        """Send a chain of messages to the client.
+        """Send a hierarchy of messages to the client.
 
         Args:
-            title (str): The title of the message chain.
-            contents (list[str]): The contents of the message chain.
-            end (str | None): The end of the message chain.
+            message (dict[str, str | list[str], dict[str, Any]]): An object representing the message to send. Supported keys are `title`, `body`, `end`.
             line (int): The line number.
             column (int): The column number.
             connection (socket.socket): The client socket.
         """
-        title_event = mqt.debug.messages.OutputDAPEvent("console", title, "start", line, column, self.source_file)
-        send_message(json.dumps(title_event.encode()), connection)
-        for message in contents:
-            output_event = mqt.debug.messages.OutputDAPEvent("console", message, None, line, column, self.source_file)
-            send_message(json.dumps(output_event.encode()), connection)
-        end_event = mqt.debug.messages.OutputDAPEvent("console", end, "end", line, column, self.source_file)
-        send_message(json.dumps(end_event.encode()), connection)
+        if "title" in message:
+            title_event = mqt.debug.messages.OutputDAPEvent(
+                "console", cast(str, message["title"]), "start", line, column, self.source_file
+            )
+            send_message(json.dumps(title_event.encode()), connection)
+
+        if "body" in message:
+            body = message["body"]
+            if isinstance(body, list):
+                for msg in body:
+                    if isinstance(msg, dict):
+                        self.send_message_hierarchy(msg, line, column, connection)
+                    else:
+                        output_event = mqt.debug.messages.OutputDAPEvent(
+                            "console", msg, None, line, column, self.source_file
+                        )
+                        send_message(json.dumps(output_event.encode()), connection)
+            elif isinstance(body, dict):
+                self.send_message_hierarchy(body, line, column, connection)
+            elif isinstance(body, str):
+                output_event = mqt.debug.messages.OutputDAPEvent("console", body, None, line, column, self.source_file)
+                send_message(json.dumps(output_event.encode()), connection)
+
+        if "end" in message or "title" in message:
+            end_event = mqt.debug.messages.OutputDAPEvent(
+                "console", cast(str, message.get("end")), "end", line, column, self.source_file
+            )
+            send_message(json.dumps(end_event.encode()), connection)
 
 
 if __name__ == "__main__":
