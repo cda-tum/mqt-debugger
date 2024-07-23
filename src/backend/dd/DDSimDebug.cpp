@@ -1007,7 +1007,6 @@ std::string preprocessAssertionCode(const char* code,
   ddsim->qubitRegisters.clear();
   ddsim->successorInstructions.clear();
   ddsim->dataDependencies.clear();
-  ddsim->breakpoints.clear();
   ddsim->targetQubits.clear();
 
   for (auto& instruction : instructions) {
