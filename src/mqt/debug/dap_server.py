@@ -33,7 +33,7 @@ from .messages import (
     ThreadsDAPMessage,
     VariablesDAPMessage,
 )
-from .pydebug import SimulationState
+from .pydebug import ErrorCauseType, SimulationState
 
 supported_messages: list[type[Request]] = [
     InitializeDAPMessage,
@@ -258,6 +258,15 @@ class DAPServer:
         event_payload = json.dumps(e.encode())
         send_message(event_payload, connection)
 
+        error_causes = self.simulation_state.get_diagnostics().potential_error_causes()
+        error_cause_messages = [
+            "The qubits never interact with each other. Are you missing a CX gate?"
+            if cause.type == ErrorCauseType.MissingInteraction
+            else ""
+            for cause in error_causes
+        ]
+        error_cause_messages = [msg for msg in error_cause_messages if msg]
+
         (start, end) = self.simulation_state.get_instruction_position(current_instruction)
         line, column = self.code_pos_to_coordinates(start)
         instruction_code = self.source_code[start:end].replace("\r", "").replace("\n", "").strip()
@@ -266,7 +275,8 @@ class DAPServer:
             [
                 f"    {instruction_code}",
                 "○ Highlighting dependent predecessors",
-            ],
+            ]
+            + [f"○ {msg}" for msg in error_cause_messages],
             None,
             line,
             column,

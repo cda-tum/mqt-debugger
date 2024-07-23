@@ -999,8 +999,10 @@ std::string preprocessAssertionCode(const char* code,
   ddsim->successorInstructions.clear();
   ddsim->dataDependencies.clear();
   ddsim->breakpoints.clear();
+  ddsim->targetQubits.clear();
 
   for (auto& instruction : instructions) {
+    ddsim->targetQubits.push_back(instruction.targets);
     ddsim->successorInstructions.insert(
         {instruction.lineNumber, instruction.successorIndex});
     ddsim->instructionStarts.push_back(instruction.originalCodeStartPosition);

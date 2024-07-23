@@ -27,12 +27,6 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
     return;
   }
 
-  size_t breakpoint;
-  Result r = state->setBreakpoint(
-      state, 38,
-      &breakpoint); // set breakpoint at line 38 (entanglement_test_wrong.qasm
-  std::cout << "Breakpoint set at " << breakpoint << " " << r << "\n";
-
   bool wasError = false;
   bool wasGet = false;
   size_t inspecting = -1ULL;
@@ -95,6 +89,11 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
       wasGet = true;
     } else if (command == "inspect") {
       inspecting = state->getCurrentInstruction(state);
+    } else if (command == "diagnose") {
+      std::vector<ErrorCause> problems(10);
+      const auto count = state->getDiagnostics(state)->potentialErrorCauses(
+          state->getDiagnostics(state), problems.data(), problems.size());
+      std::cout << count << " potential problems found\n";
     } else {
       wasError = true;
     }

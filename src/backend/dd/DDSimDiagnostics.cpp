@@ -14,6 +14,7 @@ Result createDDDiagnostics(DDDiagnostics* self, DDSimulationState* state) {
   self->interface.getInstructionCount = dddiagnosticsGetInstructionCount;
   self->interface.getInteractions = dddiagnosticsGetInteractions;
   self->interface.getDataDependencies = dddiagnosticsGetDataDependencies;
+  self->interface.potentialErrorCauses = dddiagnosticsPotentialErrorCauses;
 
   return self->interface.init(&self->interface);
 }
@@ -61,12 +62,11 @@ Result dddiagnosticsGetInteractions(Diagnostics* self, size_t beforeInstruction,
                                     size_t qubit, bool* qubitsAreInteracting) {
   auto* ddd = reinterpret_cast<DDDiagnostics*>(self);
   auto* ddsim = ddd->simulationState;
-  std::vector<size_t> interactions;
-  for (auto i = 0ULL; i < ddsim->instructionTypes.size(); i++) {
-    if (i == beforeInstruction) {
-      break;
-    }
-    if (ddsim->instructionTypes[i] != SIMULATE) {
+  std::set<size_t> interactions;
+  interactions.insert(qubit);
+  for (auto i = beforeInstruction - 1; i < beforeInstruction; i--) {
+    if (ddsim->instructionTypes[i] != SIMULATE &&
+        ddsim->instructionTypes[i] != CALL) {
       continue;
     }
     auto& targets = ddsim->targetQubits[i];
@@ -74,9 +74,12 @@ Result dddiagnosticsGetInteractions(Diagnostics* self, size_t beforeInstruction,
     for (auto target : targets) {
       targetQubits.insert(variableToQubit(ddsim, target));
     }
-    if (targetQubits.find(qubit) != targetQubits.end()) {
+    if (!std::none_of(targetQubits.begin(), targetQubits.end(),
+                      [&interactions](size_t elem) {
+                        return interactions.find(elem) != interactions.end();
+                      })) {
       for (const auto& target : targetQubits) {
-        interactions.push_back(target);
+        interactions.insert(target);
       }
     }
   }
@@ -88,4 +91,61 @@ Result dddiagnosticsGetInteractions(Diagnostics* self, size_t beforeInstruction,
   }
 
   return OK;
+}
+
+size_t dddiagnosticsPotentialErrorCauses(Diagnostics* self, ErrorCause* output,
+                                         size_t count) {
+  auto* ddd = reinterpret_cast<DDDiagnostics*>(self);
+  auto* ddsim = ddd->simulationState;
+  auto outputs = std::span(output, count);
+
+  const size_t assertion = ddsim->lastFailedAssertion;
+  if (assertion == -1ULL) {
+    return 0;
+  }
+  const auto& assertionInstruction = ddsim->assertionInstructions[assertion];
+  size_t index = 0;
+
+  if (assertionInstruction->getType() == AssertionType::Entanglement) {
+    index +=
+        tryFindMissingInteraction(ddd, ddsim, assertion, assertionInstruction,
+                                  &outputs[index], count - index);
+  }
+
+  return index;
+}
+
+size_t tryFindMissingInteraction(DDDiagnostics* diagnostics,
+                                 DDSimulationState* state, size_t instruction,
+                                 const std::unique_ptr<Assertion>& assertion,
+                                 ErrorCause* output, size_t count) {
+  auto targets = assertion->getTargetQubits();
+  auto outputs = std::span(output, count);
+  std::vector<size_t> targetQubits(targets.size());
+  size_t index = 0;
+
+  std::transform(targets.begin(), targets.end(), targetQubits.begin(),
+                 [&state](const std::string& target) {
+                   return variableToQubit(state, target);
+                 });
+
+  for (size_t i = 0; i < targets.size(); i++) {
+    std::vector<uint8_t> interactions(
+        diagnostics->interface.getNumQubits(&diagnostics->interface));
+    diagnostics->interface.getInteractions(
+        &diagnostics->interface, instruction, targetQubits[i],
+        reinterpret_cast<bool*>(interactions.data()));
+    for (size_t j = i + 1; j < targets.size(); j++) {
+      if (interactions[targetQubits[j]] == 0) {
+        outputs[index].type = ErrorCauseType::MissingInteraction;
+        outputs[index].instruction = instruction;
+        index++;
+      }
+      if (index == count) {
+        return index;
+      }
+    }
+  }
+
+  return index;
 }

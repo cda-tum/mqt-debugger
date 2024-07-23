@@ -6,8 +6,15 @@
 extern "C" {
 #endif
 
-typedef struct Diagnostics Diagnostics;
+typedef enum { Unknown, MissingInteraction, ControlAlwaysZero } ErrorCauseType;
 
+typedef struct ErrorCause ErrorCause;
+struct ErrorCause {
+  ErrorCauseType type;
+  size_t instruction;
+};
+
+typedef struct Diagnostics Diagnostics;
 struct Diagnostics {
   Result (*init)(Diagnostics* self);
 
@@ -17,6 +24,8 @@ struct Diagnostics {
                                 bool* instructions);
   Result (*getInteractions)(Diagnostics* self, size_t beforeInstruction,
                             size_t qubit, bool* qubitsAreInteracting);
+  size_t (*potentialErrorCauses)(Diagnostics* self, ErrorCause* output,
+                                 size_t count);
 };
 
 #ifdef __cplusplus

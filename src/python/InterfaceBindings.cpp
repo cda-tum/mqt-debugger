@@ -231,6 +231,19 @@ void bindFramework(py::module& m) {
 }
 
 void bindDiagnostics(py::module& m) {
+  // Bind the ErrorCauseType enum
+  py::enum_<ErrorCauseType>(m, "ErrorCauseType")
+      .value("Unknown", Unknown)
+      .value("MissingInteraction", MissingInteraction)
+      .value("ControlAlwaysZero", ControlAlwaysZero)
+      .export_values();
+
+  // Bind the ErrorCause struct
+  py::class_<ErrorCause>(m, "ErrorCause")
+      .def(py::init<>())
+      .def_readwrite("instruction", &ErrorCause ::instruction)
+      .def_readwrite("type", &ErrorCause ::type);
+
   py::class_<Diagnostics>(m, "Diagnostics")
       .def(py::init<>())
       .def("init", [](Diagnostics* self) { checkOrThrow(self->init(self)); })
@@ -265,5 +278,18 @@ void bindDiagnostics(py::module& m) {
                }
              }
              return result;
-           });
+           })
+      .def("potential_error_causes", [](Diagnostics* self) {
+        size_t nextSize = 10;
+        while (true) {
+          std::vector<ErrorCause> output(nextSize);
+          const auto actualSize =
+              self->potentialErrorCauses(self, output.data(), nextSize);
+          if (actualSize <= nextSize) {
+            output.resize(actualSize);
+            return output;
+          }
+          nextSize = nextSize * 2;
+        }
+      });
 }
