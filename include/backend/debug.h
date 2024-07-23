@@ -32,7 +32,6 @@ struct SimulationState {
   bool (*wasBreakpointHit)(SimulationState* self);
 
   size_t (*getCurrentInstruction)(SimulationState* self);
-  size_t (*getPreviousInstruction)(SimulationState* self);
   size_t (*getInstructionCount)(SimulationState* self);
   Result (*getInstructionPosition)(SimulationState* self, size_t instruction,
                                    size_t* start, size_t* end);

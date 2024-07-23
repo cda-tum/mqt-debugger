@@ -80,7 +80,6 @@ bool ddsimDidAssertionFail(SimulationState* self);
 bool ddsimWasBreakpointHit(SimulationState* self);
 
 size_t ddsimGetCurrentInstruction(SimulationState* self);
-size_t ddsimGetPreviousInstruction(SimulationState* self);
 size_t ddsimGetInstructionCount(SimulationState* self);
 Result ddsimGetInstructionPosition(SimulationState* self, size_t instruction,
                                    size_t* start, size_t* end);

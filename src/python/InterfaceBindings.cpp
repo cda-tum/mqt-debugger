@@ -131,10 +131,6 @@ void bindFramework(py::module& m) {
            [](SimulationState* self) {
              return self->getCurrentInstruction(self);
            })
-      .def("get_previous_instruction",
-           [](SimulationState* self) {
-             return self->getPreviousInstruction(self);
-           })
       .def(
           "get_instruction_count",
           [](SimulationState* self) { return self->getInstructionCount(self); })

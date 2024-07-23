@@ -49,7 +49,6 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.wasBreakpointHit = ddsimWasBreakpointHit;
 
   self->interface.getCurrentInstruction = ddsimGetCurrentInstruction;
-  self->interface.getPreviousInstruction = ddsimGetPreviousInstruction;
   self->interface.getInstructionCount = ddsimGetInstructionCount;
   self->interface.getInstructionPosition = ddsimGetInstructionPosition;
   self->interface.getNumQubits = ddsimGetNumQubits;
@@ -76,7 +75,6 @@ void resetSimulationState(DDSimulationState* ddsim) {
   }
   ddsim->simulationState = ddsim->dd->makeZeroState(ddsim->qc->getNqubits());
   ddsim->dd->incRef(ddsim->simulationState);
-  ddsim->breakpoints.clear();
   ddsim->paused = false;
 }
 
@@ -172,7 +170,7 @@ Result ddsimStepOverBackward(SimulationState* self) {
     return ERROR;
   }
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  const auto prev = self->getPreviousInstruction(self);
+  const auto prev = ddsim->previousInstructionStack.back();
   if (ddsim->instructionTypes[prev] != RETURN) {
     return self->stepBackward(self);
   }
@@ -553,11 +551,6 @@ bool ddsimWasBreakpointHit(SimulationState* self) {
 size_t ddsimGetCurrentInstruction(SimulationState* self) {
   auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
   return ddsim->currentInstruction;
-}
-
-size_t ddsimGetPreviousInstruction(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  return ddsim->previousInstructionStack.back();
 }
 
 size_t ddsimGetInstructionCount(SimulationState* self) {
