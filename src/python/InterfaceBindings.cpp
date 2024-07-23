@@ -236,9 +236,11 @@ void bindDiagnostics(py::module& m) {
       .def("init", [](Diagnostics* self) { checkOrThrow(self->init(self)); })
       .def("get_num_qubits",
            [](Diagnostics* self) { return self->getNumQubits(self); })
+      .def("get_instruction_count",
+           [](Diagnostics* self) { return self->getInstructionCount(self); })
       .def("get_data_dependencies",
            [](Diagnostics* self, size_t instruction) {
-             std::vector<uint8_t> instructions(self->getNumQubits(self));
+             std::vector<uint8_t> instructions(self->getInstructionCount(self));
              checkOrThrow(self->getDataDependencies(
                  self, instruction,
                  reinterpret_cast<bool*>(instructions.data())));

@@ -12,6 +12,7 @@ struct DDDiagnostics {
 };
 
 size_t dddiagnosticsGetNumQubits(Diagnostics* self);
+size_t dddiagnosticsGetInstructionCount(Diagnostics* self);
 Result dddiagnosticsInit([[maybe_unused]] Diagnostics* self);
 Result dddiagnosticsGetDataDependencies(Diagnostics* self, size_t instruction,
                                         bool* instructions);

@@ -12,6 +12,7 @@ struct Diagnostics {
   Result (*init)(Diagnostics* self);
 
   size_t (*getNumQubits)(Diagnostics* self);
+  size_t (*getInstructionCount)(Diagnostics* self);
   Result (*getDataDependencies)(Diagnostics* self, size_t instruction,
                                 bool* instructions);
   Result (*getInteractions)(Diagnostics* self, size_t beforeInstruction,

@@ -11,6 +11,7 @@ Result createDDDiagnostics(DDDiagnostics* self, DDSimulationState* state) {
 
   self->interface.init = dddiagnosticsInit;
   self->interface.getNumQubits = dddiagnosticsGetNumQubits;
+  self->interface.getInstructionCount = dddiagnosticsGetInstructionCount;
   self->interface.getInteractions = dddiagnosticsGetInteractions;
   self->interface.getDataDependencies = dddiagnosticsGetDataDependencies;
 
@@ -22,6 +23,12 @@ Result destroyDDDiagnostics([[maybe_unused]] DDDiagnostics* self) { return OK; }
 size_t dddiagnosticsGetNumQubits(Diagnostics* self) {
   const auto* ddd = reinterpret_cast<DDDiagnostics*>(self);
   return ddd->simulationState->interface.getNumQubits(
+      &ddd->simulationState->interface);
+}
+
+size_t dddiagnosticsGetInstructionCount(Diagnostics* self) {
+  const auto* ddd = reinterpret_cast<DDDiagnostics*>(self);
+  return ddd->simulationState->interface.getInstructionCount(
       &ddd->simulationState->interface);
 }
 
