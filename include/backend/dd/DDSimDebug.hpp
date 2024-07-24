@@ -28,6 +28,7 @@ struct DDSimulationState {
   SimulationState interface;
   size_t currentInstruction;
   std::string code;
+  std::string processedCode;
   bool ready;
 
   std::unique_ptr<qc::QuantumComputation> qc;

@@ -45,8 +45,8 @@ struct FunctionDefinition {
   std::vector<std::string> parameters;
 };
 
-std::vector<Instruction> preprocessCode(const std::string& code);
-std::vector<Instruction>
-preprocessCode(const std::string& code, size_t startIndex,
-               size_t initialCodeOffset,
-               const std::vector<std::string>& functionNames);
+std::vector<Instruction> preprocessCode(const std::string& code,
+                                        std::string& processedCode);
+std::vector<Instruction> preprocessCode(
+    const std::string& code, size_t startIndex, size_t initialCodeOffset,
+    const std::vector<std::string>& functionNames, std::string& processedCode);

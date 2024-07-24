@@ -567,12 +567,16 @@ Result ddsimGetInstructionPosition(SimulationState* self, size_t instruction,
   size_t start_index = ddsim->instructionStarts[instruction];
   size_t end_index = ddsim->instructionEnds[instruction];
 
-  while (ddsim->code[start_index] == ' ' || ddsim->code[start_index] == '\n' ||
-         ddsim->code[start_index] == '\r' || ddsim->code[start_index] == '\t') {
+  while (ddsim->processedCode[start_index] == ' ' ||
+         ddsim->processedCode[start_index] == '\n' ||
+         ddsim->processedCode[start_index] == '\r' ||
+         ddsim->processedCode[start_index] == '\t') {
     start_index++;
   }
-  while (ddsim->code[end_index] == ' ' || ddsim->code[end_index] == '\n' ||
-         ddsim->code[end_index] == '\r' || ddsim->code[end_index] == '\t') {
+  while (ddsim->processedCode[end_index] == ' ' ||
+         ddsim->processedCode[end_index] == '\n' ||
+         ddsim->processedCode[end_index] == '\r' ||
+         ddsim->processedCode[end_index] == '\t') {
     end_index++;
   }
   *start = start_index;
@@ -997,7 +1001,7 @@ std::string validCodeFromChildren(const Instruction& parent,
 std::string preprocessAssertionCode(const char* code,
                                     DDSimulationState* ddsim) {
 
-  auto instructions = preprocessCode(code);
+  auto instructions = preprocessCode(code, ddsim->processedCode);
   std::vector<std::string> correctLines;
   ddsim->instructionTypes.clear();
   ddsim->instructionStarts.clear();

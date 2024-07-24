@@ -46,6 +46,23 @@ std::string sweepBlocks(const std::string& code,
   return result;
 }
 
+std::string removeComments(const std::string& code) {
+  std::string result = code;
+  for (size_t pos = 0; pos < result.size(); pos++) {
+    auto nextComment = result.find("//", pos);
+    if (nextComment == std::string::npos) {
+      break;
+    }
+    auto commentEnd = result.find("\n", nextComment);
+    if (commentEnd == std::string::npos) {
+      commentEnd = result.size();
+    }
+    std::string spaces(commentEnd - nextComment, ' ');
+    result.replace(nextComment, commentEnd - nextComment, spaces);
+  }
+  return result;
+}
+
 bool isFunctionDefinition(const std::string& line) {
   return startsWith(trim(line), "gate ");
 }
@@ -112,20 +129,22 @@ std::vector<std::string> sweepFunctionNames(const std::string& code) {
   return result;
 }
 
-std::vector<Instruction> preprocessCode(const std::string& code) {
-  return preprocessCode(code, 0, 0, {});
+std::vector<Instruction> preprocessCode(const std::string& code,
+                                        std::string& processedCode) {
+  return preprocessCode(code, 0, 0, {}, processedCode);
 }
 
 std::vector<Instruction>
 preprocessCode(const std::string& code, size_t startIndex,
                size_t initialCodeOffset,
-               const std::vector<std::string>& allFunctionNames) {
+               const std::vector<std::string>& allFunctionNames,
+               std::string& processedCode) {
   std::map<std::string, std::string> blocks;
   std::map<std::string, size_t> functionFirstLine;
   std::map<std::string, FunctionDefinition> functionDefinitions;
   std::map<size_t, std::vector<std::string>> variableUsages;
 
-  const std::string blocksRemoved = sweepBlocks(code, blocks);
+  const std::string blocksRemoved = removeComments(sweepBlocks(code, blocks));
   std::vector<std::string> functionNames = sweepFunctionNames(code);
   for (const auto& name : allFunctionNames) {
     functionNames.push_back(name);
@@ -178,8 +197,10 @@ preprocessCode(const std::string& code, size_t startIndex,
       const auto f = parseFunctionDefinition(line);
       functionDefinitions.insert({f.name, f});
       i++;
-      auto subInstructions = preprocessCode(
-          block.code, i, code.find('{', trueStart) + 1, functionNames);
+      std::string processedSubCode;
+      auto subInstructions =
+          preprocessCode(block.code, i, code.find('{', trueStart) + 1,
+                         functionNames, processedSubCode);
       for (auto& instr : subInstructions) {
         instr.inFunctionDefinition = true;
       }
@@ -267,5 +288,6 @@ preprocessCode(const std::string& code, size_t startIndex,
     }
   }
 
+  processedCode = blocksRemoved;
   return instructions;
 }
