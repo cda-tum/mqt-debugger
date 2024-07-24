@@ -164,8 +164,8 @@ def test_instruction_positions(simulation_instance_jumps: SimulationInstance) ->
     """Tests the `get_instruction_position(instruction)` method."""
     (simulation_state, _state_id) = simulation_instance_jumps
     assert simulation_state.get_instruction_position(0) == (0, 9)
-    assert simulation_state.get_instruction_position(1) == (12, 47)
-    assert simulation_state.get_instruction_position(16) == (241, 254)
+    assert simulation_state.get_instruction_position(1) == (12, 48)
+    assert simulation_state.get_instruction_position(16) == (240, 254)
 
 
 @pytest.mark.parametrize(

@@ -26,7 +26,7 @@ class Complex:
     real: float
     imaginary: float
 
-    def __init__(self) -> None: ...
+    def __init__(self, real: float = 0.0, imaginary: float = 0.0) -> None: ...
 
 class Statevector:
     num_qubits: int

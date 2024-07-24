@@ -47,6 +47,7 @@ void bindFramework(py::module& m) {
   // Bind the Complex struct
   py::class_<Complex>(m, "Complex")
       .def(py::init<>())
+      .def(py::init<double, double>())
       .def_readwrite("real", &Complex::real)
       .def_readwrite("imaginary", &Complex::imaginary)
       .def("__str__",
