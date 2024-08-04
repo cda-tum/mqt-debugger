@@ -144,7 +144,8 @@ preprocessCode(const std::string& code, size_t startIndex,
   std::map<std::string, FunctionDefinition> functionDefinitions;
   std::map<size_t, std::vector<std::string>> variableUsages;
 
-  const std::string blocksRemoved = removeComments(sweepBlocks(code, blocks));
+  processedCode = removeComments(code);
+  const std::string blocksRemoved = sweepBlocks(processedCode, blocks);
   std::vector<std::string> functionNames = sweepFunctionNames(code);
   for (const auto& name : allFunctionNames) {
     functionNames.push_back(name);
@@ -256,7 +257,8 @@ preprocessCode(const std::string& code, size_t startIndex,
   for (auto& instr : instructions) {
     auto vars = parseParameters(instr.code);
     size_t idx = instr.lineNumber - 1;
-    while (!vars.empty() && idx < instructions.size()) {
+    while (!vars.empty() && (instr.lineNumber < instructions.size() ||
+                             idx > instr.lineNumber - instructions.size())) {
       bool found = false;
       for (const auto& var : variableUsages[idx]) {
         if (std::find(vars.begin(), vars.end(), var) != vars.end()) {
@@ -266,6 +268,9 @@ preprocessCode(const std::string& code, size_t startIndex,
       }
       if (found) {
         instr.dataDependencies.push_back(idx);
+      }
+      if (idx - 1 == instr.lineNumber - instructions.size()) {
+        break;
       }
       idx--;
     }
@@ -287,7 +292,5 @@ preprocessCode(const std::string& code, size_t startIndex,
       }
     }
   }
-
-  processedCode = blocksRemoved;
   return instructions;
 }

@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from mqt.debug import Complex, SimulationState, Statevector, create_ddsim_simulation_state
+from mqt.debug.pydebug import destroy_ddsim_simulation_state
 
 
 @dataclass
@@ -30,21 +31,8 @@ def parse_complex(text: str) -> Complex:
     Returns:
         Complex: The complex number represented by the string.
     """
-    text = text.strip()
-    if "+" in text:
-        parts = text.split("+")
-    elif "-" in text:
-        parts = text.split("-")
-    else:
-        parts = [text]
-    real = 0.0
-    imag = 0.0
-    for part in parts:
-        if "i" in part:
-            imag += float(part.replace("i", ""))
-        else:
-            real += float(part)
-    return Complex(real, imag)
+    c = complex(text)
+    return Complex(c.real, c.imag)
 
 
 def parse_solution(text: str) -> ExpectedSolution:
@@ -128,8 +116,12 @@ def assert_statevectors_equal(result: Statevector, expected: Statevector) -> Non
         "bell",
         "ghz_3",
         "ghz_5",
-        # "grover_3", # unknown gate czz, problems expanding gates over multiple qubits.
+        "grover_3",
         "qpe",
+        "dj_4",
+        "bv",
+        "fail_ghz",
+        "fail_eq",
     ],
 )
 def test_end_to_end(instance: str) -> None:
@@ -152,3 +144,4 @@ def test_end_to_end(instance: str) -> None:
             msg = f"Expected classical value {key} to be {value}, but it was not found"
             raise AssertionError(msg) from None
         assert value == result_value, f"Expected classical value {key} to be {value}, got {result_value}"
+    destroy_ddsim_simulation_state(state)

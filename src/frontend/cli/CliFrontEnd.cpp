@@ -4,6 +4,7 @@
 
 #include "frontend/cli/CliFrontEnd.hpp"
 
+#include "backend/dd/DDSimDebug.hpp"
 #include "common/parsing/Utils.hpp"
 
 #include <array>
@@ -22,6 +23,9 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
 
   std::string command;
   const auto result = state->loadCode(state, code);
+  // const auto* ddsim = reinterpret_cast<DDSimulationState*>(state);
+  // std::cout << ddsim->processedCode;
+  // std::cin >> command;
   state->resetSimulation(state);
   if (result == ERROR) {
     std::cout << "Error loading code\n";
@@ -30,7 +34,7 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
 
   bool wasError = false;
   bool wasGet = false;
-  size_t inspecting = -1ULL;
+  size_t inspecting = 23870;
 
   while (command != "exit") {
     clearScreen();
@@ -68,7 +72,7 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
       }
       wasGet = false;
     }
-    printState(state, inspecting);
+    printState(state, inspecting, true);
 
     std::cout << "Enter command: ";
     std::getline(std::cin, command);
@@ -101,7 +105,8 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
   }
 }
 
-void CliFrontEnd::printState(SimulationState* state, size_t inspecting) {
+void CliFrontEnd::printState(SimulationState* state, size_t inspecting,
+                             bool codeOnly) {
   std::vector<size_t> highlightIntervals;
   if (inspecting != -1ULL) {
     std::vector<uint8_t> inspectingDependencies(
@@ -157,14 +162,16 @@ void CliFrontEnd::printState(SimulationState* state, size_t inspecting) {
   }
   std::cout << "\n";
 
-  const std::array<const char*, 8> bitStrings = {"000", "001", "010", "011",
-                                                 "100", "101", "110", "111"};
-  Complex c;
-  for (const auto* bitString : bitStrings) {
-    state->getAmplitudeBitstring(state, bitString, &c);
-    std::cout << bitString << " " << c.real << "\t||\t";
+  if (!codeOnly) {
+    const std::array<const char*, 8> bitStrings = {"000", "001", "010", "011",
+                                                   "100", "101", "110", "111"};
+    Complex c;
+    for (const auto* bitString : bitStrings) {
+      state->getAmplitudeBitstring(state, bitString, &c);
+      std::cout << bitString << " " << c.real << "\t||\t";
+    }
+    std::cout << "\n";
   }
-  std::cout << "\n";
   if (state->didAssertionFail(state)) {
     std::cout << "THIS LINE FAILED AN ASSERTION\n";
   }

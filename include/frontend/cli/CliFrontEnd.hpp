@@ -16,6 +16,7 @@ public:
 private:
   std::string currentCode;
 
-  void printState(SimulationState* state, size_t inspecting);
+  void printState(SimulationState* state, size_t inspecting,
+                  bool codeOnly = false);
   void initCode(const char* code);
 };

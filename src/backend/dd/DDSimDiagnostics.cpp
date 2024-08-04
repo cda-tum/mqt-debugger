@@ -130,14 +130,20 @@ size_t tryFindMissingInteraction(DDDiagnostics* diagnostics,
                    return variableToQubit(state, target);
                  });
 
+  std::map<size_t, std::vector<uint8_t>> allInteractions;
+
   for (size_t i = 0; i < targets.size(); i++) {
     std::vector<uint8_t> interactions(
         diagnostics->interface.getNumQubits(&diagnostics->interface));
     diagnostics->interface.getInteractions(
         &diagnostics->interface, instruction, targetQubits[i],
         reinterpret_cast<bool*>(interactions.data()));
+    allInteractions.insert({targetQubits[i], interactions});
+  }
+  for (size_t i = 0; i < targets.size(); i++) {
     for (size_t j = i + 1; j < targets.size(); j++) {
-      if (interactions[targetQubits[j]] == 0) {
+      if (allInteractions[targetQubits[i]][targetQubits[j]] == 0 &&
+          allInteractions[targetQubits[j]][targetQubits[i]] == 0) {
         outputs[index].type = ErrorCauseType::MissingInteraction;
         outputs[index].instruction = instruction;
         index++;

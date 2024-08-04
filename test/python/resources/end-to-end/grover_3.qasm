@@ -8,7 +8,9 @@ x flag;
 barrier q;
 
 // oracle: mark target state |11>
-ccz q[0], q[1], flag;
+h flag;
+ccx q[0], q[1], flag;
+h flag;
 barrier q;
 
 // diffusion

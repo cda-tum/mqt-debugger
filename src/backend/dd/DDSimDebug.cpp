@@ -118,7 +118,7 @@ Result ddsimLoadCode(SimulationState* self, const char* code) {
   try {
     std::stringstream ss{preprocessAssertionCode(code, ddsim)};
     ddsim->qc->import(ss, qc::Format::OpenQASM3);
-    qc::CircuitOptimizer::flattenOperations(*ddsim->qc);
+    qc::CircuitOptimizer::flattenOperations(*ddsim->qc, true);
   } catch (const std::exception& e) {
     std::cerr << e.what() << "\n";
     return ERROR;
@@ -776,6 +776,21 @@ double complexMagnitude(Complex& c) {
   return std::sqrt(c.real * c.real + c.imaginary * c.imaginary);
 }
 
+Complex complexDivision(const Complex& c1, const Complex& c2) {
+  const double denominator = c2.real * c2.real + c2.imaginary * c2.imaginary;
+  const double real =
+      (c1.real * c2.real + c1.imaginary * c2.imaginary) / denominator;
+  const double imaginary =
+      (c1.imaginary * c2.real - c1.real * c2.imaginary) / denominator;
+  return {real, imaginary};
+}
+
+bool areComplexEqual(const Complex& c1, const Complex& c2) {
+  const double epsilon = 0.00000001;
+  return std::abs(c1.real - c2.real) < epsilon &&
+         std::abs(c1.imaginary - c2.imaginary) < epsilon;
+}
+
 double dotProduct(const Statevector& sv1, const Statevector& sv2) {
   double resultReal = 0;
   double resultImag = 0;
@@ -800,6 +815,15 @@ bool areQubitsEntangled(Statevector* sv) {
   const bool canBe01 = complexMagnitude(amplitudes[1]) > epsilon;
   const bool canBe10 = complexMagnitude(amplitudes[2]) > epsilon;
   const bool canBe11 = complexMagnitude(amplitudes[3]) > epsilon;
+
+  const int nonZeroCount = (canBe00 ? 1 : 0) + (canBe01 ? 1 : 0) +
+                           (canBe10 ? 1 : 0) + (canBe11 ? 1 : 0);
+
+  if (nonZeroCount == 0) {
+    const auto c1 = complexDivision(amplitudes[0], amplitudes[2]);
+    const auto c2 = complexDivision(amplitudes[1], amplitudes[3]);
+    return !areComplexEqual(c1, c2);
+  }
 
   return (canBe00 && canBe11 && !(canBe01 && canBe10)) ||
          (canBe01 && canBe10 && !(canBe00 && canBe11));
@@ -1045,6 +1069,7 @@ std::string preprocessAssertionCode(const char* code,
     } else if (instruction.code.find("qreg") != std::string::npos) {
       auto declaration = replaceString(instruction.code, "qreg", "");
       declaration = replaceString(declaration, " ", "");
+      declaration = replaceString(declaration, "\n", "");
       declaration = replaceString(declaration, "\t", "");
       declaration = replaceString(declaration, ";", "");
       auto parts = splitString(declaration, '[');
