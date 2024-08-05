@@ -129,9 +129,23 @@ class DAPServer:
         Args:
             connection (socket.socket): The client socket.
         """
+        data_str = ""
+        message_str = ""
         while True:
-            data = connection.recv(1024)
-            parts = data.decode().split("\n")
+            if not message_str or not data_str:
+                data = connection.recv(1024)
+                data_str += data.decode()
+            first_end = data_str.find("Content-Length:", 1)
+            if first_end != -1:
+                message_str = data_str[:first_end]
+                data_str = data_str[first_end:]
+            elif data_str.count("{") == data_str.count("}"):
+                message_str = data_str
+                data_str = ""
+            else:
+                message_str = ""
+                continue
+            parts = message_str.split("\n")
             if not parts or not data:
                 break
             payload = json.loads(parts[-1])
