@@ -4,7 +4,6 @@
 
 #include "frontend/cli/CliFrontEnd.hpp"
 
-#include "backend/dd/DDSimDebug.hpp"
 #include "common/parsing/Utils.hpp"
 
 #include <array>
@@ -23,9 +22,6 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
 
   std::string command;
   const auto result = state->loadCode(state, code);
-  // const auto* ddsim = reinterpret_cast<DDSimulationState*>(state);
-  // std::cout << ddsim->processedCode;
-  // std::cin >> command;
   state->resetSimulation(state);
   if (result == ERROR) {
     std::cout << "Error loading code\n";
@@ -34,7 +30,7 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
 
   bool wasError = false;
   bool wasGet = false;
-  size_t inspecting = 23870;
+  size_t inspecting = -1ULL;
 
   while (command != "exit") {
     clearScreen();
@@ -72,7 +68,7 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
       }
       wasGet = false;
     }
-    printState(state, inspecting, true);
+    printState(state, inspecting, state->getNumQubits(state) != 3);
 
     std::cout << "Enter command: ";
     std::getline(std::cin, command);
