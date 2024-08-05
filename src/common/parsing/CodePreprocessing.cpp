@@ -263,7 +263,7 @@ preprocessCode(const std::string& code, size_t startIndex,
       for (const auto& var : variableUsages[idx]) {
         if (std::find(vars.begin(), vars.end(), var) != vars.end()) {
           found = true;
-          const auto rem = std::remove(vars.begin(), vars.end(), var);
+          std::remove(vars.begin(), vars.end(), var);
         }
       }
       if (found) {
