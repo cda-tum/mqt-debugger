@@ -280,7 +280,7 @@ class DAPServer:
             error_causes_body = "○ No potential error causes found"
         else:
             error_causes_body = {
-                "title": f"Found {len(error_causes)} potential error cause{"s" if len(error_causes) > 1 else ""}:",
+                "title": f"Found {len(error_causes)} potential error cause{'s' if len(error_causes) > 1 else ''}:",
                 "body": [f"({i + 1}) {msg}" for i, msg in enumerate(error_cause_messages)],
                 "end": None,
             }
