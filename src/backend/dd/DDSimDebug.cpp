@@ -252,9 +252,6 @@ Result ddsimStepForward(SimulationState* self) {
   const auto currentInstruction = ddsim->currentInstruction;
   dddiagnosticsOnStepForward(&ddsim->diagnostics, currentInstruction);
   ddsim->currentInstruction = ddsim->successorInstructions[currentInstruction];
-  if (ddsim->breakpoints.contains(ddsim->currentInstruction)) {
-    ddsim->lastMetBreakpoint = ddsim->currentInstruction;
-  }
 
   if (ddsim->currentInstruction == 0) {
     ddsim->currentInstruction = ddsim->callReturnStack.back() + 1;
@@ -262,6 +259,11 @@ Result ddsimStepForward(SimulationState* self) {
                                                ddsim->callReturnStack.back());
     ddsim->callReturnStack.pop_back();
   }
+
+  if (ddsim->breakpoints.contains(ddsim->currentInstruction)) {
+    ddsim->lastMetBreakpoint = ddsim->currentInstruction;
+  }
+
   if (ddsim->instructionTypes[currentInstruction] == CALL) {
     ddsim->callReturnStack.push_back(currentInstruction);
   }
@@ -473,7 +475,7 @@ Result ddsimRunSimulation(SimulationState* self) {
       ddsim->paused = false;
       return OK;
     }
-    Result res = self->stepForward(self);
+    const Result res = self->stepForward(self);
     if (res != OK) {
       return res;
     }
