@@ -146,7 +146,7 @@ preprocessCode(const std::string& code, size_t startIndex,
 
   processedCode = removeComments(code);
   const std::string blocksRemoved = sweepBlocks(processedCode, blocks);
-  std::vector<std::string> functionNames = sweepFunctionNames(code);
+  std::vector<std::string> functionNames = sweepFunctionNames(processedCode);
   for (const auto& name : allFunctionNames) {
     functionNames.push_back(name);
   }
@@ -223,7 +223,7 @@ preprocessCode(const std::string& code, size_t startIndex,
           '}', instructions[instructions.size() - 1].originalCodeEndPosition);
       const Block noBlock{false, ""};
       instructions.emplace_back(i, "RETURN", a, targets, closingBrace,
-                                closingBrace + 1, 0, false, "", true, noBlock);
+                                closingBrace, 0, false, "", true, noBlock);
       i++;
       pos = end + 1;
 
