@@ -64,22 +64,30 @@ Result dddiagnosticsGetInteractions(Diagnostics* self, size_t beforeInstruction,
   auto* ddsim = ddd->simulationState;
   std::set<size_t> interactions;
   interactions.insert(qubit);
-  for (auto i = beforeInstruction - 1; i < beforeInstruction; i--) {
-    if (ddsim->instructionTypes[i] != SIMULATE &&
-        ddsim->instructionTypes[i] != CALL) {
-      continue;
-    }
-    auto& targets = ddsim->targetQubits[i];
-    std::set<size_t> targetQubits;
-    for (auto target : targets) {
-      targetQubits.insert(variableToQubit(ddsim, target));
-    }
-    if (!std::none_of(targetQubits.begin(), targetQubits.end(),
-                      [&interactions](size_t elem) {
-                        return interactions.find(elem) != interactions.end();
-                      })) {
-      for (const auto& target : targetQubits) {
-        interactions.insert(target);
+  bool found = true;
+
+  while (found) {
+    found = false;
+    for (auto i = beforeInstruction - 1; i < beforeInstruction; i--) {
+      if (ddsim->instructionTypes[i] != SIMULATE &&
+          ddsim->instructionTypes[i] != CALL) {
+        continue;
+      }
+      auto& targets = ddsim->targetQubits[i];
+      std::set<size_t> targetQubits;
+      for (const auto& target : targets) {
+        targetQubits.insert(variableToQubit(ddsim, target));
+      }
+      if (!std::none_of(targetQubits.begin(), targetQubits.end(),
+                        [&interactions](size_t elem) {
+                          return interactions.find(elem) != interactions.end();
+                        })) {
+        for (const auto& target : targetQubits) {
+          if (interactions.find(target) == interactions.end()) {
+            found = true;
+          }
+          interactions.insert(target);
+        }
       }
     }
   }
