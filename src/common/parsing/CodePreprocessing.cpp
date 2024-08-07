@@ -213,11 +213,11 @@ preprocessCode(const std::string& code, size_t startIndex,
       instructions.emplace_back(i - subInstructions.size() - 1, line, a,
                                 targets, trueStart, trueEnd, i + 1, false, "",
                                 false, block);
+      auto& functionInstruction = instructions.back();
       for (auto& instr : subInstructions) {
-        instructions.back().childInstructions.push_back(instr.lineNumber);
+        functionInstruction.childInstructions.push_back(instr.lineNumber);
+        instructions.push_back(std::move(instr));
       }
-      std::move(subInstructions.begin(), subInstructions.end(),
-                std::back_inserter(instructions));
 
       const auto closingBrace = code.find(
           '}', instructions[instructions.size() - 1].originalCodeEndPosition);
