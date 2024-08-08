@@ -6,7 +6,7 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <iostream>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <set>
