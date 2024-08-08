@@ -1,4 +1,5 @@
 #pragma once
+// NOLINTBEGIN(modernize-use-using, performance-enum-size)
 
 #ifndef __cplusplus
 typedef char bool;
@@ -40,3 +41,5 @@ typedef struct {
 #ifdef __cplusplus
 }
 #endif
+
+// NOLINTEND(modernize-use-using, performance-enum-size)

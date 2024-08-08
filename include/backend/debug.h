@@ -1,9 +1,11 @@
 #pragma once
+// NOLINTBEGIN(modernize-use-using)
 
 #include "common.h"
 #include "diagnostics.h"
 
 #ifdef __cplusplus
+#include <cstddef>
 extern "C" {
 #endif
 
@@ -65,3 +67,5 @@ struct SimulationState {
 #ifdef __cplusplus
 }
 #endif
+
+// NOLINTEND(modernize-use-using)

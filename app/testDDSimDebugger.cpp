@@ -3,6 +3,8 @@
 
 #include <fstream>
 #include <iostream>
+#include <iterator>
+#include <string>
 
 int main() {
   std::ifstream file("../../app/code/test"
@@ -20,10 +22,6 @@ int main() {
 
   file.close();
 
-  // size_t errors = 0;
-  // Result result = ddsimLoadCode(&state.interface, code.c_str());
-  // result = state.interface.runAll(&state.interface, &errors);
-  // std::cout << errors << "\n";
   CliFrontEnd cli;
   cli.run(code.c_str(), &state.interface);
 
