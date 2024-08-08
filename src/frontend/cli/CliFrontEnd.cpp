@@ -4,11 +4,16 @@
 
 #include "frontend/cli/CliFrontEnd.hpp"
 
-#include "common/parsing/Utils.hpp"
+#include "backend/debug.h"
+#include "backend/diagnostics.h"
+#include "common.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <string>
+#include <vector>
 
 void clearScreen() {
   // Clear the screen using an ANSI escape sequence
@@ -107,10 +112,12 @@ void CliFrontEnd::printState(SimulationState* state, size_t inspecting,
   if (inspecting != -1ULL) {
     std::vector<uint8_t> inspectingDependencies(
         state->getInstructionCount(state));
-    auto deps = inspectingDependencies.data();
+    auto* deps = inspectingDependencies.data();
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     state->getDiagnostics(state)->getDataDependencies(
         state->getDiagnostics(state), inspecting,
         reinterpret_cast<bool*>(deps));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     uint8_t on = 0;
     for (size_t i = 0; i < inspectingDependencies.size(); i++) {
       if (inspectingDependencies[i] != on) {
@@ -134,7 +141,7 @@ void CliFrontEnd::printState(SimulationState* state, size_t inspecting,
   size_t currentPos = 0;
   bool on = false;
   for (const auto nextInterval : highlightIntervals) {
-    const auto textColor = on ? ANSI_BG_RESET : ANSI_COL_GRAY;
+    const auto* const textColor = on ? ANSI_BG_RESET : ANSI_COL_GRAY;
     if (res == OK && currentStart >= currentPos &&
         currentStart < nextInterval) {
       std::cout << textColor

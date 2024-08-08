@@ -1,7 +1,12 @@
 #include "utils/utils_test.hpp"
 
+#include "common.h"
+
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
+#include <string>
 
 bool complexEquality(const Complex& c, double real, double imaginary) {
   const double epsilon = 0.001;
@@ -19,9 +24,12 @@ bool classicalEquals(const Variable& v, bool value) {
 }
 
 std::string readFromCircuitsPath(const std::string& testName) {
-  std::ifstream file("circuits/" + testName + ".qasm");
+  const std::filesystem::path localPath =
+      std::filesystem::path("circuits") / (testName + std::string(".qasm"));
+  std::ifstream file(localPath);
   if (!file.is_open()) {
-    file = std::ifstream("../../test/circuits/" + testName + ".qasm");
+    file = std::ifstream(std::filesystem::path("../../test/circuits") /
+                         (testName + std::string(".qasm")));
     if (!file.is_open()) {
       std::cerr << "Could not open file\n";
       file.close();

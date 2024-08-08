@@ -2,8 +2,11 @@
 #include "backend/debug.h"
 #include "utils_test.hpp"
 
+#include <cstddef>
 #include <gtest/gtest.h>
-#include <memory>
+#include <map>
+#include <string>
+#include <utility>
 
 class UtilityTest : public testing::Test {
   void SetUp() override {

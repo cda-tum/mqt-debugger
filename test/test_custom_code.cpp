@@ -1,9 +1,13 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
+#include "common.h"
 #include "utils_test.hpp"
 
+#include <array>
+#include <cstddef>
 #include <gtest/gtest.h>
 #include <sstream>
+#include <string>
 
 class CustomCodeTest : public testing::Test {
   void SetUp() override {
@@ -81,4 +85,21 @@ TEST_F(CustomCodeTest, ResetGate) {
   forwardTo(3);
   ASSERT_EQ(state->getAmplitudeIndex(state, 0, &result), OK);
   ASSERT_TRUE(complexEquality(result, -1.0, 0.0));
+}
+
+TEST_F(CustomCodeTest, DependenciesWithJumps) {
+  loadCode(3, 1,
+           "gate entangle q0, q1, q2 {\n"
+           "  cx q0, q1;\n"
+           "  cx q0, q2;\n"
+           "  barrier q2;\n"
+           "}\n"
+           "\n"
+           "h q[0];\n"
+           "\n"
+           "entangle q[0], q[1], q[2];\n"
+           "\n"
+           "h q[2];\n"
+           "\n"
+           "barrier q[2];");
 }

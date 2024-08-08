@@ -1,9 +1,13 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
+#include "common.h"
 #include "utils_test.hpp"
 
+#include <array>
+#include <cstddef>
 #include <gtest/gtest.h>
-#include <memory>
+#include <string>
+#include <vector>
 
 class DataRetrievalTest : public testing::Test {
   void SetUp() override {
@@ -129,7 +133,7 @@ TEST_F(DataRetrievalTest, GetClassicalVariable) {
 }
 
 TEST_F(DataRetrievalTest, GetStateVectorFull) {
-  std::array<Complex, 16> amplitudes;
+  std::array<Complex, 16> amplitudes{};
   Statevector sv{4, 16, amplitudes.data()};
 
   ASSERT_EQ(state->getStateVectorFull(state, &sv), OK);
@@ -143,27 +147,27 @@ TEST_F(DataRetrievalTest, GetStateVectorFull) {
 }
 
 TEST_F(DataRetrievalTest, GetStateVectorSub) {
-  std::array<Complex, 4> amplitudes;
+  std::array<Complex, 4> amplitudes{};
   Statevector sv{2, 4, amplitudes.data()};
 
   forwardTo(6);
-  size_t qubits[] = {0, 1};
-  ASSERT_EQ(state->getStateVectorSub(state, 2, qubits, &sv), OK);
+  std::array<size_t, 2> qubits = {0, 1};
+  ASSERT_EQ(state->getStateVectorSub(state, 2, qubits.data(), &sv), OK);
   ASSERT_TRUE(complexEquality(amplitudes[3], 1, 0.0));
   ASSERT_TRUE(complexEquality(amplitudes[0], 0.0, 0.0));
 
   qubits[1] = 2;
-  ASSERT_EQ(state->getStateVectorSub(state, 2, qubits, &sv), OK);
+  ASSERT_EQ(state->getStateVectorSub(state, 2, qubits.data(), &sv), OK);
   ASSERT_TRUE(complexEquality(amplitudes[3], 0.0, 0.0));
   ASSERT_TRUE(complexEquality(amplitudes[1], 1.0, 0.0));
 
   forwardTo(11);
-  ASSERT_EQ(state->getStateVectorSub(state, 2, qubits, &sv), OK);
+  ASSERT_EQ(state->getStateVectorSub(state, 2, qubits.data(), &sv), OK);
   ASSERT_TRUE(complexEquality(amplitudes[0], 0.707, 0.0));
   ASSERT_TRUE(complexEquality(amplitudes[1], -0.707, 0.0));
 
   qubits[0] = 1;
-  ASSERT_EQ(state->getStateVectorSub(state, 2, qubits, &sv), OK);
+  ASSERT_EQ(state->getStateVectorSub(state, 2, qubits.data(), &sv), OK);
   ASSERT_TRUE(complexEquality(amplitudes[0], 0.0, 0.0));
   ASSERT_TRUE(complexEquality(amplitudes[1], 0.0,
                               0.0)); // 0 because of destructive interference

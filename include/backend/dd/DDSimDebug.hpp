@@ -3,14 +3,22 @@
 #include "DDSimDiagnostics.hpp"
 #include "QuantumComputation.hpp"
 #include "backend/debug.h"
+#include "backend/diagnostics.h"
 #include "common.h"
 #include "common/parsing/AssertionParsing.hpp"
-#include "dd/Operations.hpp"
 #include "dd/Package.hpp"
+#include "operations/Operation.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
-enum InstructionType { NOP, SIMULATE, ASSERTION, CALL, RETURN };
+enum InstructionType : uint8_t { NOP, SIMULATE, ASSERTION, CALL, RETURN };
 
 struct QubitRegisterDefinition {
   std::string name;

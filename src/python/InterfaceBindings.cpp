@@ -1,11 +1,11 @@
-#include "python/InterfaceBindings.hpp"
+#include "backend/debug.h"
+#include "backend/diagnostics.h"
+#include "common.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
 
-#include "backend/dd/DDSimDiagnostics.hpp"
-
-#include <backend/debug.h>
-#include <common.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <cstddef>
+#include <iostream>
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -17,9 +17,9 @@ void checkOrThrow(Result result) {
 }
 
 struct StatevectorCPP {
-  size_t numQubits;
-  size_t numStates;
-  std::vector<Complex> amplitudes;
+  size_t numQubits = 0;
+  size_t numStates = 0;
+  std::vector<Complex> amplitudes{};
 };
 
 void bindFramework(py::module& m) {

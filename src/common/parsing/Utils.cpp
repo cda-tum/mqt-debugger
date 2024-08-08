@@ -1,6 +1,10 @@
 #include "common/parsing/Utils.hpp"
 
 #include <algorithm>
+#include <cctype>
+#include <cstddef>
+#include <string>
+#include <vector>
 
 std::string trim(const std::string& str) {
   auto start = std::find_if_not(str.begin(), str.end(), ::isspace);

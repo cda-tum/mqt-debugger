@@ -1,10 +1,31 @@
-#pragma ide diagnostic ignored "cppcoreguidelines-pro-type-reinterpret-cast"
-
 #include "backend/dd/DDSimDiagnostics.hpp"
 
 #include "backend/dd/DDSimDebug.hpp"
+#include "backend/diagnostics.h"
+#include "common.h"
+#include "common/parsing/AssertionParsing.hpp"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <set>
 #include <span>
+#include <string>
+#include <vector>
+
+DDDiagnostics* toDDDiagnostics(Diagnostics* diagnostics) {
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+  return reinterpret_cast<DDDiagnostics*>(diagnostics);
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+}
+
+bool* toBoolArray(uint8_t* array) {
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+  return reinterpret_cast<bool*>(array);
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+}
 
 Result createDDDiagnostics(DDDiagnostics* self, DDSimulationState* state) {
   self->simulationState = state;
@@ -22,13 +43,13 @@ Result createDDDiagnostics(DDDiagnostics* self, DDSimulationState* state) {
 Result destroyDDDiagnostics([[maybe_unused]] DDDiagnostics* self) { return OK; }
 
 size_t dddiagnosticsGetNumQubits(Diagnostics* self) {
-  const auto* ddd = reinterpret_cast<DDDiagnostics*>(self);
+  const auto* ddd = toDDDiagnostics(self);
   return ddd->simulationState->interface.getNumQubits(
       &ddd->simulationState->interface);
 }
 
 size_t dddiagnosticsGetInstructionCount(Diagnostics* self) {
-  const auto* ddd = reinterpret_cast<DDDiagnostics*>(self);
+  const auto* ddd = toDDDiagnostics(self);
   return ddd->simulationState->interface.getInstructionCount(
       &ddd->simulationState->interface);
 }
@@ -37,7 +58,7 @@ Result dddiagnosticsInit([[maybe_unused]] Diagnostics* self) { return OK; }
 
 Result dddiagnosticsGetDataDependencies(Diagnostics* self, size_t instruction,
                                         bool* instructions) {
-  auto* ddd = reinterpret_cast<DDDiagnostics*>(self);
+  auto* ddd = toDDDiagnostics(self);
   auto* ddsim = ddd->simulationState;
   const std::span<bool> isDependency(
       instructions, ddsim->interface.getInstructionCount(&ddsim->interface));
@@ -60,7 +81,7 @@ Result dddiagnosticsGetDataDependencies(Diagnostics* self, size_t instruction,
 
 Result dddiagnosticsGetInteractions(Diagnostics* self, size_t beforeInstruction,
                                     size_t qubit, bool* qubitsAreInteracting) {
-  auto* ddd = reinterpret_cast<DDDiagnostics*>(self);
+  auto* ddd = toDDDiagnostics(self);
   auto* ddsim = ddd->simulationState;
   std::set<size_t> interactions;
   interactions.insert(qubit);
@@ -103,7 +124,7 @@ Result dddiagnosticsGetInteractions(Diagnostics* self, size_t beforeInstruction,
 
 size_t dddiagnosticsPotentialErrorCauses(Diagnostics* self, ErrorCause* output,
                                          size_t count) {
-  auto* ddd = reinterpret_cast<DDDiagnostics*>(self);
+  auto* ddd = toDDDiagnostics(self);
   auto* ddsim = ddd->simulationState;
   auto outputs = std::span(output, count);
 
@@ -143,9 +164,9 @@ size_t tryFindMissingInteraction(DDDiagnostics* diagnostics,
   for (size_t i = 0; i < targets.size(); i++) {
     std::vector<uint8_t> interactions(
         diagnostics->interface.getNumQubits(&diagnostics->interface));
-    diagnostics->interface.getInteractions(
-        &diagnostics->interface, instruction, targetQubits[i],
-        reinterpret_cast<bool*>(interactions.data()));
+    diagnostics->interface.getInteractions(&diagnostics->interface, instruction,
+                                           targetQubits[i],
+                                           toBoolArray(interactions.data()));
     allInteractions.insert({targetQubits[i], interactions});
   }
   for (size_t i = 0; i < targets.size(); i++) {
@@ -170,8 +191,7 @@ size_t tryFindZeroControls(DDDiagnostics* diagnostics, size_t instruction,
   std::vector<uint8_t> dependencies(
       diagnostics->interface.getInstructionCount(&diagnostics->interface));
   diagnostics->interface.getDataDependencies(
-      &diagnostics->interface, instruction,
-      reinterpret_cast<bool*>(dependencies.data()));
+      &diagnostics->interface, instruction, toBoolArray(dependencies.data()));
   auto outputs = std::span(output, count);
   size_t index = 0;
 

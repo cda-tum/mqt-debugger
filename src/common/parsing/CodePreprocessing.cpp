@@ -1,11 +1,19 @@
 #include "common/parsing/CodePreprocessing.hpp"
 
+#include "common/parsing/AssertionParsing.hpp"
 #include "common/parsing/ParsingError.hpp"
 #include "common/parsing/Utils.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <iostream>
 #include <map>
+#include <memory>
+#include <set>
+#include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
 Instruction::Instruction(size_t inputLineNumber, std::string inputCode,
                          std::unique_ptr<Assertion>& inputAssertion,
@@ -53,11 +61,11 @@ std::string removeComments(const std::string& code) {
     if (nextComment == std::string::npos) {
       break;
     }
-    auto commentEnd = result.find("\n", nextComment);
+    auto commentEnd = result.find('\n', nextComment);
     if (commentEnd == std::string::npos) {
       commentEnd = result.size();
     }
-    std::string spaces(commentEnd - nextComment, ' ');
+    const std::string spaces(commentEnd - nextComment, ' ');
     result.replace(nextComment, commentEnd - nextComment, spaces);
   }
   return result;
@@ -125,7 +133,6 @@ std::vector<std::string> sweepFunctionNames(const std::string& code) {
       result.push_back(f.name);
     }
   }
-
   return result;
 }
 
@@ -139,6 +146,7 @@ preprocessCode(const std::string& code, size_t startIndex,
                size_t initialCodeOffset,
                const std::vector<std::string>& allFunctionNames,
                std::string& processedCode) {
+
   std::map<std::string, std::string> blocks;
   std::map<std::string, size_t> functionFirstLine;
   std::map<std::string, FunctionDefinition> functionDefinitions;
@@ -214,6 +222,7 @@ preprocessCode(const std::string& code, size_t startIndex,
                                 targets, trueStart, trueEnd, i + 1, false, "",
                                 false, block);
       auto& functionInstruction = instructions.back();
+
       for (auto& instr : subInstructions) {
         functionInstruction.childInstructions.push_back(instr.lineNumber);
         instructions.push_back(std::move(instr));
@@ -263,7 +272,8 @@ preprocessCode(const std::string& code, size_t startIndex,
       for (const auto& var : variableUsages[idx]) {
         if (std::find(vars.begin(), vars.end(), var) != vars.end()) {
           found = true;
-          std::remove(vars.begin(), vars.end(), var);
+          const auto newEnd = std::remove(vars.begin(), vars.end(), var);
+          vars.erase(newEnd, vars.end());
         }
       }
       if (found) {
@@ -292,5 +302,6 @@ preprocessCode(const std::string& code, size_t startIndex,
       }
     }
   }
+
   return instructions;
 }

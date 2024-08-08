@@ -2,11 +2,12 @@
 
 #include "common.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
-enum class AssertionType {
+enum class AssertionType : uint8_t {
   Entanglement,
   Superposition,
   Span,
@@ -77,5 +78,5 @@ public:
 };
 
 std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
-                                          std::string blockContent);
+                                          const std::string& blockContent);
 bool isAssertion(std::string expression);

@@ -1,9 +1,14 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
+#include "common.h"
 #include "utils_test.hpp"
 
+#include <cstddef>
 #include <gtest/gtest.h>
-#include <memory>
+#include <map>
+#include <string>
+#include <utility>
+#include <vector>
 
 class SimulationTest : public testing::TestWithParam<std::string> {
   void SetUp() override {
@@ -13,7 +18,7 @@ class SimulationTest : public testing::TestWithParam<std::string> {
   }
 
 protected:
-  DDSimulationState ddState;
+  DDSimulationState ddState{};
   SimulationState* state = nullptr;
 
   void loadFromFile(const std::string& testName) {

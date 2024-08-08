@@ -1,9 +1,16 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
+#include "backend/diagnostics.h"
 #include "utils_test.hpp"
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <gtest/gtest.h>
-#include <memory>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
 class DiagnosticsTest : public testing::Test {
   void SetUp() override {
@@ -20,14 +27,6 @@ protected:
   void loadFromFile(const std::string& testName) {
     const auto code = readFromCircuitsPath(testName);
     state->loadCode(state, code.c_str());
-  }
-
-  void forwardTo(size_t instruction) {
-    size_t currentInstruction = state->getCurrentInstruction(state);
-    while (currentInstruction < instruction) {
-      state->stepForward(state);
-      currentInstruction = state->getCurrentInstruction(state);
-    }
   }
 };
 
@@ -47,8 +46,10 @@ TEST_F(DiagnosticsTest, DataDependencies) {
 
   for (const auto& [instruction, expectedDependencies] : expected) {
     std::vector<uint8_t> dependencies(state->getInstructionCount(state), 0);
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     diagnostics->getDataDependencies(
         diagnostics, instruction, reinterpret_cast<bool*>(dependencies.data()));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     std::set<size_t> dependenciesSet;
     for (size_t i = 0; i < dependencies.size(); ++i) {
       if (dependencies[i] != 0) {
