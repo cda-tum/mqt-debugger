@@ -46,6 +46,7 @@ const std::vector<Statevector>& SpanAssertion::getSpanVectors() const {
 }
 SpanAssertion::~SpanAssertion() {
   for (auto& statevector : spanVectors) {
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
     delete[] statevector.amplitudes;
   }
 }

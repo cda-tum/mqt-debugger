@@ -4,8 +4,13 @@
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 
+#include <algorithm>
 #include <cstddef>
-#include <iostream>
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -19,7 +24,7 @@ void checkOrThrow(Result result) {
 struct StatevectorCPP {
   size_t numQubits = 0;
   size_t numStates = 0;
-  std::vector<Complex> amplitudes{};
+  std::vector<Complex> amplitudes;
 };
 
 void bindFramework(py::module& m) {
@@ -202,7 +207,7 @@ void bindFramework(py::module& m) {
            })
       .def("set_breakpoint",
            [](SimulationState* self, size_t desiredPosition) {
-             size_t actualPosition;
+             size_t actualPosition = 0;
              checkOrThrow(
                  self->setBreakpoint(self, desiredPosition, &actualPosition));
              return actualPosition;
@@ -257,9 +262,11 @@ void bindDiagnostics(py::module& m) {
       .def("get_data_dependencies",
            [](Diagnostics* self, size_t instruction) {
              std::vector<uint8_t> instructions(self->getInstructionCount(self));
+             // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
              checkOrThrow(self->getDataDependencies(
                  self, instruction,
                  reinterpret_cast<bool*>(instructions.data())));
+             // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
              std::vector<size_t> result;
              for (size_t i = 0; i < instructions.size(); i++) {
                if (instructions[i] != 0) {
@@ -271,9 +278,11 @@ void bindDiagnostics(py::module& m) {
       .def("get_interactions",
            [](Diagnostics* self, size_t beforeInstruction, size_t qubit) {
              std::vector<uint8_t> qubits(self->getNumQubits(self));
+             // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
              checkOrThrow(
                  self->getInteractions(self, beforeInstruction, qubit,
                                        reinterpret_cast<bool*>(qubits.data())));
+             // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
              std::vector<size_t> result;
              for (size_t i = 0; i < qubits.size(); i++) {
                if (qubits[i] != 0) {

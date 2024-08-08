@@ -6,6 +6,7 @@
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
 #include "common.h"
+#include "common/Span.hpp"
 #include "common/parsing/AssertionParsing.hpp"
 #include "common/parsing/CodePreprocessing.hpp"
 #include "common/parsing/Utils.hpp"
@@ -25,7 +26,6 @@
 #include <memory>
 #include <numeric>
 #include <random>
-#include <span>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -283,7 +283,8 @@ Result ddsimStepForward(SimulationState* self) {
     ddsim->callReturnStack.pop_back();
   }
 
-  if (ddsim->breakpoints.contains(ddsim->currentInstruction)) {
+  if (ddsim->breakpoints.find(ddsim->currentInstruction) !=
+      ddsim->breakpoints.end()) {
     ddsim->lastMetBreakpoint = ddsim->currentInstruction;
   }
 
@@ -427,7 +428,8 @@ Result ddsimStepBackward(SimulationState* self) {
 
   // When going backwards, we still run the instruction that hits the breakpoint
   // because we want to stop *before* it.
-  if (ddsim->breakpoints.contains(ddsim->currentInstruction)) {
+  if (ddsim->breakpoints.find(ddsim->currentInstruction) !=
+      ddsim->breakpoints.end()) {
     ddsim->lastMetBreakpoint = ddsim->currentInstruction;
   }
 
@@ -657,12 +659,12 @@ Result ddsimGetClassicalVariableName(SimulationState* self,
   }
 
   const auto name = getClassicalBitName(ddsim, variableIndex);
-  strcpy(output, name.c_str());
+  name.copy(output, name.length());
   return OK;
 }
 
 Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
-  const std::span<Complex> amplitudes(output->amplitudes, output->numStates);
+  const Span<Complex> amplitudes(output->amplitudes, output->numStates);
   for (size_t i = 0; i < output->numStates; i++) {
     self->getAmplitudeIndex(self, i, &amplitudes[i]);
   }
@@ -676,15 +678,15 @@ Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
   fullState.numQubits = ddsim->qc->getNqubits();
   fullState.numStates = 1 << fullState.numQubits;
   std::vector<Complex> amplitudes(fullState.numStates);
-  const std::span<Complex> outAmplitudes(output->amplitudes, output->numStates);
-  const std::span<const size_t> qubitsSpan(qubits, subStateSize);
+  const Span<Complex> outAmplitudes(output->amplitudes, output->numStates);
+  const Span<const size_t> qubitsSpan(qubits, subStateSize);
   fullState.amplitudes = amplitudes.data();
 
   self->getStateVectorFull(self, &fullState);
 
-  for (auto& amplitude : outAmplitudes) {
-    amplitude.real = 0;
-    amplitude.imaginary = 0;
+  for (size_t i = 0; i < outAmplitudes.size(); i++) {
+    outAmplitudes[i].real = 0;
+    outAmplitudes[i].imaginary = 0;
   }
 
   for (size_t i = 0; i < fullState.numStates; i++) {
@@ -742,7 +744,7 @@ Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
   }
   size_t depth = 0;
   self->getStackDepth(self, &depth);
-  const std::span<size_t> stackFrames(output, maxDepth);
+  const Span<size_t> stackFrames(output, maxDepth);
   stackFrames[0] = self->getCurrentInstruction(self);
   for (auto i = 1ULL; i < maxDepth; i++) {
     if (i >= depth) {
@@ -822,8 +824,8 @@ double dotProduct(const Statevector& sv1, const Statevector& sv2) {
   double resultReal = 0;
   double resultImag = 0;
 
-  const std::span<Complex> amplitudes1(sv1.amplitudes, sv1.numStates);
-  const std::span<Complex> amplitudes2(sv2.amplitudes, sv2.numStates);
+  const Span<Complex> amplitudes1(sv1.amplitudes, sv1.numStates);
+  const Span<Complex> amplitudes2(sv2.amplitudes, sv2.numStates);
 
   for (size_t i = 0; i < sv1.numStates; i++) {
     resultReal += amplitudes1[i].real * amplitudes2[i].real -
@@ -837,7 +839,7 @@ double dotProduct(const Statevector& sv1, const Statevector& sv2) {
 
 bool areQubitsEntangled(Statevector* sv) {
   const double epsilon = 0.0001;
-  const std::span<Complex> amplitudes(sv->amplitudes, sv->numStates);
+  const Span<Complex> amplitudes(sv->amplitudes, sv->numStates);
   const bool canBe00 = complexMagnitude(amplitudes[0]) > epsilon;
   const bool canBe01 = complexMagnitude(amplitudes[1]) > epsilon;
   const bool canBe10 = complexMagnitude(amplitudes[2]) > epsilon;

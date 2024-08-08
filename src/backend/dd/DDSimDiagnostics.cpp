@@ -3,6 +3,7 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/diagnostics.h"
 #include "common.h"
+#include "common/Span.hpp"
 #include "common/parsing/AssertionParsing.hpp"
 
 #include <algorithm>
@@ -11,7 +12,6 @@
 #include <map>
 #include <memory>
 #include <set>
-#include <span>
 #include <string>
 #include <vector>
 
@@ -60,7 +60,7 @@ Result dddiagnosticsGetDataDependencies(Diagnostics* self, size_t instruction,
                                         bool* instructions) {
   auto* ddd = toDDDiagnostics(self);
   auto* ddsim = ddd->simulationState;
-  const std::span<bool> isDependency(
+  const Span<bool> isDependency(
       instructions, ddsim->interface.getInstructionCount(&ddsim->interface));
   std::set<size_t> toVisit{instruction};
   std::set<size_t> visited;
@@ -113,7 +113,7 @@ Result dddiagnosticsGetInteractions(Diagnostics* self, size_t beforeInstruction,
     }
   }
 
-  const auto qubits = std::span<bool>(
+  const auto qubits = Span<bool>(
       qubitsAreInteracting, ddsim->interface.getNumQubits(&ddsim->interface));
   for (auto interaction : interactions) {
     qubits[interaction] = true;
@@ -126,7 +126,7 @@ size_t dddiagnosticsPotentialErrorCauses(Diagnostics* self, ErrorCause* output,
                                          size_t count) {
   auto* ddd = toDDDiagnostics(self);
   auto* ddsim = ddd->simulationState;
-  auto outputs = std::span(output, count);
+  auto outputs = Span(output, count);
 
   const size_t assertion = ddsim->lastFailedAssertion;
   if (assertion == -1ULL) {
@@ -150,7 +150,7 @@ size_t tryFindMissingInteraction(DDDiagnostics* diagnostics,
                                  const std::unique_ptr<Assertion>& assertion,
                                  ErrorCause* output, size_t count) {
   auto targets = assertion->getTargetQubits();
-  auto outputs = std::span(output, count);
+  auto outputs = Span(output, count);
   std::vector<size_t> targetQubits(targets.size());
   size_t index = 0;
 
@@ -192,7 +192,7 @@ size_t tryFindZeroControls(DDDiagnostics* diagnostics, size_t instruction,
       diagnostics->interface.getInstructionCount(&diagnostics->interface));
   diagnostics->interface.getDataDependencies(
       &diagnostics->interface, instruction, toBoolArray(dependencies.data()));
-  auto outputs = std::span(output, count);
+  auto outputs = Span(output, count);
   size_t index = 0;
 
   for (size_t i = 0; i < dependencies.size(); i++) {

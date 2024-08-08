@@ -7,7 +7,7 @@ project(
 option(BUILD_MQT_DEBUG_BINDINGS "Build the MQT DEBUG Python bindings" OFF)
 option(BUILD_MQT_DEBUG_TESTS "Also build tests for the MQT QCEC project" ON)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 
 if(BUILD_MQT_DEBUG_BINDINGS)
   # ensure that the BINDINGS option is set
