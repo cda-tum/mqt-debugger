@@ -25,6 +25,7 @@ BUILD_REQUIREMENTS = [
     "setuptools_scm>=8.1",
     "setuptools>=66.1",
     "wheel>=0.40.0",
+    "pybind11>=2.13",
 ]
 
 if os.environ.get("CI", None):
