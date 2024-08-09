@@ -326,6 +326,56 @@ TEST_P(SimulationTest, RunSimulation) {
   ASSERT_TRUE(state->isFinished(state));
 }
 
+TEST_P(SimulationTest, InGateDefinitionBreakpoints) {
+  const std::map<const std::string, std::vector<size_t>> breakpointPositions = {
+      {"complex-jumps", {86, 280, 411}}, {"failing-assertions", {}}};
+  const std::map<const std::string, std::vector<size_t>>
+      expectedBreakpointPositions = {{"complex-jumps", {2, 7, 11}},
+                                     {"failing-assertions", {}}};
+  const std::map<const std::string, std::vector<size_t>>
+      expectedBreakpointHits = {
+          {"complex-jumps", {2, 11, 7, 2, 11, 2, 11, 2, 11}},
+          {"failing-assertions", {}}};
+
+  for (size_t index = 0; index < breakpointPositions.at(GetParam()).size();
+       index++) {
+    const auto breakpoint = breakpointPositions.at(GetParam())[index];
+    size_t targetInstruction = 0;
+    ASSERT_EQ(state->setBreakpoint(state, breakpoint, &targetInstruction),
+              Result::OK)
+        << "Failed to set breakpoint at instruction " << breakpoint << " in "
+        << GetParam() << "\n";
+    ASSERT_EQ(targetInstruction,
+              expectedBreakpointPositions.at(GetParam())[index])
+        << "Breakpoint set at wrong instruction for breakpoint " << breakpoint
+        << " in " << GetParam() << "\n";
+  }
+
+  for (const auto instruction : expectedBreakpointHits.at(GetParam())) {
+    ASSERT_EQ(state->runSimulation(state), Result::OK)
+        << "Failed to run simulation in " << GetParam() << "\n";
+    while (state->didAssertionFail(state)) {
+      ASSERT_EQ(state->runSimulation(state), Result::OK)
+          << "Failed to run simulation in " << GetParam() << "\n";
+    }
+    ASSERT_EQ(state->getCurrentInstruction(state), instruction)
+        << "Breakpoint not hit at expected instruction " << instruction
+        << " in " << GetParam() << "\n";
+    ASSERT_TRUE(state->wasBreakpointHit(state));
+  }
+
+  ASSERT_EQ(state->clearBreakpoints(state), Result::OK)
+      << "Failed to clear breakpoints in " << GetParam() << "\n";
+  ASSERT_EQ(state->runSimulationBackward(state), Result::OK);
+  ASSERT_FALSE(state->wasBreakpointHit(state))
+      << "Breakpoint hit after clearing in " << GetParam() << "\n";
+  while (!state->isFinished(state)) {
+    ASSERT_EQ(state->runSimulation(state), Result::OK);
+    ASSERT_FALSE(state->wasBreakpointHit(state))
+        << "Breakpoint hit after clearing in " << GetParam() << "\n";
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(StringParams, SimulationTest,
                          ::testing::Values("complex-jumps",
                                            "failing-assertions"));
