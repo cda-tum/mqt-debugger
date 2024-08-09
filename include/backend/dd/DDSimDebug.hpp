@@ -46,6 +46,7 @@ struct DDSimulationState {
   std::vector<InstructionType> instructionTypes;
   std::vector<size_t> instructionStarts;
   std::vector<size_t> instructionEnds;
+  std::set<size_t> functionDefinitions;
   std::map<size_t, std::unique_ptr<Assertion>> assertionInstructions;
   std::map<size_t, size_t> successorInstructions;
   std::vector<QubitRegisterDefinition> qubitRegisters;
