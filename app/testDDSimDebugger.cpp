@@ -3,6 +3,8 @@
 
 #include <fstream>
 #include <iostream>
+#include <iterator>
+#include <string>
 
 int main() {
   std::ifstream file("../../app/code/test"

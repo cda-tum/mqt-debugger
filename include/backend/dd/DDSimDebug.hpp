@@ -3,14 +3,22 @@
 #include "DDSimDiagnostics.hpp"
 #include "QuantumComputation.hpp"
 #include "backend/debug.h"
+#include "backend/diagnostics.h"
 #include "common.h"
 #include "common/parsing/AssertionParsing.hpp"
-#include "dd/Operations.hpp"
 #include "dd/Package.hpp"
+#include "operations/Operation.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
-enum InstructionType { NOP, SIMULATE, ASSERTION, CALL, RETURN };
+enum InstructionType : uint8_t { NOP, SIMULATE, ASSERTION, CALL, RETURN };
 
 struct QubitRegisterDefinition {
   std::string name;
@@ -28,6 +36,7 @@ struct DDSimulationState {
   SimulationState interface;
   size_t currentInstruction;
   std::string code;
+  std::string processedCode;
   bool ready;
 
   std::unique_ptr<qc::QuantumComputation> qc;
@@ -68,6 +77,7 @@ Result ddsimStepOverForward(SimulationState* self);
 Result ddsimStepOverBackward(SimulationState* self);
 Result ddsimStepOutForward(SimulationState* self);
 Result ddsimStepOutBackward(SimulationState* self);
+Result ddsimRunAll(SimulationState* self, size_t* failedAssertions);
 Result ddsimRunSimulation(SimulationState* self);
 Result ddsimRunSimulationBackward(SimulationState* self);
 Result ddsimResetSimulation(SimulationState* self);
@@ -79,7 +89,6 @@ bool ddsimDidAssertionFail(SimulationState* self);
 bool ddsimWasBreakpointHit(SimulationState* self);
 
 size_t ddsimGetCurrentInstruction(SimulationState* self);
-size_t ddsimGetPreviousInstruction(SimulationState* self);
 size_t ddsimGetInstructionCount(SimulationState* self);
 Result ddsimGetInstructionPosition(SimulationState* self, size_t instruction,
                                    size_t* start, size_t* end);

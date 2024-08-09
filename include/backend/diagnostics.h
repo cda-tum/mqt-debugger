@@ -1,8 +1,11 @@
 #pragma once
 
+// NOLINTBEGIN(modernize-use-using, performance-enum-size)
+
 #include "common.h"
 
 #ifdef __cplusplus
+#include <cstddef>
 extern "C" {
 #endif
 
@@ -31,3 +34,5 @@ struct Diagnostics {
 #ifdef __cplusplus
 }
 #endif
+
+// NOLINTEND(modernize-use-using, performance-enum-size)

@@ -1,21 +1,42 @@
-#pragma ide diagnostic ignored "cppcoreguidelines-pro-type-reinterpret-cast"
-
 #include "backend/dd/DDSimDebug.hpp"
 
 #include "CircuitOptimizer.hpp"
+#include "Definitions.hpp"
+#include "backend/dd/DDSimDiagnostics.hpp"
 #include "backend/debug.h"
+#include "backend/diagnostics.h"
 #include "common.h"
+#include "common/Span.hpp"
 #include "common/parsing/AssertionParsing.hpp"
 #include "common/parsing/CodePreprocessing.hpp"
-#include "common/parsing/ParsingError.hpp"
 #include "common/parsing/Utils.hpp"
+#include "dd/DDDefinitions.hpp"
+#include "dd/Operations.hpp"
+#include "dd/Package.hpp"
+#include "operations/ClassicControlledOperation.hpp"
+#include "operations/OpType.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstring>
+#include <exception>
 #include <iostream>
+#include <memory>
+#include <numeric>
 #include <random>
-#include <span>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
+
+DDSimulationState* toDDSimulationState(SimulationState* state) {
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+  return reinterpret_cast<DDSimulationState*>(state);
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+}
 
 double generateRandomNumber() {
   std::random_device
@@ -37,6 +58,7 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.stepOverBackward = ddsimStepOverBackward;
   self->interface.stepOutForward = ddsimStepOutForward;
   self->interface.stepOutBackward = ddsimStepOutBackward;
+  self->interface.runAll = ddsimRunAll;
   self->interface.runSimulation = ddsimRunSimulation;
   self->interface.runSimulationBackward = ddsimRunSimulationBackward;
   self->interface.resetSimulation = ddsimResetSimulation;
@@ -48,7 +70,6 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.wasBreakpointHit = ddsimWasBreakpointHit;
 
   self->interface.getCurrentInstruction = ddsimGetCurrentInstruction;
-  self->interface.getPreviousInstruction = ddsimGetPreviousInstruction;
   self->interface.getInstructionCount = ddsimGetInstructionCount;
   self->interface.getInstructionPosition = ddsimGetInstructionPosition;
   self->interface.getNumQubits = ddsimGetNumQubits;
@@ -65,7 +86,9 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.getStackDepth = ddsimGetStackDepth;
   self->interface.getStackTrace = ddsimGetStackTrace;
 
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
   return self->interface.init(reinterpret_cast<SimulationState*>(self));
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 }
 #pragma clang diagnostic pop
 
@@ -75,12 +98,11 @@ void resetSimulationState(DDSimulationState* ddsim) {
   }
   ddsim->simulationState = ddsim->dd->makeZeroState(ddsim->qc->getNqubits());
   ddsim->dd->incRef(ddsim->simulationState);
-  ddsim->breakpoints.clear();
   ddsim->paused = false;
 }
 
 Result ddsimInit(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
 
   ddsim->simulationState.p = nullptr;
   ddsim->qc = std::make_unique<qc::QuantumComputation>();
@@ -106,18 +128,20 @@ Result ddsimInit(SimulationState* self) {
 }
 
 Result ddsimLoadCode(SimulationState* self, const char* code) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   ddsim->currentInstruction = 0;
   ddsim->previousInstructionStack.clear();
   ddsim->callReturnStack.clear();
   ddsim->callSubstitutions.clear();
   ddsim->restoreCallReturnStack.clear();
   ddsim->code = code;
+  ddsim->variables.clear();
+  ddsim->variableNames.clear();
 
   try {
     std::stringstream ss{preprocessAssertionCode(code, ddsim)};
     ddsim->qc->import(ss, qc::Format::OpenQASM3);
-    qc::CircuitOptimizer::flattenOperations(*ddsim->qc);
+    qc::CircuitOptimizer::flattenOperations(*ddsim->qc, true);
   } catch (const std::exception& e) {
     std::cerr << e.what() << "\n";
     return ERROR;
@@ -139,7 +163,7 @@ Result ddsimStepOverForward(SimulationState* self) {
   if (!self->canStepForward(self)) {
     return ERROR;
   }
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   if (ddsim->instructionTypes[ddsim->currentInstruction] != CALL) {
     return self->stepForward(self);
   }
@@ -168,8 +192,8 @@ Result ddsimStepOverBackward(SimulationState* self) {
   if (!self->canStepBackward(self)) {
     return ERROR;
   }
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  const auto prev = self->getPreviousInstruction(self);
+  auto* ddsim = toDDSimulationState(self);
+  const auto prev = ddsim->previousInstructionStack.back();
   if (ddsim->instructionTypes[prev] != RETURN) {
     return self->stepBackward(self);
   }
@@ -194,7 +218,7 @@ Result ddsimStepOverBackward(SimulationState* self) {
 }
 
 Result ddsimStepOutForward(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   if (ddsim->callReturnStack.empty()) {
     return self->runSimulation(self);
   }
@@ -217,7 +241,7 @@ Result ddsimStepOutForward(SimulationState* self) {
 }
 
 Result ddsimStepOutBackward(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   if (ddsim->callReturnStack.empty()) {
     return self->runSimulationBackward(self);
   }
@@ -243,7 +267,7 @@ Result ddsimStepOutBackward(SimulationState* self) {
 }
 
 Result ddsimStepForward(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   if (!self->canStepForward(self)) {
     return ERROR;
   }
@@ -251,9 +275,6 @@ Result ddsimStepForward(SimulationState* self) {
   const auto currentInstruction = ddsim->currentInstruction;
   dddiagnosticsOnStepForward(&ddsim->diagnostics, currentInstruction);
   ddsim->currentInstruction = ddsim->successorInstructions[currentInstruction];
-  if (ddsim->breakpoints.contains(ddsim->currentInstruction)) {
-    ddsim->lastMetBreakpoint = ddsim->currentInstruction;
-  }
 
   if (ddsim->currentInstruction == 0) {
     ddsim->currentInstruction = ddsim->callReturnStack.back() + 1;
@@ -261,11 +282,21 @@ Result ddsimStepForward(SimulationState* self) {
                                                ddsim->callReturnStack.back());
     ddsim->callReturnStack.pop_back();
   }
+
+  if (ddsim->breakpoints.find(ddsim->currentInstruction) !=
+      ddsim->breakpoints.end()) {
+    ddsim->lastMetBreakpoint = ddsim->currentInstruction;
+  }
+
   if (ddsim->instructionTypes[currentInstruction] == CALL) {
     ddsim->callReturnStack.push_back(currentInstruction);
   }
   ddsim->previousInstructionStack.emplace_back(currentInstruction);
 
+  // The exact action we take depends on the type of the next instruction:
+  // - ASSERTION: check the assertion and step back if it fails.
+  // - Non-SIMULATE: just step to the next instruction.
+  // - SIMULATE: run the corresponding operation on the DD backend.
   if (ddsim->instructionTypes[currentInstruction] == ASSERTION) {
     auto& assertion = ddsim->assertionInstructions[currentInstruction];
     const auto failed = !checkAssertion(ddsim, assertion);
@@ -283,6 +314,8 @@ Result ddsimStepForward(SimulationState* self) {
 
   qc::MatrixDD currDD;
   if ((*ddsim->iterator)->getType() == qc::Measure) {
+    // Perform a measurement of the desired qubits, based on the amplitudes of
+    // the current state.
     auto qubitsToMeasure = (*ddsim->iterator)->getTargets();
     auto classicalBits =
         dynamic_cast<qc::NonUnitaryOperation*>(ddsim->iterator->get())
@@ -313,11 +346,13 @@ Result ddsimStepForward(SimulationState* self) {
     }
 
     ddsim->iterator++;
-    ddsim->previousInstructionStack.clear();
+    ddsim->previousInstructionStack
+        .clear(); // after measurements, we can no longer step back.
     ddsim->restoreCallReturnStack.clear();
     return OK;
   }
   if ((*ddsim->iterator)->getType() == qc::Reset) {
+    // Perform the desired qubits. This will first perform a measurement.
     auto qubitsToMeasure = (*ddsim->iterator)->getTargets();
     ddsim->iterator++;
     ddsim->previousInstructionStack.clear();
@@ -343,10 +378,13 @@ Result ddsimStepForward(SimulationState* self) {
     return OK;
   }
   if ((*ddsim->iterator)->getType() == qc::Barrier) {
+    // Do not do anything.
     ddsim->iterator++;
     return OK;
   }
   if ((*ddsim->iterator)->isClassicControlledOperation()) {
+    // For classic-controlled operations, we need to read the values of the
+    // classical register first.
     const auto* op =
         dynamic_cast<qc::ClassicControlledOperation*>((*ddsim->iterator).get());
     const auto& controls = op->getControlRegister();
@@ -363,6 +401,7 @@ Result ddsimStepForward(SimulationState* self) {
       currDD = ddsim->dd->makeIdent();
     }
   } else {
+    // For all other operations, we just take the next gate to apply.
     currDD = dd::getDD(ddsim->iterator->get(),
                        *ddsim->dd); // retrieve the "new" current operation
   }
@@ -378,7 +417,7 @@ Result ddsimStepForward(SimulationState* self) {
 }
 
 Result ddsimStepBackward(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   if (!self->canStepBackward(self)) {
     return ERROR;
   }
@@ -401,7 +440,8 @@ Result ddsimStepBackward(SimulationState* self) {
 
   // When going backwards, we still run the instruction that hits the breakpoint
   // because we want to stop *before* it.
-  if (ddsim->breakpoints.contains(ddsim->currentInstruction)) {
+  if (ddsim->breakpoints.find(ddsim->currentInstruction) !=
+      ddsim->breakpoints.end()) {
     ddsim->lastMetBreakpoint = ddsim->currentInstruction;
   }
 
@@ -450,14 +490,29 @@ Result ddsimStepBackward(SimulationState* self) {
   return OK;
 }
 
+Result ddsimRunAll(SimulationState* self, size_t* failedAssertions) {
+  size_t errorCount = 0;
+  while (!self->isFinished(self)) {
+    const Result result = self->runSimulation(self);
+    if (result != OK) {
+      return result;
+    }
+    if (self->didAssertionFail(self)) {
+      errorCount++;
+    }
+  }
+  *failedAssertions = errorCount;
+  return OK;
+}
+
 Result ddsimRunSimulation(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   while (!self->isFinished(self)) {
     if (ddsim->paused) {
       ddsim->paused = false;
       return OK;
     }
-    Result res = self->stepForward(self);
+    const Result res = self->stepForward(self);
     if (res != OK) {
       return res;
     }
@@ -469,13 +524,13 @@ Result ddsimRunSimulation(SimulationState* self) {
 }
 
 Result ddsimRunSimulationBackward(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   while (self->canStepBackward(self)) {
     if (ddsim->paused) {
       ddsim->paused = false;
       return OK;
     }
-    Result res = self->stepBackward(self);
+    const Result res = self->stepBackward(self);
     if (res != OK) {
       return res;
     }
@@ -487,99 +542,95 @@ Result ddsimRunSimulationBackward(SimulationState* self) {
 }
 
 Result ddsimResetSimulation(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   ddsim->currentInstruction = 0;
   ddsim->previousInstructionStack.clear();
   ddsim->callReturnStack.clear();
-  ddsim->callSubstitutions.clear();
   ddsim->restoreCallReturnStack.clear();
 
   ddsim->iterator = ddsim->qc->begin();
   ddsim->lastFailedAssertion = -1ULL;
   ddsim->lastMetBreakpoint = -1ULL;
-  ddsim->variables.clear();
-  ddsim->variableNames.clear();
 
   resetSimulationState(ddsim);
   return OK;
 }
 
 Result ddsimPauseSimulation(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   ddsim->paused = true;
   return OK;
 }
 
 bool ddsimCanStepForward(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   return ddsim->currentInstruction < ddsim->instructionTypes.size();
 }
 
 bool ddsimCanStepBackward(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   return !ddsim->previousInstructionStack.empty();
 }
 
 bool ddsimIsFinished(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   return ddsim->currentInstruction == ddsim->instructionTypes.size();
 }
 
 bool ddsimDidAssertionFail(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   return ddsim->lastFailedAssertion == ddsim->currentInstruction;
 }
 
 bool ddsimWasBreakpointHit(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   return ddsim->lastMetBreakpoint == ddsim->currentInstruction;
 }
 
 size_t ddsimGetCurrentInstruction(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   return ddsim->currentInstruction;
 }
 
-size_t ddsimGetPreviousInstruction(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  return ddsim->previousInstructionStack.back();
-}
-
 size_t ddsimGetInstructionCount(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   return ddsim->instructionTypes.size();
 }
 
 Result ddsimGetInstructionPosition(SimulationState* self, size_t instruction,
                                    size_t* start, size_t* end) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   if (instruction >= ddsim->instructionStarts.size()) {
     return ERROR;
   }
-  size_t start_index = ddsim->instructionStarts[instruction];
-  size_t end_index = ddsim->instructionEnds[instruction];
+  size_t startIndex = ddsim->instructionStarts[instruction];
+  size_t endIndex = ddsim->instructionEnds[instruction];
 
-  while (ddsim->code[start_index] == ' ' || ddsim->code[start_index] == '\n' ||
-         ddsim->code[start_index] == '\r' || ddsim->code[start_index] == '\t') {
-    start_index++;
+  while (ddsim->processedCode[startIndex] == ' ' ||
+         ddsim->processedCode[startIndex] == '\n' ||
+         ddsim->processedCode[startIndex] == '\r' ||
+         ddsim->processedCode[startIndex] == '\t') {
+    startIndex++;
   }
-  while (ddsim->code[end_index] == ' ' || ddsim->code[end_index] == '\n' ||
-         ddsim->code[end_index] == '\r' || ddsim->code[end_index] == '\t') {
-    end_index++;
+  while (ddsim->processedCode[endIndex] == ' ' ||
+         ddsim->processedCode[endIndex] == '\n' ||
+         ddsim->processedCode[endIndex] == '\r' ||
+         ddsim->processedCode[endIndex] == '\t') {
+    endIndex++;
   }
-  *start = start_index;
-  *end = end_index;
+  *start = startIndex;
+  *end = endIndex;
   return OK;
 }
 
 size_t ddsimGetNumQubits(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   return ddsim->qc->getNqubits();
 }
 
 Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
                               Complex* output) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   auto result = ddsim->simulationState.getValueByIndex(qubit);
   output->real = result.real();
   output->imaginary = result.imag();
@@ -588,7 +639,7 @@ Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
 
 Result ddsimGetAmplitudeBitstring(SimulationState* self, const char* bitstring,
                                   Complex* output) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   auto path = std::string(bitstring);
   std::reverse(path.begin(), path.end());
   auto result =
@@ -600,7 +651,7 @@ Result ddsimGetAmplitudeBitstring(SimulationState* self, const char* bitstring,
 
 Result ddsimGetClassicalVariable(SimulationState* self, const char* name,
                                  Variable* output) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   if (ddsim->variables.find(name) != ddsim->variables.end()) {
     *output = ddsim->variables[name];
     return OK;
@@ -608,24 +659,24 @@ Result ddsimGetClassicalVariable(SimulationState* self, const char* name,
   return ERROR;
 }
 size_t ddsimGetNumClassicalVariables(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   return ddsim->variables.size();
 }
 Result ddsimGetClassicalVariableName(SimulationState* self,
                                      size_t variableIndex, char* output) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
 
   if (variableIndex >= ddsim->variables.size()) {
     return ERROR;
   }
 
   const auto name = getClassicalBitName(ddsim, variableIndex);
-  strcpy(output, name.c_str());
+  name.copy(output, name.length());
   return OK;
 }
 
 Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
-  const std::span<Complex> amplitudes(output->amplitudes, output->numStates);
+  const Span<Complex> amplitudes(output->amplitudes, output->numStates);
   for (size_t i = 0; i < output->numStates; i++) {
     self->getAmplitudeIndex(self, i, &amplitudes[i]);
   }
@@ -634,20 +685,20 @@ Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
 
 Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
                               const size_t* qubits, Statevector* output) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   Statevector fullState;
   fullState.numQubits = ddsim->qc->getNqubits();
   fullState.numStates = 1 << fullState.numQubits;
   std::vector<Complex> amplitudes(fullState.numStates);
-  const std::span<Complex> outAmplitudes(output->amplitudes, output->numStates);
-  const std::span<const size_t> qubitsSpan(qubits, subStateSize);
+  const Span<Complex> outAmplitudes(output->amplitudes, output->numStates);
+  const Span<const size_t> qubitsSpan(qubits, subStateSize);
   fullState.amplitudes = amplitudes.data();
 
   self->getStateVectorFull(self, &fullState);
 
-  for (auto& amplitude : outAmplitudes) {
-    amplitude.real = 0;
-    amplitude.imaginary = 0;
+  for (size_t i = 0; i < outAmplitudes.size(); i++) {
+    outAmplitudes[i].real = 0;
+    outAmplitudes[i].imaginary = 0;
   }
 
   for (size_t i = 0; i < fullState.numStates; i++) {
@@ -663,16 +714,16 @@ Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
 }
 
 Diagnostics* ddsimGetDiagnostics(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   return &ddsim->diagnostics.interface;
 }
 
 Result ddsimSetBreakpoint(SimulationState* self, size_t desiredPosition,
                           size_t* targetInstruction) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   for (auto i = 0ULL; i < ddsim->instructionTypes.size(); i++) {
-    size_t start = ddsim->instructionStarts[i];
-    size_t end = ddsim->instructionEnds[i];
+    const size_t start = ddsim->instructionStarts[i];
+    const size_t end = ddsim->instructionEnds[i];
     if (desiredPosition >= start && desiredPosition <= end) {
       *targetInstruction = i;
       ddsim->breakpoints.insert(i);
@@ -683,27 +734,29 @@ Result ddsimSetBreakpoint(SimulationState* self, size_t desiredPosition,
 }
 
 Result ddsimClearBreakpoints(SimulationState* self) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
+  auto* ddsim = toDDSimulationState(self);
   ddsim->breakpoints.clear();
   return OK;
 }
 
 Result ddsimGetStackDepth(SimulationState* self, size_t* depth) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  if (!ddsim->ready)
+  auto* ddsim = toDDSimulationState(self);
+  if (!ddsim->ready) {
     return ERROR;
+  }
   *depth = ddsim->callReturnStack.size() + 1;
   return OK;
 }
 
 Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
                           size_t* output) {
-  auto* ddsim = reinterpret_cast<DDSimulationState*>(self);
-  if (!ddsim->ready || maxDepth == 0)
+  auto* ddsim = toDDSimulationState(self);
+  if (!ddsim->ready || maxDepth == 0) {
     return ERROR;
+  }
   size_t depth = 0;
   self->getStackDepth(self, &depth);
-  std::span<size_t> stackFrames(output, maxDepth);
+  const Span<size_t> stackFrames(output, maxDepth);
   stackFrames[0] = self->getCurrentInstruction(self);
   for (auto i = 1ULL; i < maxDepth; i++) {
     if (i >= depth) {
@@ -764,12 +817,27 @@ double complexMagnitude(Complex& c) {
   return std::sqrt(c.real * c.real + c.imaginary * c.imaginary);
 }
 
+Complex complexDivision(const Complex& c1, const Complex& c2) {
+  const double denominator = c2.real * c2.real + c2.imaginary * c2.imaginary;
+  const double real =
+      (c1.real * c2.real + c1.imaginary * c2.imaginary) / denominator;
+  const double imaginary =
+      (c1.imaginary * c2.real - c1.real * c2.imaginary) / denominator;
+  return {real, imaginary};
+}
+
+bool areComplexEqual(const Complex& c1, const Complex& c2) {
+  const double epsilon = 0.00000001;
+  return std::abs(c1.real - c2.real) < epsilon &&
+         std::abs(c1.imaginary - c2.imaginary) < epsilon;
+}
+
 double dotProduct(const Statevector& sv1, const Statevector& sv2) {
   double resultReal = 0;
   double resultImag = 0;
 
-  const std::span<Complex> amplitudes1(sv1.amplitudes, sv1.numStates);
-  const std::span<Complex> amplitudes2(sv2.amplitudes, sv2.numStates);
+  const Span<Complex> amplitudes1(sv1.amplitudes, sv1.numStates);
+  const Span<Complex> amplitudes2(sv2.amplitudes, sv2.numStates);
 
   for (size_t i = 0; i < sv1.numStates; i++) {
     resultReal += amplitudes1[i].real * amplitudes2[i].real -
@@ -783,11 +851,20 @@ double dotProduct(const Statevector& sv1, const Statevector& sv2) {
 
 bool areQubitsEntangled(Statevector* sv) {
   const double epsilon = 0.0001;
-  const std::span<Complex> amplitudes(sv->amplitudes, sv->numStates);
+  const Span<Complex> amplitudes(sv->amplitudes, sv->numStates);
   const bool canBe00 = complexMagnitude(amplitudes[0]) > epsilon;
   const bool canBe01 = complexMagnitude(amplitudes[1]) > epsilon;
   const bool canBe10 = complexMagnitude(amplitudes[2]) > epsilon;
   const bool canBe11 = complexMagnitude(amplitudes[3]) > epsilon;
+
+  const int nonZeroCount = (canBe00 ? 1 : 0) + (canBe01 ? 1 : 0) +
+                           (canBe10 ? 1 : 0) + (canBe11 ? 1 : 0);
+
+  if (nonZeroCount == 0) {
+    const auto c1 = complexDivision(amplitudes[0], amplitudes[2]);
+    const auto c2 = complexDivision(amplitudes[1], amplitudes[3]);
+    return !areComplexEqual(c1, c2);
+  }
 
   return (canBe00 && canBe11 && !(canBe01 && canBe10)) ||
          (canBe01 && canBe10 && !(canBe00 && canBe11));
@@ -797,7 +874,7 @@ bool checkAssertionEntangled(
     DDSimulationState* ddsim,
     std::unique_ptr<EntanglementAssertion>& assertion) {
   std::vector<size_t> qubits;
-  for (auto variable : assertion->getTargetQubits()) {
+  for (const auto& variable : assertion->getTargetQubits()) {
     qubits.push_back(variableToQubit(ddsim, variable));
   }
 
@@ -832,7 +909,7 @@ bool checkAssertionSuperposition(
     DDSimulationState* ddsim,
     std::unique_ptr<SuperpositionAssertion>& assertion) {
   std::vector<size_t> qubits;
-  for (auto variable : assertion->getTargetQubits()) {
+  for (const auto& variable : assertion->getTargetQubits()) {
     qubits.push_back(variableToQubit(ddsim, variable));
   }
 
@@ -866,7 +943,7 @@ bool checkAssertionEqualityStatevector(
     DDSimulationState* ddsim,
     std::unique_ptr<StatevectorEqualityAssertion>& assertion) {
   std::vector<size_t> qubits;
-  for (auto variable : assertion->getTargetQubits()) {
+  for (const auto& variable : assertion->getTargetQubits()) {
     qubits.push_back(variableToQubit(ddsim, variable));
   }
 
@@ -911,7 +988,7 @@ bool checkAssertionEqualityCircuit(
   destroyDDSimulationState(&secondSimulation);
 
   std::vector<size_t> qubits;
-  for (auto variable : assertion->getTargetQubits()) {
+  for (const auto& variable : assertion->getTargetQubits()) {
     qubits.push_back(variableToQubit(ddsim, variable));
   }
   Statevector sv;
@@ -989,7 +1066,7 @@ std::string validCodeFromChildren(const Instruction& parent,
 std::string preprocessAssertionCode(const char* code,
                                     DDSimulationState* ddsim) {
 
-  auto instructions = preprocessCode(code);
+  auto instructions = preprocessCode(code, ddsim->processedCode);
   std::vector<std::string> correctLines;
   ddsim->instructionTypes.clear();
   ddsim->instructionStarts.clear();
@@ -999,7 +1076,6 @@ std::string preprocessAssertionCode(const char* code,
   ddsim->qubitRegisters.clear();
   ddsim->successorInstructions.clear();
   ddsim->dataDependencies.clear();
-  ddsim->breakpoints.clear();
   ddsim->targetQubits.clear();
 
   for (auto& instruction : instructions) {
@@ -1012,6 +1088,17 @@ std::string preprocessAssertionCode(const char* code,
     for (const auto& dependency : instruction.dataDependencies) {
       ddsim->dataDependencies[instruction.lineNumber].push_back(dependency);
     }
+
+    // what exactly we do with each instruction depends on its type:
+    // - RETURN instructions are not simulated.
+    // - RETURN and ASSERTION instructions are not added to the final code.
+    // - Custom gate definitions are also not simulated.
+    // - Function calls are simulated but will be replaced by their flattened
+    // instructions later.
+    // - For register declarations, we store the register name.
+    // - Instructions inside function definitions are not added to the final
+    // code because they were already added when the function definition was
+    // first encountered.
     if (instruction.code == "RETURN") {
       ddsim->instructionTypes.push_back(RETURN);
     } else if (instruction.assertion != nullptr) {
@@ -1034,6 +1121,7 @@ std::string preprocessAssertionCode(const char* code,
     } else if (instruction.code.find("qreg") != std::string::npos) {
       auto declaration = replaceString(instruction.code, "qreg", "");
       declaration = replaceString(declaration, " ", "");
+      declaration = replaceString(declaration, "\n", "");
       declaration = replaceString(declaration, "\t", "");
       declaration = replaceString(declaration, ";", "");
       auto parts = splitString(declaration, '[');
@@ -1091,9 +1179,12 @@ std::string preprocessAssertionCode(const char* code,
     }
   }
 
-  return std::accumulate(
+  // Transform all the correct lines into a single code string.
+  const auto result = std::accumulate(
       correctLines.begin(), correctLines.end(), std::string(),
       [](const std::string& a, const std::string& b) { return a + b; });
+
+  return result;
 }
 
 std::string getClassicalBitName(DDSimulationState* ddsim, size_t index) {

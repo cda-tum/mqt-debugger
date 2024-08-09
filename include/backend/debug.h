@@ -1,9 +1,11 @@
 #pragma once
+// NOLINTBEGIN(modernize-use-using)
 
 #include "common.h"
 #include "diagnostics.h"
 
 #ifdef __cplusplus
+#include <cstddef>
 extern "C" {
 #endif
 
@@ -20,6 +22,7 @@ struct SimulationState {
   Result (*stepBackward)(SimulationState* self);
   Result (*stepOverBackward)(SimulationState* self);
   Result (*stepOutBackward)(SimulationState* self);
+  Result (*runAll)(SimulationState* self, size_t* failedAssertions);
   Result (*runSimulation)(SimulationState* self);
   Result (*runSimulationBackward)(SimulationState* self);
   Result (*resetSimulation)(SimulationState* self);
@@ -31,7 +34,6 @@ struct SimulationState {
   bool (*wasBreakpointHit)(SimulationState* self);
 
   size_t (*getCurrentInstruction)(SimulationState* self);
-  size_t (*getPreviousInstruction)(SimulationState* self);
   size_t (*getInstructionCount)(SimulationState* self);
   Result (*getInstructionPosition)(SimulationState* self, size_t instruction,
                                    size_t* start, size_t* end);
@@ -65,3 +67,5 @@ struct SimulationState {
 #ifdef __cplusplus
 }
 #endif
+
+// NOLINTEND(modernize-use-using)

@@ -2,8 +2,8 @@
 
 #include "backend/debug.h"
 
+#include <cstddef>
 #include <string>
-#include <vector>
 
 #define ANSI_BG_YELLOW "\x1b[43m"
 #define ANSI_BG_RESET "\x1b[0m"
@@ -16,6 +16,7 @@ public:
 private:
   std::string currentCode;
 
-  void printState(SimulationState* state, size_t inspecting);
+  void printState(SimulationState* state, size_t inspecting,
+                  bool codeOnly = false);
   void initCode(const char* code);
 };

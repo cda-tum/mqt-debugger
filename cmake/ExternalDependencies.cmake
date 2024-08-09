@@ -14,13 +14,13 @@ if(BUILD_MQT_DEBUG_BINDINGS)
   endif()
 
   # add pybind11 library
-  find_package(pybind11 CONFIG REQUIRED)
+  find_package(pybind11 2.13 CONFIG REQUIRED)
 endif()
 
 # cmake-format: off
-set(MQT_CORE_VERSION 2.5.2
+set(MQT_CORE_VERSION 2.5.1
         CACHE STRING "MQT Core version")
-set(MQT_CORE_REV "3471f989648fda4237ffed94f80fdc35b5b1ee3b"
+set(MQT_CORE_REV "44d836368f85d1883241ebd3beffa607c689e9a2"
         CACHE STRING "MQT Core identifier (tag, branch or commit hash)")
 set(MQT_CORE_REPO_OWNER "cda-tum"
         CACHE STRING "MQT Core repository owner (change when using a fork)")
@@ -29,8 +29,7 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
   FetchContent_Declare(
     mqt-core
     GIT_REPOSITORY https://github.com/${MQT_CORE_REPO_OWNER}/mqt-core.git
-    GIT_TAG ${MQT_CORE_REV}
-    FIND_PACKAGE_ARGS ${MQT_CORE_VERSION})
+    GIT_TAG ${MQT_CORE_REV})
   list(APPEND FETCH_PACKAGES mqt-core)
 else()
   find_package(mqt-core ${MQT_CORE_VERSION} QUIET)

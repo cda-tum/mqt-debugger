@@ -1,11 +1,16 @@
-#include "python/InterfaceBindings.hpp"
+#include "backend/debug.h"
+#include "backend/diagnostics.h"
+#include "common.h"
+#include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
 
-#include "backend/dd/DDSimDiagnostics.hpp"
-
-#include <backend/debug.h>
-#include <common.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -17,8 +22,8 @@ void checkOrThrow(Result result) {
 }
 
 struct StatevectorCPP {
-  size_t numQubits;
-  size_t numStates;
+  size_t numQubits = 0;
+  size_t numStates = 0;
   std::vector<Complex> amplitudes;
 };
 
@@ -47,6 +52,7 @@ void bindFramework(py::module& m) {
   // Bind the Complex struct
   py::class_<Complex>(m, "Complex")
       .def(py::init<>())
+      .def(py::init<double, double>())
       .def_readwrite("real", &Complex::real)
       .def_readwrite("imaginary", &Complex::imaginary)
       .def("__str__",
@@ -95,6 +101,12 @@ void bindFramework(py::module& m) {
            [](SimulationState* self) {
              checkOrThrow(self->stepOutBackward(self));
            })
+      .def("run_all",
+           [](SimulationState* self) {
+             size_t errors = 0;
+             checkOrThrow(self->runAll(self, &errors));
+             return errors;
+           })
       .def("run_simulation",
            [](SimulationState* self) {
              checkOrThrow(self->runSimulation(self));
@@ -124,10 +136,6 @@ void bindFramework(py::module& m) {
       .def("get_current_instruction",
            [](SimulationState* self) {
              return self->getCurrentInstruction(self);
-           })
-      .def("get_previous_instruction",
-           [](SimulationState* self) {
-             return self->getPreviousInstruction(self);
            })
       .def(
           "get_instruction_count",
@@ -199,7 +207,7 @@ void bindFramework(py::module& m) {
            })
       .def("set_breakpoint",
            [](SimulationState* self, size_t desiredPosition) {
-             size_t actualPosition;
+             size_t actualPosition = 0;
              checkOrThrow(
                  self->setBreakpoint(self, desiredPosition, &actualPosition));
              return actualPosition;
@@ -254,9 +262,11 @@ void bindDiagnostics(py::module& m) {
       .def("get_data_dependencies",
            [](Diagnostics* self, size_t instruction) {
              std::vector<uint8_t> instructions(self->getInstructionCount(self));
+             // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
              checkOrThrow(self->getDataDependencies(
                  self, instruction,
                  reinterpret_cast<bool*>(instructions.data())));
+             // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
              std::vector<size_t> result;
              for (size_t i = 0; i < instructions.size(); i++) {
                if (instructions[i] != 0) {
@@ -268,9 +278,11 @@ void bindDiagnostics(py::module& m) {
       .def("get_interactions",
            [](Diagnostics* self, size_t beforeInstruction, size_t qubit) {
              std::vector<uint8_t> qubits(self->getNumQubits(self));
+             // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
              checkOrThrow(
                  self->getInteractions(self, beforeInstruction, qubit,
                                        reinterpret_cast<bool*>(qubits.data())));
+             // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
              std::vector<size_t> result;
              for (size_t i = 0; i < qubits.size(); i++) {
                if (qubits[i] != 0) {

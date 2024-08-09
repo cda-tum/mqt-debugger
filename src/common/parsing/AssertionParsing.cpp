@@ -1,12 +1,16 @@
 #include "common/parsing/AssertionParsing.hpp"
 
+#include "common.h"
 #include "common/parsing/ParsingError.hpp"
 #include "common/parsing/Utils.hpp"
 
-#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <memory>
+#include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
 Assertion::Assertion(std::vector<std::string> inputTargetQubits,
                      AssertionType assertionType)
@@ -42,6 +46,7 @@ const std::vector<Statevector>& SpanAssertion::getSpanVectors() const {
 }
 SpanAssertion::~SpanAssertion() {
   for (auto& statevector : spanVectors) {
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
     delete[] statevector.amplitudes;
   }
 }
@@ -87,7 +92,7 @@ const std::string& CircuitEqualityAssertion::getCircuitCode() const {
   return circuitCode;
 }
 
-std::vector<std::string> extractTargetQubits(std::string targetPart) {
+std::vector<std::string> extractTargetQubits(const std::string& targetPart) {
   return splitString(targetPart, ',');
 }
 
@@ -143,7 +148,7 @@ bool isAssertion(std::string expression) {
 }
 
 std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
-                                          std::string blockContent) {
+                                          const std::string& blockContent) {
   assertionString = trim(replaceString(assertionString, ";", ""));
 
   if (startsWith(assertionString, "assert-ent")) {
@@ -158,7 +163,7 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
     auto sub = assertionString.substr(12);
     auto targets = extractTargetQubits(sub);
     auto statevectors = splitString(blockContent, ';');
-    std::vector<Statevector> statevectorList;
+    std::vector<Statevector> statevectorList(statevectors.size());
     for (auto& statevector : statevectors) {
       statevectorList.emplace_back(parseStatevector(statevector));
     }

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import mqt.debug
 
 from .dap_message import DAPMessage
 from .utils import get_default_capabilities
+
+if TYPE_CHECKING:
+    from .. import DAPServer
 
 
 class InitializeDAPMessage(DAPMessage):
@@ -46,11 +49,11 @@ class InitializeDAPMessage(DAPMessage):
             msg = f"Adapter ID must be `mqtqasm`, was {self.adapter_id}"
             raise ValueError(msg)
 
-    def handle(self, server: mqt.debug.DAPServer) -> dict[str, Any]:
+    def handle(self, server: DAPServer) -> dict[str, Any]:
         """Performs the action requested by the 'initialize' DAP request.
 
         Args:
-            server (mqt.debug.DAPServer): The DAP server that received the request.
+            server (DAPServer): The DAP server that received the request.
 
         Returns:
             dict[str, Any]: The response to the request.

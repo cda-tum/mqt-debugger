@@ -1,11 +1,19 @@
 #include "common/parsing/CodePreprocessing.hpp"
 
+#include "common/parsing/AssertionParsing.hpp"
 #include "common/parsing/ParsingError.hpp"
 #include "common/parsing/Utils.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <iterator>
 #include <map>
+#include <memory>
+#include <set>
+#include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
 Instruction::Instruction(size_t inputLineNumber, std::string inputCode,
                          std::unique_ptr<Assertion>& inputAssertion,
@@ -24,7 +32,8 @@ std::string sweepBlocks(const std::string& code,
   std::string result = code;
   size_t start = 0;
   int level = 0;
-  for (size_t pos = 0; pos < result.size(); pos++) {
+  size_t pos = 0;
+  while (pos < result.size()) {
     auto c = result[pos];
     if (c == '{') {
       if (level == 0) {
@@ -42,6 +51,24 @@ std::string sweepBlocks(const std::string& code,
         pos = start;
       }
     }
+    pos++;
+  }
+  return result;
+}
+
+std::string removeComments(const std::string& code) {
+  std::string result = code;
+  for (size_t pos = 0; pos < result.size(); pos++) {
+    auto nextComment = result.find("//", pos);
+    if (nextComment == std::string::npos) {
+      break;
+    }
+    auto commentEnd = result.find('\n', nextComment);
+    if (commentEnd == std::string::npos) {
+      commentEnd = result.size();
+    }
+    const std::string spaces(commentEnd - nextComment, ' ');
+    result.replace(nextComment, commentEnd - nextComment, spaces);
   }
   return result;
 }
@@ -108,25 +135,28 @@ std::vector<std::string> sweepFunctionNames(const std::string& code) {
       result.push_back(f.name);
     }
   }
-
   return result;
 }
 
-std::vector<Instruction> preprocessCode(const std::string& code) {
-  return preprocessCode(code, 0, 0, {});
+std::vector<Instruction> preprocessCode(const std::string& code,
+                                        std::string& processedCode) {
+  return preprocessCode(code, 0, 0, {}, processedCode);
 }
 
 std::vector<Instruction>
 preprocessCode(const std::string& code, size_t startIndex,
                size_t initialCodeOffset,
-               const std::vector<std::string>& allFunctionNames) {
+               const std::vector<std::string>& allFunctionNames,
+               std::string& processedCode) {
+
   std::map<std::string, std::string> blocks;
   std::map<std::string, size_t> functionFirstLine;
   std::map<std::string, FunctionDefinition> functionDefinitions;
   std::map<size_t, std::vector<std::string>> variableUsages;
 
-  const std::string blocksRemoved = sweepBlocks(code, blocks);
-  std::vector<std::string> functionNames = sweepFunctionNames(code);
+  processedCode = removeComments(code);
+  const std::string blocksRemoved = sweepBlocks(processedCode, blocks);
+  std::vector<std::string> functionNames = sweepFunctionNames(processedCode);
   for (const auto& name : allFunctionNames) {
     functionNames.push_back(name);
   }
@@ -178,8 +208,10 @@ preprocessCode(const std::string& code, size_t startIndex,
       const auto f = parseFunctionDefinition(line);
       functionDefinitions.insert({f.name, f});
       i++;
-      auto subInstructions = preprocessCode(
-          block.code, i, code.find('{', trueStart) + 1, functionNames);
+      std::string processedSubCode;
+      auto subInstructions =
+          preprocessCode(block.code, i, code.find('{', trueStart) + 1,
+                         functionNames, processedSubCode);
       for (auto& instr : subInstructions) {
         instr.inFunctionDefinition = true;
       }
@@ -194,14 +226,15 @@ preprocessCode(const std::string& code, size_t startIndex,
       for (auto& instr : subInstructions) {
         instructions.back().childInstructions.push_back(instr.lineNumber);
       }
-      std::move(subInstructions.begin(), subInstructions.end(),
-                std::back_inserter(instructions));
+      instructions.insert(instructions.end(),
+                          std::make_move_iterator(subInstructions.begin()),
+                          std::make_move_iterator(subInstructions.end()));
 
       const auto closingBrace = code.find(
           '}', instructions[instructions.size() - 1].originalCodeEndPosition);
       const Block noBlock{false, ""};
       instructions.emplace_back(i, "RETURN", a, targets, closingBrace,
-                                closingBrace + 1, 0, false, "", true, noBlock);
+                                closingBrace, 0, false, "", true, noBlock);
       i++;
       pos = end + 1;
 
@@ -235,16 +268,21 @@ preprocessCode(const std::string& code, size_t startIndex,
   for (auto& instr : instructions) {
     auto vars = parseParameters(instr.code);
     size_t idx = instr.lineNumber - 1;
-    while (!vars.empty() && idx < instructions.size()) {
+    while (!vars.empty() && (instr.lineNumber < instructions.size() ||
+                             idx > instr.lineNumber - instructions.size())) {
       bool found = false;
       for (const auto& var : variableUsages[idx]) {
         if (std::find(vars.begin(), vars.end(), var) != vars.end()) {
           found = true;
-          const auto rem = std::remove(vars.begin(), vars.end(), var);
+          const auto newEnd = std::remove(vars.begin(), vars.end(), var);
+          vars.erase(newEnd, vars.end());
         }
       }
       if (found) {
         instr.dataDependencies.push_back(idx);
+      }
+      if (idx - 1 == instr.lineNumber - instructions.size()) {
+        break;
       }
       idx--;
     }

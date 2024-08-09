@@ -1,10 +1,12 @@
 #pragma once
 
-#include "backend/debug.h"
 #include "backend/diagnostics.h"
+#include "common.h"
 #include "common/parsing/AssertionParsing.hpp"
 
+#include <cstddef>
 #include <map>
+#include <memory>
 #include <set>
 
 struct DDSimulationState;

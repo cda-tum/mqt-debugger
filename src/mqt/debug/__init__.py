@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from . import messages
-from .dap_server import DAPServer
+from . import dap
 from .pydebug import (
     Complex,
     ErrorCause,
@@ -19,7 +18,6 @@ from .pydebug import (
 
 __all__ = [
     "Complex",
-    "DAPServer",
     "ErrorCause",
     "ErrorCauseType",
     "SimulationState",
@@ -28,6 +26,6 @@ __all__ = [
     "VariableType",
     "VariableValue",
     "create_ddsim_simulation_state",
+    "dap",
     "destroy_ddsim_simulation_state",
-    "messages",
 ]
