@@ -42,6 +42,7 @@ Result createDDDiagnostics(DDDiagnostics* self, DDSimulationState* state) {
 
 Result destroyDDDiagnostics(DDDiagnostics* self) {
   self->simulationState = nullptr;
+  return OK;
 }
 
 size_t dddiagnosticsGetNumQubits(Diagnostics* self) {
