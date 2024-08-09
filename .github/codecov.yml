@@ -2,6 +2,7 @@ ignore:
   - "extern/**/*"
   - "**/python"
   - "test/**/*"
+  - "src/mqt/debug/dap/**/*"
 
 coverage:
   range: 60..90
