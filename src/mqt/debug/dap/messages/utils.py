@@ -26,6 +26,7 @@ def get_default_capabilities() -> dict[str, Any]:
         "supportsRestartRequest": True,
         "supportsVariableType": True,
         "supportsDelayedStackTraceLoading": False,
+        "supportsVariablePaging": True,
     }
 
 

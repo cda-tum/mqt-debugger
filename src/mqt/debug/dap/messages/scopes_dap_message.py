@@ -53,13 +53,13 @@ def _get_classical_scope(server: DAPServer) -> dict[str, Any]:
         "presentationHint": "locals",
         "variablesReference": 1,  # Classical Registers have reference 1
         "namedVariables": server.simulation_state.get_num_classical_variables(),
-        "indexedVariables": 0,  # TODO: Implement this
+        "indexedVariables": 0,
         "expensive": False,
         "source": server.source_file,
-        "line": start_line,  # TODO: Implement this
-        "column": start_col,  # TODO: Implement this
-        "endLine": end_line,  # TODO: Implement this
-        "endColumn": end_col,  # TODO: Implement this
+        "line": start_line,
+        "column": start_col,
+        "endLine": end_line,
+        "endColumn": end_col,
     }
 
 
@@ -74,10 +74,10 @@ def _get_quantum_state_scope(server: DAPServer) -> dict[str, Any]:
         "variablesReference": 2,  # Quantum state has reference 1
         "namedVariables": 2 ** server.simulation_state.get_num_qubits(),
         "indexedVariables": 0,
-        "expensive": False,
+        "expensive": server.simulation_state.get_num_qubits() > 5,
         "source": server.source_file,
-        "line": start_line,  # TODO: Implement this
-        "column": start_col,  # TODO: Implement this
-        "endLine": end_line,  # TODO: Implement this
-        "endColumn": end_col,  # TODO: Implement this
+        "line": start_line,
+        "column": start_col,
+        "endLine": end_line,
+        "endColumn": end_col,
     }
