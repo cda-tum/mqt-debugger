@@ -725,8 +725,8 @@ Result ddsimSetBreakpoint(SimulationState* self, size_t desiredPosition,
     const size_t start = ddsim->instructionStarts[i];
     const size_t end = ddsim->instructionEnds[i];
     if (desiredPosition >= start && desiredPosition <= end) {
-      if (ddsim->processedCode.substr(start, end - start).find("gate ") !=
-          std::string::npos) {
+      if (ddsim->functionDefinitions.find(i) !=
+          ddsim->functionDefinitions.end()) {
         // Breakpoint may be located in a sub-gate of the gate definition.
         for (auto j = i + 1; j < ddsim->instructionTypes.size(); j++) {
           const size_t startSub = ddsim->instructionStarts[j];
@@ -1091,6 +1091,7 @@ std::string preprocessAssertionCode(const char* code,
   auto instructions = preprocessCode(code, ddsim->processedCode);
   std::vector<std::string> correctLines;
   ddsim->instructionTypes.clear();
+  ddsim->functionDefinitions.clear();
   ddsim->instructionStarts.clear();
   ddsim->instructionEnds.clear();
   ddsim->callSubstitutions.clear();
@@ -1127,11 +1128,12 @@ std::string preprocessAssertionCode(const char* code,
       ddsim->instructionTypes.push_back(ASSERTION);
       ddsim->assertionInstructions.insert(
           {instruction.lineNumber, std::move(instruction.assertion)});
-    } else if (instruction.code.find("gate") != std::string::npos) {
+    } else if (instruction.isFunctionDefition) {
       if (!instruction.inFunctionDefinition) {
         correctLines.push_back(
             validCodeFromChildren(instruction, instructions));
       }
+      ddsim->functionDefinitions.insert(instruction.lineNumber);
       ddsim->instructionTypes.push_back(NOP);
     } else if (instruction.isFunctionCall) {
       if (!instruction.inFunctionDefinition) {

@@ -28,6 +28,7 @@ struct Instruction {
   bool isFunctionCall;
   std::string calledFunction;
   bool inFunctionDefinition;
+  bool isFunctionDefition;
 
   std::map<std::string, std::string> callSubstitution;
 
@@ -39,7 +40,8 @@ struct Instruction {
               std::unique_ptr<Assertion>& inputAssertion,
               std::set<std::string> inputTargets, size_t startPos,
               size_t endPos, size_t successor, bool isFuncCall,
-              std::string function, bool inFuncDef, Block inputBlock);
+              std::string function, bool inFuncDef, bool isFuncDef,
+              Block inputBlock);
 };
 
 struct FunctionDefinition {

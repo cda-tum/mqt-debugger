@@ -103,3 +103,14 @@ TEST_F(CustomCodeTest, DependenciesWithJumps) {
            "\n"
            "barrier q[2];");
 }
+
+TEST_F(CustomCodeTest, GateInGateName) {
+  loadCode(1, 1,
+           "gate my_gate q0 {"
+           "  x q0;"
+           "}"
+           "my_gate q[0];"
+           "measure q[0] -> c[0];"
+           "assert-eq q[0] { 0, 1 }");
+  state->runSimulation(state);
+}
