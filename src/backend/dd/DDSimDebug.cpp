@@ -293,6 +293,10 @@ Result ddsimStepForward(SimulationState* self) {
   }
   ddsim->previousInstructionStack.emplace_back(currentInstruction);
 
+  // The exact action we take depends on the type of the next instruction:
+  // - ASSERTION: check the assertion and step back if it fails.
+  // - Non-SIMULATE: just step to the next instruction.
+  // - SIMULATE: run the corresponding operation on the DD backend.
   if (ddsim->instructionTypes[currentInstruction] == ASSERTION) {
     auto& assertion = ddsim->assertionInstructions[currentInstruction];
     const auto failed = !checkAssertion(ddsim, assertion);
@@ -310,6 +314,8 @@ Result ddsimStepForward(SimulationState* self) {
 
   qc::MatrixDD currDD;
   if ((*ddsim->iterator)->getType() == qc::Measure) {
+    // Perform a measurement of the desired qubits, based on the amplitudes of
+    // the current state.
     auto qubitsToMeasure = (*ddsim->iterator)->getTargets();
     auto classicalBits =
         dynamic_cast<qc::NonUnitaryOperation*>(ddsim->iterator->get())
@@ -340,11 +346,13 @@ Result ddsimStepForward(SimulationState* self) {
     }
 
     ddsim->iterator++;
-    ddsim->previousInstructionStack.clear();
+    ddsim->previousInstructionStack
+        .clear(); // after measurements, we can no longer step back.
     ddsim->restoreCallReturnStack.clear();
     return OK;
   }
   if ((*ddsim->iterator)->getType() == qc::Reset) {
+    // Perform the desired qubits. This will first perform a measurement.
     auto qubitsToMeasure = (*ddsim->iterator)->getTargets();
     ddsim->iterator++;
     ddsim->previousInstructionStack.clear();
@@ -370,10 +378,13 @@ Result ddsimStepForward(SimulationState* self) {
     return OK;
   }
   if ((*ddsim->iterator)->getType() == qc::Barrier) {
+    // Do not do anything.
     ddsim->iterator++;
     return OK;
   }
   if ((*ddsim->iterator)->isClassicControlledOperation()) {
+    // For classic-controlled operations, we need to read the values of the
+    // classical register first.
     const auto* op =
         dynamic_cast<qc::ClassicControlledOperation*>((*ddsim->iterator).get());
     const auto& controls = op->getControlRegister();
@@ -390,6 +401,7 @@ Result ddsimStepForward(SimulationState* self) {
       currDD = ddsim->dd->makeIdent();
     }
   } else {
+    // For all other operations, we just take the next gate to apply.
     currDD = dd::getDD(ddsim->iterator->get(),
                        *ddsim->dd); // retrieve the "new" current operation
   }
@@ -1076,6 +1088,17 @@ std::string preprocessAssertionCode(const char* code,
     for (const auto& dependency : instruction.dataDependencies) {
       ddsim->dataDependencies[instruction.lineNumber].push_back(dependency);
     }
+
+    // what exactly we do with each instruction depends on its type:
+    // - RETURN instructions are not simulated.
+    // - RETURN and ASSERTION instructions are not added to the final code.
+    // - Custom gate definitions are also not simulated.
+    // - Function calls are simulated but will be replaced by their flattened
+    // instructions later.
+    // - For register declarations, we store the register name.
+    // - Instructions inside function definitions are not added to the final
+    // code because they were already added when the function definition was
+    // first encountered.
     if (instruction.code == "RETURN") {
       ddsim->instructionTypes.push_back(RETURN);
     } else if (instruction.assertion != nullptr) {
@@ -1156,6 +1179,7 @@ std::string preprocessAssertionCode(const char* code,
     }
   }
 
+  // Transform all the correct lines into a single code string.
   const auto result = std::accumulate(
       correctLines.begin(), correctLines.end(), std::string(),
       [](const std::string& a, const std::string& b) { return a + b; });

@@ -32,7 +32,8 @@ std::string sweepBlocks(const std::string& code,
   std::string result = code;
   size_t start = 0;
   int level = 0;
-  for (size_t pos = 0; pos < result.size(); pos++) {
+  size_t pos = 0;
+  while (pos < result.size()) {
     auto c = result[pos];
     if (c == '{') {
       if (level == 0) {
@@ -50,6 +51,7 @@ std::string sweepBlocks(const std::string& code,
         pos = start;
       }
     }
+    pos++;
   }
   return result;
 }

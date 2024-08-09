@@ -40,7 +40,9 @@ Result createDDDiagnostics(DDDiagnostics* self, DDSimulationState* state) {
   return self->interface.init(&self->interface);
 }
 
-Result destroyDDDiagnostics([[maybe_unused]] DDDiagnostics* self) { return OK; }
+Result destroyDDDiagnostics(DDDiagnostics* self) {
+  self->simulationState = nullptr;
+}
 
 size_t dddiagnosticsGetNumQubits(Diagnostics* self) {
   const auto* ddd = toDDDiagnostics(self);
