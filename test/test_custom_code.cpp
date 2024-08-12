@@ -87,19 +87,13 @@ TEST_F(CustomCodeTest, ResetGate) {
   ASSERT_TRUE(complexEquality(result, -1.0, 0.0));
 }
 
-TEST_F(CustomCodeTest, DependenciesWithJumps) {
-  loadCode(3, 1,
-           "gate entangle q0, q1, q2 {\n"
-           "  cx q0, q1;\n"
-           "  cx q0, q2;\n"
-           "  barrier q2;\n"
-           "}\n"
-           "\n"
-           "h q[0];\n"
-           "\n"
-           "entangle q[0], q[1], q[2];\n"
-           "\n"
-           "h q[2];\n"
-           "\n"
-           "barrier q[2];");
+TEST_F(CustomCodeTest, GateInGateName) {
+  loadCode(1, 1,
+           "gate my_gate q0 {"
+           "  x q0;"
+           "}"
+           "my_gate q[0];"
+           "measure q[0] -> c[0];"
+           "assert-eq q[0] { 0, 1 }");
+  state->runSimulation(state);
 }
