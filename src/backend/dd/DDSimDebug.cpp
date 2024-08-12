@@ -955,12 +955,6 @@ bool checkAssertionSuperposition(
   return found > 1;
 }
 
-[[noreturn]] bool
-checkAssertionSpan([[maybe_unused]] DDSimulationState* ddsim,
-                   [[maybe_unused]] std::unique_ptr<SpanAssertion>& assertion) {
-  throw std::runtime_error("Span assertions are not implemented");
-}
-
 bool checkAssertionEqualityStatevector(
     DDSimulationState* ddsim,
     std::unique_ptr<StatevectorEqualityAssertion>& assertion) {
@@ -1043,11 +1037,6 @@ bool checkAssertion(DDSimulationState* ddsim,
     auto result = checkAssertionSuperposition(ddsim, superpositionAssertion);
     assertion = std::move(superpositionAssertion);
     return result;
-  }
-  if (assertion->getType() == AssertionType::Span) {
-    std::unique_ptr<SpanAssertion> spanAssertion(
-        dynamic_cast<SpanAssertion*>(assertion.release()));
-    checkAssertionSpan(ddsim, spanAssertion);
   }
   if (assertion->getType() == AssertionType::StatevectorEquality) {
     std::unique_ptr<StatevectorEqualityAssertion> svEqualityAssertion(

@@ -10,7 +10,6 @@
 enum class AssertionType : uint8_t {
   Entanglement,
   Superposition,
-  Span,
   StatevectorEquality,
   CircuitEquality
 };
@@ -34,17 +33,6 @@ public:
 class SuperpositionAssertion : public Assertion {
 public:
   explicit SuperpositionAssertion(std::vector<std::string> targetQubits);
-};
-
-class SpanAssertion : public Assertion {
-  std::vector<Statevector> spanVectors;
-
-public:
-  SpanAssertion(std::vector<Statevector> spanVectors,
-                std::vector<std::string> targetQubits);
-  [[nodiscard]] const std::vector<Statevector>& getSpanVectors() const;
-
-  ~SpanAssertion() override;
 };
 
 class EqualityAssertion : public Assertion {

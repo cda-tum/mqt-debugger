@@ -30,27 +30,6 @@ SuperpositionAssertion::SuperpositionAssertion(
     std::vector<std::string> inputTargetQubits)
     : Assertion(std::move(inputTargetQubits), AssertionType::Superposition) {}
 
-SpanAssertion::SpanAssertion(std::vector<Statevector> inputSpanVectors,
-                             std::vector<std::string> inputTargetQubits)
-    : Assertion(std::move(inputTargetQubits), AssertionType::Span),
-      spanVectors(std::move(inputSpanVectors)) {
-  for (auto& statevector : spanVectors) {
-    if (statevector.numQubits != getTargetQubits().size()) {
-      throw ParsingError(
-          "Number of target qubits must match number of qubits in statevector");
-    }
-  }
-}
-const std::vector<Statevector>& SpanAssertion::getSpanVectors() const {
-  return spanVectors;
-}
-SpanAssertion::~SpanAssertion() {
-  for (auto& statevector : spanVectors) {
-    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-    delete[] statevector.amplitudes;
-  }
-}
-
 EqualityAssertion::EqualityAssertion(double inputSimilarityThreshold,
                                      std::vector<std::string> inputTargetQubits,
                                      AssertionType assertionType)
@@ -143,7 +122,6 @@ bool isAssertion(std::string expression) {
   expression = trim(expression);
   return startsWith(expression, "assert-ent") ||
          startsWith(expression, "assert-sup") ||
-         startsWith(expression, "assert-span") ||
          startsWith(expression, "assert-eq");
 }
 
@@ -158,25 +136,6 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
   if (startsWith(assertionString, "assert-sup")) {
     auto targets = extractTargetQubits(assertionString.substr(11));
     return std::make_unique<SuperpositionAssertion>(targets);
-  }
-  if (startsWith(assertionString, "assert-span")) {
-    auto sub = assertionString.substr(12);
-    auto targets = extractTargetQubits(sub);
-    auto statevectors = splitString(blockContent, ';');
-    std::vector<Statevector> statevectorList(statevectors.size());
-    for (auto& statevector : statevectors) {
-      statevectorList.emplace_back(parseStatevector(statevector));
-    }
-
-    auto assertion = std::make_unique<SpanAssertion>(statevectorList, targets);
-    auto svSize = statevectorList[0].numStates;
-    for (auto& sv : statevectorList) {
-      if (sv.numStates != svSize) {
-        throw ParsingError(
-            "Statevectors in span assertion must have the same size");
-      }
-    }
-    return assertion;
   }
   if (startsWith(assertionString, "assert-eq")) {
     auto sub = assertionString.substr(10);
