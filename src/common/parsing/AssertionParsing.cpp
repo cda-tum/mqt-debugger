@@ -4,6 +4,7 @@
 #include "common/parsing/ParsingError.hpp"
 #include "common/parsing/Utils.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <memory>
@@ -72,7 +73,10 @@ const std::string& CircuitEqualityAssertion::getCircuitCode() const {
 }
 
 std::vector<std::string> extractTargetQubits(const std::string& targetPart) {
-  return splitString(targetPart, ',');
+  const auto parts = splitString(targetPart, ',');
+  std::vector<std::string> trimmedParts(parts.size());
+  std::transform(parts.begin(), parts.end(), trimmedParts.begin(), trim);
+  return trimmedParts;
 }
 
 Complex parseComplex(std::string complexString) {
