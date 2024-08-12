@@ -3,6 +3,9 @@ ignore:
   - "**/python"
   - "test/**/*"
   - "src/mqt/debug/dap/**/*"
+  - "src/mqt/debug/dap/*"
+  - "app/*"
+  - "src/frontend/**/*"
 
 coverage:
   range: 60..90

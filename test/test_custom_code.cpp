@@ -97,3 +97,14 @@ TEST_F(CustomCodeTest, GateInGateName) {
            "assert-eq q[0] { 0, 1 }");
   state->runSimulation(state);
 }
+
+TEST_F(CustomCodeTest, EqualityAssertion) {
+  loadCode(2, 0,
+           "h q[0];"
+           "cx q[0], q[1];"
+           "assert-eq 0.9, q[0], q[1] { 0.707, 0, 0, 0.707 }"
+           "assert-eq q[0], q[1] { qreg q[2]; h q[1]; cx q[1], q[0]; }");
+  size_t numErrors = 0;
+  ASSERT_EQ(state->runAll(state, &numErrors), OK);
+  ASSERT_EQ(numErrors, 0);
+}
