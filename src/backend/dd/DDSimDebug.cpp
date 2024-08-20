@@ -882,7 +882,7 @@ bool areQubitsEntangled(Statevector* sv) {
   const int nonZeroCount = (canBe00 ? 1 : 0) + (canBe01 ? 1 : 0) +
                            (canBe10 ? 1 : 0) + (canBe11 ? 1 : 0);
 
-  if (nonZeroCount == 0) {
+  if (nonZeroCount == 4) {
     const auto c1 = complexDivision(amplitudes[0], amplitudes[2]);
     const auto c2 = complexDivision(amplitudes[1], amplitudes[3]);
     return !areComplexEqual(c1, c2);
