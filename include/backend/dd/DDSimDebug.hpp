@@ -1,13 +1,13 @@
 #pragma once
 
 #include "DDSimDiagnostics.hpp"
-#include "QuantumComputation.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
 #include "common.h"
 #include "common/parsing/AssertionParsing.hpp"
 #include "dd/Package.hpp"
-#include "operations/Operation.hpp"
+#include "ir/QuantumComputation.hpp"
+#include "ir/operations/Operation.hpp"
 
 #include <cstddef>
 #include <cstdint>

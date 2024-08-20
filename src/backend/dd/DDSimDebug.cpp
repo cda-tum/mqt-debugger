@@ -1,10 +1,10 @@
 #include "backend/dd/DDSimDebug.hpp"
 
-#include "CircuitOptimizer.hpp"
 #include "Definitions.hpp"
 #include "backend/dd/DDSimDiagnostics.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
+#include "circuit_optimizer/CircuitOptimizer.hpp"
 #include "common.h"
 #include "common/Span.hpp"
 #include "common/parsing/AssertionParsing.hpp"
@@ -13,8 +13,8 @@
 #include "dd/DDDefinitions.hpp"
 #include "dd/Operations.hpp"
 #include "dd/Package.hpp"
-#include "operations/ClassicControlledOperation.hpp"
-#include "operations/OpType.hpp"
+#include "ir/operations/ClassicControlledOperation.hpp"
+#include "ir/operations/OpType.hpp"
 
 #include <algorithm>
 #include <array>
