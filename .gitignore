@@ -176,3 +176,6 @@ node_modules/
 wheelhouse/
 
 .local-tools
+
+# test code for the CLIFrontEnd
+app/code/*.qasm
