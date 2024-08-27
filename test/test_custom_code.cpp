@@ -108,3 +108,16 @@ TEST_F(CustomCodeTest, EqualityAssertion) {
   ASSERT_EQ(state->runAll(state, &numErrors), OK);
   ASSERT_EQ(numErrors, 0);
 }
+
+TEST_F(CustomCodeTest, DestructiveInterference) {
+  loadCode(3, 0,
+           "x q[0];"
+           "h q[0];"
+           "h q[1];"
+           "cx q[1], q[2];"
+           "assert-sup q[1], q[2];"
+           "assert-ent q[1], q[2];");
+  size_t numErrors = 0;
+  ASSERT_EQ(state->runAll(state, &numErrors), OK);
+  ASSERT_EQ(numErrors, 0);
+}

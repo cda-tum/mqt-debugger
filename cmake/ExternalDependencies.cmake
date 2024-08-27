@@ -17,6 +17,7 @@ if(BUILD_MQT_DEBUG_BINDINGS)
   find_package(pybind11 2.13 CONFIG REQUIRED)
 endif()
 
+# ---------------------------------------------------------------------------------Fetch MQT Core
 # cmake-format: off
 set(MQT_CORE_VERSION 2.5.2
         CACHE STRING "MQT Core version")
@@ -26,6 +27,7 @@ set(MQT_CORE_REPO_OWNER "cda-tum"
         CACHE STRING "MQT Core repository owner (change when using a fork)")
 # cmake-format: on
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+  # Fetch MQT Core
   FetchContent_Declare(
     mqt-core
     GIT_REPOSITORY https://github.com/${MQT_CORE_REPO_OWNER}/mqt-core.git
@@ -39,6 +41,43 @@ else()
       GIT_REPOSITORY https://github.com/${MQT_CORE_REPO_OWNER}/mqt-core.git
       GIT_TAG ${MQT_CORE_REV})
     list(APPEND FETCH_PACKAGES mqt-core)
+  endif()
+endif()
+
+# ---------------------------------------------------------------------------------Fetch Eigen3
+# cmake-format: off
+set(EIGEN_VERSION 3.4.0
+        CACHE STRING "Eigen3 version")
+# cmake-format: on
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+  # Fetch Eigen3
+  FetchContent_Declare(
+    Eigen3
+    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+    GIT_TAG ${EIGEN_VERSION}
+    GIT_SHALLOW TRUE)
+  list(APPEND FETCH_PACKAGES Eigen3)
+  set(EIGEN_BUILD_TESTING
+      OFF
+      CACHE BOOL "Disable testing for Eigen")
+  set(EIGEN_BUILD_DOC
+      OFF
+      CACHE BOOL "Disable documentation build for Eigen")
+else()
+  find_package(Eigen3 ${EIGEN3_VERSION} REQUIRED NO_MODULE)
+  if(NOT Eigen3_FOUND)
+    FetchContent_Declare(
+      Eigen3
+      GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+      GIT_TAG ${EIGEN3_VERSION}
+      GIT_SHALLOW TRUE)
+    list(APPEND FETCH_PACKAGES Eigen3)
+    set(EIGEN_BUILD_TESTING
+        OFF
+        CACHE BOOL "Disable testing for Eigen")
+    set(EIGEN_BUILD_DOC
+        OFF
+        CACHE BOOL "Disable documentation build for Eigen")
   endif()
 endif()
 

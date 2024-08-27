@@ -16,6 +16,7 @@
 #include "ir/operations/ClassicControlledOperation.hpp"
 #include "ir/operations/OpType.hpp"
 
+#include <Eigen/Dense>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -848,6 +849,20 @@ Complex complexDivision(const Complex& c1, const Complex& c2) {
   return {real, imaginary};
 }
 
+Complex complexMultiplication(const Complex& c1, const Complex& c2) {
+  const double real = c1.real * c2.real - c1.imaginary * c2.imaginary;
+  const double imaginary = c1.real * c2.imaginary + c1.imaginary * c2.real;
+  return {real, imaginary};
+}
+
+Complex complexConjugate(const Complex& c) { return {c.real, -c.imaginary}; }
+
+Complex complexAddition(const Complex& c1, const Complex& c2) {
+  const double real = c1.real + c2.real;
+  const double imaginary = c1.imaginary + c2.imaginary;
+  return {real, imaginary};
+}
+
 bool areComplexEqual(const Complex& c1, const Complex& c2) {
   const double epsilon = 0.00000001;
   return std::abs(c1.real - c2.real) < epsilon &&
@@ -871,7 +886,167 @@ double dotProduct(const Statevector& sv1, const Statevector& sv2) {
   return complexMagnitude(result);
 }
 
-bool areQubitsEntangled(Statevector* sv) {
+size_t bitStringToNumber(const std::vector<bool>& bits) {
+  size_t result = 0;
+  for (size_t i = 0; i < bits.size(); i++) {
+    result |= (bits[i] ? 1ULL : 0ULL) << i;
+  }
+  return result;
+}
+
+std::vector<bool> extractBits(const std::vector<size_t>& indices,
+                              size_t value) {
+  std::vector<bool> result;
+  for (const auto& idx : indices) {
+    result.push_back(((value >> idx) & 1) == 1);
+  }
+  return result;
+}
+
+std::pair<size_t, size_t> splitBitString(size_t number, size_t n,
+                                         const std::vector<size_t>& bits) {
+  size_t lenFirst = 0;
+  size_t lenSecond = 0;
+
+  size_t first = 0;
+  size_t second = 0;
+
+  for (size_t index = 0; index < n; index++) {
+    if (std::find(bits.begin(), bits.end(), index) != bits.end()) {
+      first |= (number & 1) << lenFirst;
+      lenFirst++;
+    } else {
+      second |= (number & 1) << lenSecond;
+      lenSecond++;
+    }
+    number >>= 1;
+  }
+  return {first, second};
+}
+
+std::vector<std::vector<Complex>>
+getPartialTrace(const std::vector<std::vector<Complex>>& matrix,
+                const std::vector<size_t>& indicesToTraceOut, size_t nQubits) {
+  const auto traceSize = 1ULL << (nQubits - indicesToTraceOut.size());
+  std::vector<std::vector<Complex>> traceMatrix(
+      traceSize, std::vector<Complex>(traceSize, {0, 0}));
+  for (size_t i = 0; i < matrix.size(); i++) {
+    for (size_t j = 0; j < matrix.size(); j++) {
+      const auto split1 = splitBitString(i, nQubits, indicesToTraceOut);
+      const auto split2 = splitBitString(j, nQubits, indicesToTraceOut);
+      if (split1.first != split2.first) {
+        continue;
+      }
+      traceMatrix[split1.second][split2.second] = complexAddition(
+          traceMatrix[split1.second][split2.second], matrix[i][j]);
+    }
+  }
+  return traceMatrix;
+}
+
+double getEntropy(const std::vector<std::vector<Complex>>& matrix) {
+  Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic> mat(
+      static_cast<int64_t>(matrix.size()), static_cast<int64_t>(matrix.size()));
+  for (size_t i = 0; i < matrix.size(); i++) {
+    for (size_t j = 0; j < matrix.size(); j++) {
+      mat(static_cast<int64_t>(i), static_cast<int64_t>(j)) = {
+          matrix[i][j].real, matrix[i][j].imaginary};
+    }
+  }
+
+  Eigen::ComplexEigenSolver<
+      Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic>>
+      solver(mat);
+  const Eigen::Vector<std::complex<double>, Eigen::Dynamic> eigenvalues =
+      solver.eigenvalues();
+  double entropy = 0;
+  for (const auto val : eigenvalues) {
+    const auto value =
+        (val.real() > -0.00001 && val.real() < 0) ? 0 : val.real();
+    if (value < 0) {
+      throw std::runtime_error("Negative eigenvalue");
+    }
+    if (value != 0) {
+      entropy -= val.real() * log2(val.real());
+    }
+  }
+  return entropy;
+}
+
+double getSharedInformation(const std::vector<std::vector<Complex>>& matrix) {
+  const auto p0 = getPartialTrace(matrix, {1}, 2);
+  const auto p1 = getPartialTrace(matrix, {0}, 2);
+  return getEntropy(p0) + getEntropy(p1) - getEntropy(matrix);
+}
+
+bool areQubitsEntangled(std::vector<std::vector<Complex>>& densityMatrix,
+                        size_t qubit1, size_t qubit2) {
+  const auto numQubits = static_cast<size_t>(std::log2(densityMatrix.size()));
+  if (numQubits == 2) {
+    return getSharedInformation(densityMatrix) > 0;
+  }
+  std::vector<size_t> toTraceOut;
+  for (size_t i = 0; i < numQubits; i++) {
+    if (i != qubit1 && i != qubit2) {
+      toTraceOut.push_back(i);
+    }
+  }
+  const auto partialTrace =
+      getPartialTrace(densityMatrix, toTraceOut, numQubits);
+  return getSharedInformation(partialTrace) > 0;
+}
+
+/*std::vector<std::vector<Complex>> getPartialTrace(const Statevector& sv, const
+std::vector<size_t>& traceOut) { const auto traceSize = 1ULL << (sv.numQubits -
+traceOut.size()); std::vector<std::vector<Complex>> traceMatrix(traceSize,
+std::vector<Complex>(traceSize, {0, 0})); for(size_t i = 0; i < sv.numStates;
+i++) { for(size_t j = 0; j < sv.numStates; j++) { const auto bitString1 =
+extractBits(traceOut, i); const auto bitString2 = extractBits(traceOut, j);
+      const auto traced1 = bitStringToNumber(bitString1);
+      const auto traced2 = bitStringToNumber(bitString2);
+      if (traced1 != traced2) {
+        continue;
+      }
+      const auto product = complexMultiplication(sv.amplitudes[i],
+sv.amplitudes[j]); const auto row = i - traced1; const auto col = j - traced2;
+      traceMatrix[row][col] = complexAddition(traceMatrix[row][col], product);
+    }
+  }
+  return traceMatrix;
+}
+
+Complex getTraceOfSquare(const std::vector<std::vector<Complex>>& matrix) {
+  Complex runningSum{0, 0};
+  for(size_t i = 0; i < matrix.size(); i++) {
+    for(size_t k = 0; k < matrix.size(); k++) {
+      runningSum = complexAddition(runningSum,
+complexMultiplication(matrix[i][k], matrix[k][i]));
+    }
+  }
+  const double epsilon = 0.00000001;
+  runningSum;
+}
+
+bool partialTraceIsPure(const Statevector& sv, const std::vector<size_t>&
+traceOut) { const auto traceMatrix = getPartialTrace(sv, traceOut); const auto
+trace = getTraceOfSquare(traceMatrix); const double epsilon = 0.00000001; return
+runningSum.imaginary < epsilon && runningSum.imaginary > -epsilon &&
+(runningSum.real - 1) < epsilon && (runningSum.real - 1) > -epsilon;
+}
+
+bool areQubitsEntangled(Statevector* sv, size_t qubit1, size_t qubit2) {
+  std::vector<size_t> toTraceOut;
+  for(size_t i = 0; i < sv->numQubits; i++) {
+    if(i != qubit1 && i != qubit2) {
+      toTraceOut.push_back(i);
+    }
+  }
+  const auto traceMatrix = getPartialTrace(*sv, toTraceOut);
+  const auto trace = getTraceOfSquare(traceMatrix);
+  assert(trace.imaginary == 0);
+  const Complex factor = trace.real >= 0 ? Complex{std::sqrt(trace.real), 0} :
+Complex{0, std::sqrt(-trace.real)};
+
   const double epsilon = 0.0001;
   const Span<Complex> amplitudes(sv->amplitudes, sv->numStates);
   const bool canBe00 = complexMagnitude(amplitudes[0]) > epsilon;
@@ -892,67 +1067,82 @@ bool areQubitsEntangled(Statevector* sv) {
          (canBe01 && canBe10 && !(canBe00 && canBe11));
 }
 
+bool qubitIsSeparable(const Statevector& sv, size_t qubit) {
+  std::vector<size_t> toTraceOut;
+  for(size_t i = 0; i < sv.numQubits; i++) {
+    if (i != qubit) {
+      toTraceOut.push_back(i);
+    }
+  }
+  return partialTraceIsPure(sv, toTraceOut);
+}*/
+
 bool checkAssertionEntangled(
     DDSimulationState* ddsim,
     std::unique_ptr<EntanglementAssertion>& assertion) {
+  Statevector sv;
+  sv.numQubits = ddsim->interface.getNumQubits(&ddsim->interface);
+  sv.numStates = 1 << sv.numQubits;
+  std::vector<Complex> amplitudes(sv.numStates);
+  sv.amplitudes = amplitudes.data();
+  ddsim->interface.getStateVectorFull(&ddsim->interface, &sv);
+
   std::vector<size_t> qubits;
   for (const auto& variable : assertion->getTargetQubits()) {
     qubits.push_back(variableToQubit(ddsim, variable));
   }
 
-  Statevector sv;
-  sv.numQubits = 2;
-  sv.numStates = 4;
-  std::vector<Complex> amplitudes(4);
-  sv.amplitudes = amplitudes.data();
-  std::array<size_t, 2> qubitsStep = {0, 0};
-
-  bool result = true;
-  for (size_t i = 0; i < qubits.size() && result; i++) {
-    for (size_t j = 0; j < qubits.size(); j++) {
-      if (i == j) {
-        continue;
-      }
-      qubitsStep[0] = qubits[i];
-      qubitsStep[1] = qubits[j];
-      ddsim->interface.getStateVectorSub(&ddsim->interface, 2,
-                                         qubitsStep.data(), &sv);
-      if (!areQubitsEntangled(&sv)) {
-        result = false;
-        break;
-      }
+  std::vector<std::vector<Complex>> densityMatrix(
+      sv.numStates, std::vector<Complex>(sv.numStates, {0, 0}));
+  for (size_t i = 0; i < sv.numStates; i++) {
+    for (size_t j = 0; j < sv.numStates; j++) {
+      densityMatrix[i][j] =
+          complexMultiplication(amplitudes[i], complexConjugate(amplitudes[j]));
     }
   }
 
-  return result;
+  for (const auto i : qubits) {
+    for (const auto j : qubits) {
+      if (i == j) {
+        continue;
+      }
+      if (!areQubitsEntangled(densityMatrix, i, j)) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 bool checkAssertionSuperposition(
     DDSimulationState* ddsim,
     std::unique_ptr<SuperpositionAssertion>& assertion) {
   std::vector<size_t> qubits;
+
   for (const auto& variable : assertion->getTargetQubits()) {
     qubits.push_back(variableToQubit(ddsim, variable));
   }
 
-  Statevector sv;
-  sv.numQubits = qubits.size();
-  sv.numStates = 1 << sv.numQubits;
-  std::vector<Complex> amplitudes(sv.numStates);
-  sv.amplitudes = amplitudes.data();
-
-  ddsim->interface.getStateVectorSub(&ddsim->interface, sv.numQubits,
-                                     qubits.data(), &sv);
-
-  int found = 0;
-  const double epsilon = 0.00000001;
-  for (size_t i = 0; i < sv.numStates && found < 2; i++) {
-    if (complexMagnitude(amplitudes[i]) > epsilon) {
-      found++;
+  Complex result;
+  bool firstFound = false;
+  std::vector<bool> bitstring;
+  for (size_t i = 0;
+       i < 1ULL << ddsim->interface.getNumQubits(&ddsim->interface); i++) {
+    ddsim->interface.getAmplitudeIndex(&ddsim->interface, i, &result);
+    if (complexMagnitude(result) > 0.00000001) {
+      if (!firstFound) {
+        firstFound = true;
+        bitstring = extractBits(qubits, i);
+      } else {
+        const std::vector<bool> compareBitstring = extractBits(qubits, i);
+        if (bitstring != compareBitstring) {
+          return true;
+        }
+      }
     }
   }
 
-  return found > 1;
+  return false;
 }
 
 bool checkAssertionEqualityStatevector(
