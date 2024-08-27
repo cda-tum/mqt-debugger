@@ -60,6 +60,9 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
   set(EIGEN_BUILD_TESTING
       OFF
       CACHE BOOL "Disable testing for Eigen")
+  set(BUILD_TESTING
+      OFF
+      CACHE BOOL "Disable general testing")
   set(EIGEN_BUILD_DOC
       OFF
       CACHE BOOL "Disable documentation build for Eigen")
@@ -75,6 +78,9 @@ else()
     set(EIGEN_BUILD_TESTING
         OFF
         CACHE BOOL "Disable testing for Eigen")
+    set(BUILD_TESTING
+        OFF
+        CACHE BOOL "Disable general testing")
     set(EIGEN_BUILD_DOC
         OFF
         CACHE BOOL "Disable documentation build for Eigen")

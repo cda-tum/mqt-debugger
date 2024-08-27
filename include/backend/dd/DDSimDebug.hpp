@@ -127,3 +127,8 @@ bool checkAssertion(DDSimulationState* ddsim,
                     std::unique_ptr<Assertion>& assertion);
 std::string getClassicalBitName(DDSimulationState* ddsim, size_t index);
 size_t variableToQubit(DDSimulationState* ddsim, const std::string& variable);
+bool isSubStateVectorLegal(const Statevector& full,
+                           std::vector<size_t>& targetQubits);
+std::vector<std::vector<Complex>>
+getPartialTraceFromStateVector(const Statevector& sv,
+                               const std::vector<size_t>& traceOut);

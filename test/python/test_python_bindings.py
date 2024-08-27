@@ -209,15 +209,15 @@ def test_access_state(simulation_instance_jumps: SimulationInstance) -> None:
     assert abs(c.imaginary) < 1e-6
     assert abs(c.real) < 1e-6
 
-    sv = simulation_state.get_state_vector_sub([0, 2])
-    assert sv.num_qubits == 2
-    assert sv.num_states == 4
-    c = sv.amplitudes[3]
-    assert abs(c.imaginary) < 1e-6
-    assert abs(c.real - 1 / (2**0.5)) < 1e-6
-    c = sv.amplitudes[2]
-    assert abs(c.imaginary) < 1e-6
-    assert abs(c.real) < 1e-6
+
+def test_get_state_vector_sub(simulation_instance_classical: SimulationInstance) -> None:
+    """Tests the `get_state_vector_sub()` method."""
+    (simulation_state, _state_id) = simulation_instance_classical
+    simulation_state.set_breakpoint(170)
+    simulation_state.run_simulation()
+    assert simulation_state.get_current_instruction() == 10
+    sv = simulation_state.get_state_vector_sub([0, 1])
+    assert sv.amplitudes[0].real == 1 or sv.amplitudes[-1].real == 1
 
 
 def test_classical_get(simulation_instance_classical: SimulationInstance) -> None:
