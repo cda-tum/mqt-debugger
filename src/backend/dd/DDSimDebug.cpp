@@ -1,6 +1,7 @@
 #include "backend/dd/DDSimDebug.hpp"
 
 #include "Definitions.hpp"
+#include "Eigen/src/Core/Matrix.h"
 #include "backend/dd/DDSimDiagnostics.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
@@ -18,9 +19,9 @@
 
 #include <Eigen/Dense>
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <exception>
 #include <iostream>
@@ -689,6 +690,19 @@ Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
   return OK;
 }
 
+Eigen::MatrixXcd
+toEigenMatrix(const std::vector<std::vector<Complex>>& matrix) {
+  Eigen::MatrixXcd mat(static_cast<int64_t>(matrix.size()),  // NOLINT
+                       static_cast<int64_t>(matrix.size())); // NOLINT
+  for (size_t i = 0; i < matrix.size(); i++) {
+    for (size_t j = 0; j < matrix.size(); j++) {
+      mat(static_cast<int64_t>(i), static_cast<int64_t>(j)) = {
+          matrix[i][j].real, matrix[i][j].imaginary};
+    }
+  }
+  return mat;
+}
+
 Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
                               const size_t* qubits, Statevector* output) {
   auto* ddsim = toDDSimulationState(self);
@@ -723,18 +737,10 @@ Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
   const auto traced = getPartialTraceFromStateVector(fullState, otherQubits);
 
   // Create Eigen3 Matrix
-  Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic> mat(
-      static_cast<int64_t>(traced.size()), static_cast<int64_t>(traced.size()));
-  for (size_t i = 0; i < traced.size(); i++) {
-    for (size_t j = 0; j < traced.size(); j++) {
-      mat(static_cast<int64_t>(i), static_cast<int64_t>(j)) = {
-          traced[i][j].real, traced[i][j].imaginary};
-    }
-  }
+  const auto mat = toEigenMatrix(traced);
 
-  const Eigen::ComplexEigenSolver<
-      Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic>>
-      solver(mat);
+  const Eigen::ComplexEigenSolver<Eigen::MatrixXcd> solver(mat); // NOLINT
+
   const auto& vectors = solver.eigenvectors();
   const auto& values = solver.eigenvalues();
   const auto epsilon = 0.000001;
@@ -887,15 +893,6 @@ double complexMagnitude(Complex& c) {
   return std::sqrt(c.real * c.real + c.imaginary * c.imaginary);
 }
 
-Complex complexDivision(const Complex& c1, const Complex& c2) {
-  const double denominator = c2.real * c2.real + c2.imaginary * c2.imaginary;
-  const double real =
-      (c1.real * c2.real + c1.imaginary * c2.imaginary) / denominator;
-  const double imaginary =
-      (c1.imaginary * c2.real - c1.real * c2.imaginary) / denominator;
-  return {real, imaginary};
-}
-
 Complex complexMultiplication(const Complex& c1, const Complex& c2) {
   const double real = c1.real * c2.real - c1.imaginary * c2.imaginary;
   const double imaginary = c1.real * c2.imaginary + c1.imaginary * c2.real;
@@ -908,12 +905,6 @@ Complex complexAddition(const Complex& c1, const Complex& c2) {
   const double real = c1.real + c2.real;
   const double imaginary = c1.imaginary + c2.imaginary;
   return {real, imaginary};
-}
-
-bool areComplexEqual(const Complex& c1, const Complex& c2) {
-  const double epsilon = 0.00000001;
-  return std::abs(c1.real - c2.real) < epsilon &&
-         std::abs(c1.imaginary - c2.imaginary) < epsilon;
 }
 
 double dotProduct(const Statevector& sv1, const Statevector& sv2) {
@@ -933,19 +924,11 @@ double dotProduct(const Statevector& sv1, const Statevector& sv2) {
   return complexMagnitude(result);
 }
 
-size_t bitStringToNumber(const std::vector<bool>& bits) {
-  size_t result = 0;
-  for (size_t i = 0; i < bits.size(); i++) {
-    result |= (bits[i] ? 1ULL : 0ULL) << i;
-  }
-  return result;
-}
-
 std::vector<bool> extractBits(const std::vector<size_t>& indices,
                               size_t value) {
-  std::vector<bool> result;
-  for (const auto& idx : indices) {
-    result.push_back(((value >> idx) & 1) == 1);
+  std::vector<bool> result(indices.size());
+  for (size_t i = 0; i < indices.size(); i++) {
+    result[i] = (((value >> indices[i]) & 1) == 1);
   }
   return result;
 }
@@ -992,20 +975,10 @@ getPartialTrace(const std::vector<std::vector<Complex>>& matrix,
 }
 
 double getEntropy(const std::vector<std::vector<Complex>>& matrix) {
-  Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic> mat(
-      static_cast<int64_t>(matrix.size()), static_cast<int64_t>(matrix.size()));
-  for (size_t i = 0; i < matrix.size(); i++) {
-    for (size_t j = 0; j < matrix.size(); j++) {
-      mat(static_cast<int64_t>(i), static_cast<int64_t>(j)) = {
-          matrix[i][j].real, matrix[i][j].imaginary};
-    }
-  }
+  const auto mat = toEigenMatrix(matrix);
 
-  Eigen::ComplexEigenSolver<
-      Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic>>
-      solver(mat);
-  const Eigen::Vector<std::complex<double>, Eigen::Dynamic> eigenvalues =
-      solver.eigenvalues();
+  const Eigen::ComplexEigenSolver<Eigen::MatrixXcd> solver(mat);
+  const auto& eigenvalues = solver.eigenvalues();
   double entropy = 0;
   for (const auto val : eigenvalues) {
     const auto value =
@@ -1047,6 +1020,7 @@ std::vector<std::vector<Complex>>
 getPartialTraceFromStateVector(const Statevector& sv,
                                const std::vector<size_t>& traceOut) {
   const auto traceSize = 1ULL << (sv.numQubits - traceOut.size());
+  const Span<Complex> amplitudes(sv.amplitudes, sv.numStates);
   std::vector<std::vector<Complex>> traceMatrix(
       traceSize, std::vector<Complex>(traceSize, {0, 0}));
   for (size_t i = 0; i < sv.numStates; i++) {
@@ -1056,8 +1030,7 @@ getPartialTraceFromStateVector(const Statevector& sv,
       if (split1.first != split2.first) {
         continue;
       }
-      const auto product =
-          complexMultiplication(sv.amplitudes[i], sv.amplitudes[j]);
+      const auto product = complexMultiplication(amplitudes[i], amplitudes[j]);
       const auto row = split1.second;
       const auto col = split2.second;
       traceMatrix[row][col] = complexAddition(traceMatrix[row][col], product);
