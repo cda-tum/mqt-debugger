@@ -1,7 +1,6 @@
 #include "backend/dd/DDSimDebug.hpp"
 
 #include "Definitions.hpp"
-#include "Eigen/src/Core/Matrix.h"
 #include "backend/dd/DDSimDiagnostics.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
@@ -690,7 +689,7 @@ Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
   return OK;
 }
 
-Eigen::MatrixXcd
+Eigen::MatrixXcd // NOLINT
 toEigenMatrix(const std::vector<std::vector<Complex>>& matrix) {
   Eigen::MatrixXcd mat(static_cast<int64_t>(matrix.size()),  // NOLINT
                        static_cast<int64_t>(matrix.size())); // NOLINT
