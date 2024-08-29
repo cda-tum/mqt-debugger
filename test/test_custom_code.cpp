@@ -108,3 +108,62 @@ TEST_F(CustomCodeTest, EqualityAssertion) {
   ASSERT_EQ(state->runAll(state, &numErrors), OK);
   ASSERT_EQ(numErrors, 0);
 }
+
+TEST_F(CustomCodeTest, DestructiveInterference) {
+  loadCode(3, 0,
+           "x q[0];"
+           "h q[0];"
+           "h q[1];"
+           "cx q[1], q[2];"
+           "assert-sup q[1], q[2];"
+           "assert-ent q[1], q[2];");
+  size_t numErrors = 0;
+  ASSERT_EQ(state->runAll(state, &numErrors), OK);
+  ASSERT_EQ(numErrors, 0);
+}
+
+TEST_F(CustomCodeTest, IllegalSubstateSVEqualityAssertion) {
+  loadCode(3, 0,
+           "x q[0];"
+           "h q[0];"
+           "h q[1];"
+           "cx q[1], q[2];"
+           "assert-eq 0.9, q[0], q[1] { 0.5, 0.5, 0.5, 0.5 }");
+  size_t numErrors = 0;
+  ASSERT_EQ(state->runAll(state, &numErrors), ERROR);
+}
+
+TEST_F(CustomCodeTest, LegalSubstateSVEqualityAssertion) {
+  loadCode(3, 0,
+           "x q[0];"
+           "h q[0];"
+           "h q[1];"
+           "cx q[1], q[2];"
+           "assert-eq 0.9, q[1], q[2] { 0.707, 0, 0, 0.707 }");
+  size_t numErrors = 0;
+  ASSERT_EQ(state->runAll(state, &numErrors), OK);
+  ASSERT_EQ(numErrors, 0);
+}
+
+TEST_F(CustomCodeTest, IllegalSubstateCircuitEqualityAssertion) {
+  loadCode(3, 0,
+           "x q[0];"
+           "h q[0];"
+           "h q[1];"
+           "cx q[1], q[2];"
+           "assert-eq 0.9, q[0], q[1] { qreg q[2]; h q[0]; h q[1]; }");
+  size_t numErrors = 0;
+  ASSERT_EQ(state->runAll(state, &numErrors), ERROR);
+}
+
+TEST_F(CustomCodeTest, LegalSubstateCircuitEqualityAssertion) {
+  loadCode(3, 0,
+           "x q[0];"
+           "h q[0];"
+           "h q[1];"
+           "cx q[1], q[2];"
+           "assert-eq 0.9, q[2], q[1] { qreg q[2]; h q[0]; cx q[0], q[1]; }");
+  size_t numErrors = 0;
+  ASSERT_EQ(state->runAll(state, &numErrors), OK);
+  ASSERT_EQ(numErrors, 0);
+}

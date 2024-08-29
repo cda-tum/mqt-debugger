@@ -23,10 +23,11 @@ gate create_ghz q0, q1, q2 {
 
 create_ghz q[0], q[1], q[2];
 
-assert-eq q[0], q[1] {
-    qreg q[2];
+assert-eq q[0], q[1], q[2] {
+    qreg q[3];
     h q[0];
     cx q[0], q[1];
+    cx q[0], q[2];
 }
 
-assert-eq 0.9, q[0] { 0.7, 0.7 }
+assert-eq 0.9, q[0], q[1], q[2] { 0.7, 0, 0, 0, 0, 0, 0, 0.7 }

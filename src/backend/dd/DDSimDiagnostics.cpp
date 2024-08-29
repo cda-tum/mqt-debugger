@@ -219,35 +219,49 @@ size_t tryFindZeroControls(DDDiagnostics* diagnostics, size_t instruction,
   return index;
 }
 
+bool isAlwaysZero(const Statevector& sv, size_t qubit, bool checkOne = false) {
+  const auto epsilon = 1e-10;
+
+  const Span<Complex> amplitudes(sv.amplitudes, sv.numStates);
+
+  for (size_t i = 0; i < sv.numStates; i++) {
+    if (((i & (1ULL << qubit)) == 0ULL && !checkOne) ||
+        ((i & (1ULL << qubit)) != 0ULL && checkOne)) {
+      continue;
+    }
+    if (amplitudes[i].real > epsilon || amplitudes[i].real < -epsilon ||
+        amplitudes[i].imaginary > epsilon ||
+        amplitudes[i].imaginary < -epsilon) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics,
                                 size_t instruction) {
   auto* ddsim = diagnostics->simulationState;
   if (ddsim->instructionTypes[instruction] != SIMULATE) {
     return;
   }
+  const auto numQubits = ddsim->interface.getNumQubits(&ddsim->interface);
   const auto& op = (*ddsim->iterator);
   const auto& controls = op->getControls();
 
-  std::vector<Complex> amplitudes(2);
-  Statevector sv{1, 2, amplitudes.data()};
-  std::vector<size_t> qubits{0};
-  const double epsilon = 1e-10;
+  std::vector<Complex> amplitudes(2ULL << numQubits);
+  Statevector sv{numQubits, 2ULL << numQubits, amplitudes.data()};
+  ddsim->interface.getStateVectorFull(&ddsim->interface, &sv);
 
   for (const auto& control : controls) {
     const auto pos = control.type == qc::Control::Type::Pos;
     const auto qubit = control.qubit;
-    qubits[0] = qubit;
-    if (ddsim->interface.getStateVectorSub(&ddsim->interface, 1, qubits.data(),
-                                           &sv) == OK) {
-      const auto amplitude = amplitudes[pos ? 1 : 0];
-      if (amplitude.real < epsilon && amplitude.real > -epsilon &&
-          amplitude.imaginary < epsilon && amplitude.imaginary > -epsilon) {
-        if (diagnostics->zeroControls.find(instruction) ==
-            diagnostics->zeroControls.end()) {
-          diagnostics->zeroControls[instruction] = std::set<size_t>();
-        }
-        diagnostics->zeroControls[instruction].insert(qubit);
+    if (isAlwaysZero(sv, qubit, !pos)) {
+      if (diagnostics->zeroControls.find(instruction) ==
+          diagnostics->zeroControls.end()) {
+        diagnostics->zeroControls[instruction] = std::set<size_t>();
       }
+      diagnostics->zeroControls[instruction].insert(qubit);
     }
   }
 }

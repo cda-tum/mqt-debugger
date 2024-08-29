@@ -169,7 +169,7 @@ TEST_F(DataRetrievalTest, GetStateVectorSub) {
   qubits[0] = 1;
   ASSERT_EQ(state->getStateVectorSub(state, 2, qubits.data(), &sv), OK);
   ASSERT_TRUE(complexEquality(amplitudes[0], 0.0, 0.0));
-  ASSERT_TRUE(complexEquality(amplitudes[1], 0.0,
+  ASSERT_TRUE(complexEquality(amplitudes[1], 1.0,
                               0.0)); // 0 because of destructive interference
   ASSERT_TRUE(complexEquality(amplitudes[2], 0.0, 0.0));
   ASSERT_TRUE(complexEquality(amplitudes[3], 0.0, 0.0));
