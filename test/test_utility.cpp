@@ -1,5 +1,6 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
+#include "common.h"
 #include "utils_test.hpp"
 
 #include <cstddef>

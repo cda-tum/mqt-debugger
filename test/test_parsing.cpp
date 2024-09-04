@@ -3,6 +3,7 @@
 #include "common/parsing/CodePreprocessing.hpp"
 #include "common/parsing/ParsingError.hpp"
 
+#include <cstddef>
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
