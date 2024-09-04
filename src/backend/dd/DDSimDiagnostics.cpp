@@ -152,6 +152,10 @@ size_t tryFindMissingInteraction(DDDiagnostics* diagnostics,
                                  DDSimulationState* state, size_t instruction,
                                  const std::unique_ptr<Assertion>& assertion,
                                  ErrorCause* output, size_t count) {
+  if (count == 0) {
+    return 0;
+  }
+
   auto targets = assertion->getTargetQubits();
   auto outputs = Span(output, count);
   std::vector<size_t> targetQubits(targets.size());
@@ -191,6 +195,10 @@ size_t tryFindMissingInteraction(DDDiagnostics* diagnostics,
 
 size_t tryFindZeroControls(DDDiagnostics* diagnostics, size_t instruction,
                            ErrorCause* output, size_t count) {
+  if (count == 0) {
+    return 0;
+  }
+
   std::vector<uint8_t> dependencies(
       diagnostics->interface.getInstructionCount(&diagnostics->interface));
   diagnostics->interface.getDataDependencies(

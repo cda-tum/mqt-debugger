@@ -125,7 +125,7 @@ TEST_P(SimulationTest, StackTraceRetrieval) {
     ASSERT_EQ(depth, exp) << "Depth computation failed for instruction "
                           << state->getCurrentInstruction(state) << " at index "
                           << index << " in " << GetParam() << "\n";
-    for (size_t depthToTest = 1; depthToTest <= depth; depthToTest++) {
+    for (size_t depthToTest = 1; depthToTest <= depth + 1; depthToTest++) {
       std::vector<size_t> stack(depthToTest);
       ASSERT_EQ(state->getStackTrace(state, depthToTest, stack.data()),
                 Result::OK)
@@ -134,7 +134,7 @@ TEST_P(SimulationTest, StackTraceRetrieval) {
           << " in " << GetParam() << "\n";
       const std::vector<size_t>& expectedStack =
           expectedStacks.at(GetParam()).at(index);
-      for (size_t i = 0; i < depthToTest; i++) {
+      for (size_t i = 0; i < (depthToTest > depth ? depth : depthToTest); i++) {
         ASSERT_EQ(stack[i], expectedStack[i])
             << "Failed for index " << i << " at depth " << depthToTest
             << " for instruction " << state->getCurrentInstruction(state)
@@ -181,6 +181,9 @@ TEST_P(SimulationTest, TopLevelBreakpoints) {
     ASSERT_TRUE(state->wasBreakpointHit(state));
   }
 
+  ASSERT_EQ(state->runSimulationBackward(state), Result::OK);
+  ASSERT_TRUE(state->wasBreakpointHit(state));
+
   ASSERT_EQ(state->clearBreakpoints(state), Result::OK)
       << "Failed to clear breakpoints in " << GetParam() << "\n";
   ASSERT_EQ(state->runSimulationBackward(state), Result::OK);
@@ -224,6 +227,60 @@ TEST_P(SimulationTest, PauseSimulation) {
   ASSERT_NE(state->getCurrentInstruction(state), currentPosition)
       << "Simulation still paused after second 'step over' in " << GetParam()
       << "\n";
+
+  if (GetParam() != "complex-jumps") {
+    return;
+  }
+
+  // test stepOverForward after pause at CALL instruction (will pause
+  // immediately)
+  ASSERT_EQ(state->resetSimulation(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->pauseSimulation(state), Result::OK);
+  ASSERT_EQ(state->stepOverForward(state), Result::OK);
+  ASSERT_EQ(state->getCurrentInstruction(state), 12);
+
+  // test stepOutForward after pause inside custom gate (will run one more
+  // instruction)
+  ASSERT_EQ(state->resetSimulation(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->pauseSimulation(state), Result::OK);
+  ASSERT_EQ(state->stepOutForward(state), Result::OK);
+  ASSERT_EQ(state->getCurrentInstruction(state), 6);
+
+  // test stepOverBackward after pause at RETURN instruction (will pause
+  // immediately)
+  ASSERT_EQ(state->resetSimulation(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepOverForward(state), Result::OK);
+  ASSERT_EQ(state->pauseSimulation(state), Result::OK);
+  ASSERT_EQ(state->stepOverBackward(state), Result::OK);
+  ASSERT_EQ(state->getCurrentInstruction(state), 7);
+
+  // test stepOutBackward after pause inside custom gate (will run one more
+  // instruction)
+  ASSERT_EQ(state->resetSimulation(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->pauseSimulation(state), Result::OK);
+  ASSERT_EQ(state->stepOutBackward(state), Result::OK);
+  ASSERT_EQ(state->getCurrentInstruction(state), 5);
 }
 
 TEST_P(SimulationTest, ResetSimulation) {
@@ -327,6 +384,10 @@ TEST_P(SimulationTest, RunSimulation) {
 }
 
 TEST_P(SimulationTest, InGateDefinitionBreakpoints) {
+  if (GetParam() != "complex-jumps") {
+    return;
+  }
+
   const std::map<const std::string, std::vector<size_t>> breakpointPositions = {
       {"complex-jumps", {86, 280, 411}}, {"failing-assertions", {}}};
   const std::map<const std::string, std::vector<size_t>>
@@ -364,6 +425,26 @@ TEST_P(SimulationTest, InGateDefinitionBreakpoints) {
     ASSERT_TRUE(state->wasBreakpointHit(state));
   }
 
+  // Test specific step instructions with breakpoints
+  ASSERT_EQ(state->resetSimulation(state), Result::OK);
+  ASSERT_EQ(state->runSimulation(state), Result::OK);
+  ASSERT_EQ(state->stepOutBackward(state), Result::OK);
+  ASSERT_EQ(state->stepOverForward(state), Result::OK);
+  ASSERT_EQ(state->getCurrentInstruction(state), 2);
+  ASSERT_EQ(state->stepOutForward(state), Result::OK);
+  ASSERT_EQ(state->stepOverBackward(state), Result::OK);
+  ASSERT_EQ(state->getCurrentInstruction(state), 2);
+  ASSERT_EQ(state->runSimulation(state), Result::OK);
+  ASSERT_EQ(state->runSimulation(state), Result::OK);
+  ASSERT_EQ(state->getCurrentInstruction(state), 7);
+  ASSERT_EQ(state->stepBackward(state), Result::OK);
+  ASSERT_EQ(state->stepOutForward(state), Result::OK);
+  ASSERT_EQ(state->getCurrentInstruction(state), 7);
+  ASSERT_EQ(state->stepForward(state), Result::OK);
+  ASSERT_EQ(state->stepOutBackward(state), Result::OK);
+  ASSERT_EQ(state->getCurrentInstruction(state), 7);
+
+  // Test deleting breakpoints
   ASSERT_EQ(state->clearBreakpoints(state), Result::OK)
       << "Failed to clear breakpoints in " << GetParam() << "\n";
   ASSERT_EQ(state->runSimulationBackward(state), Result::OK);
@@ -374,6 +455,23 @@ TEST_P(SimulationTest, InGateDefinitionBreakpoints) {
     ASSERT_FALSE(state->wasBreakpointHit(state))
         << "Breakpoint hit after clearing in " << GetParam() << "\n";
   }
+}
+
+TEST_P(SimulationTest, StepAtEnds) {
+  size_t errors = 0;
+  state->runAll(state, &errors);
+  ASSERT_EQ(state->stepOverForward(state), Result::ERROR);
+  ASSERT_EQ(state->stepForward(state), Result::ERROR);
+  ASSERT_EQ(state->stepOutForward(state), Result::ERROR);
+  ASSERT_EQ(state->resetSimulation(state), Result::OK);
+  ASSERT_EQ(state->stepOverBackward(state), Result::ERROR);
+  ASSERT_EQ(state->stepBackward(state), Result::ERROR);
+  ASSERT_EQ(state->stepOutBackward(state), Result::ERROR);
+}
+
+TEST_P(SimulationTest, BreakpointOutside) {
+  size_t location = 0;
+  ASSERT_EQ(state->setBreakpoint(state, 9999, &location), ERROR);
 }
 
 INSTANTIATE_TEST_SUITE_P(StringParams, SimulationTest,

@@ -174,3 +174,16 @@ TEST_F(DataRetrievalTest, GetStateVectorSub) {
   ASSERT_TRUE(complexEquality(amplitudes[2], 0.0, 0.0));
   ASSERT_TRUE(complexEquality(amplitudes[3], 0.0, 0.0));
 }
+
+TEST_F(DataRetrievalTest, GetUnknownClassicalVariable) {
+  Variable v;
+
+  forwardTo(6);
+  ASSERT_EQ(state->getClassicalVariable(state, "u[0]", &v), ERROR);
+}
+
+TEST_F(DataRetrievalTest, GetBadClassicalVariableName) {
+  std::array<char, 256> name = {0};
+  forwardTo(6);
+  ASSERT_EQ(state->getClassicalVariableName(state, 5, name.data()), ERROR);
+}

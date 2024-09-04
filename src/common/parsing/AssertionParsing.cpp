@@ -85,7 +85,7 @@ Complex parseComplex(std::string complexString) {
   double real = 0;
   double imaginary = 0;
   for (auto& part : parts) {
-    if (part.find('i') != std::string::npos &&
+    if (part.find('i') != std::string::npos ||
         part.find('j') != std::string::npos) {
       imaginary +=
           std::stod(replaceString(replaceString(part, "i", ""), "j", ""));
@@ -151,7 +151,8 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
     } catch (const std::invalid_argument& e) {
       similarityThreshold = 1.0;
     } catch (const std::out_of_range& e) {
-      similarityThreshold = 1.0;
+      throw ParsingError(
+          "Similarity threshold out of range. It must be between 0 and 1");
     }
 
     if (blockContent.find(';') == std::string::npos) {
