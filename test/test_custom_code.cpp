@@ -23,7 +23,8 @@ protected:
   std::string userCode;
   size_t offset = 0;
 
-  void loadCode(size_t numQubits, size_t numClassics, const char* code) {
+  void loadCode(size_t numQubits, size_t numClassics, const char* code,
+                bool shouldFail = false) {
     if (numQubits < 1) {
       numQubits = 1;
     }
@@ -41,7 +42,8 @@ protected:
 
     userCode = code;
     fullCode = ss.str();
-    state->loadCode(state, fullCode.c_str());
+    ASSERT_EQ(state->loadCode(state, fullCode.c_str()),
+              shouldFail ? ERROR : OK);
   }
 
   void forwardTo(size_t instruction) {
@@ -68,6 +70,8 @@ TEST_F(CustomCodeTest, ClassicControlledOperation) {
   state->getStateVectorFull(state, &sv);
   ASSERT_TRUE(complexEquality(amplitudes[0], 1, 0.0) ||
               complexEquality(amplitudes[1], 1, 0.0));
+
+  ASSERT_EQ(state->stepBackward(state), OK);
 }
 
 TEST_F(CustomCodeTest, ResetGate) {
@@ -166,4 +170,86 @@ TEST_F(CustomCodeTest, LegalSubstateCircuitEqualityAssertion) {
   size_t numErrors = 0;
   ASSERT_EQ(state->runAll(state, &numErrors), OK);
   ASSERT_EQ(numErrors, 0);
+}
+
+TEST_F(CustomCodeTest, ErrorInCode) {
+  loadCode(3, 0, "x f[0];", true);
+  size_t numErrors = 0;
+  ASSERT_EQ(state->runAll(state, &numErrors), ERROR);
+  ASSERT_EQ(numErrors, 0);
+  ASSERT_EQ(state->runSimulation(state), ERROR);
+  ASSERT_EQ(state->runSimulationBackward(state), ERROR);
+}
+
+TEST_F(CustomCodeTest, StackTraceErrorInCode) {
+  loadCode(3, 0, "x f[0];", true);
+  size_t depth = 0;
+  ASSERT_EQ(state->getStackDepth(state, &depth), ERROR);
+  ASSERT_EQ(state->getStackTrace(state, 10, nullptr), ERROR);
+}
+
+TEST_F(CustomCodeTest, ErrorAssertionInCircuitEqualityAssertion) {
+  loadCode(3, 0,
+           "x q[0];"
+           "assert-eq q[0], q[1], q[2] { qreg q[3]; assert-sup q[0]; }");
+  ASSERT_EQ(state->runAll(state, nullptr), ERROR);
+}
+
+TEST_F(CustomCodeTest, BarrierInstruction) {
+  loadCode(1, 0,
+           "barrier;"
+           "x q[0];");
+  ASSERT_EQ(state->stepForward(state), OK);
+  ASSERT_EQ(state->stepForward(state), OK);
+
+  ASSERT_EQ(state->stepForward(state), OK);
+  ASSERT_EQ(state->stepBackward(state), OK);
+  ASSERT_EQ(state->stepOverForward(state), OK);
+  ASSERT_EQ(state->stepOverBackward(state), OK);
+}
+
+TEST_F(CustomCodeTest, ErrorAssertionInvalidIndex) {
+  loadCode(3, 0,
+           "x q[0];"
+           "assert-sup q[3];");
+  ASSERT_EQ(state->runAll(state, nullptr), ERROR);
+}
+
+TEST_F(CustomCodeTest, ErrorAssertionInvalidQubit) {
+  loadCode(3, 0,
+           "x q[0];"
+           "assert-sup f[3];");
+  ASSERT_EQ(state->runAll(state, nullptr), ERROR);
+}
+
+TEST_F(CustomCodeTest, AssertionInCustomGate) {
+  loadCode(3, 0,
+           "gate test q0 {"
+           "h q0;"
+           "assert-sup q0;"
+           "}"
+           "test q[0];");
+  size_t errors = 0;
+  ASSERT_EQ(state->runAll(state, &errors), OK);
+  ASSERT_EQ(errors, 0);
+}
+
+TEST_F(CustomCodeTest, AssertionInCustomGateShadowing) {
+  loadCode(3, 0,
+           "gate test q {"
+           "h q;"
+           "assert-sup q;"
+           "}"
+           "test q[0];");
+  size_t errors = 0;
+  ASSERT_EQ(state->runAll(state, &errors), OK);
+  ASSERT_EQ(errors, 0);
+}
+
+TEST_F(CustomCodeTest, CommentAtEnd) {
+  loadCode(3, 0, "x q[0]; // Comment");
+  size_t errors = 0;
+  ASSERT_EQ(state->runAll(state, &errors), OK);
+  ASSERT_EQ(errors, 0);
+  ASSERT_EQ(state->getCurrentInstruction(state), 3);
 }

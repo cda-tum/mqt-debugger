@@ -204,7 +204,7 @@ preprocessCode(const std::string& code, size_t startIndex,
 
     if (isFunctionDefinition(line)) {
       if (!block.valid) {
-        throw std::runtime_error("Gate definitions require a body block");
+        throw ParsingError("Gate definitions require a body block");
       }
       const auto f = parseFunctionDefinition(line);
       functionDefinitions.insert({f.name, f});

@@ -253,9 +253,6 @@ Result ddsimStepOutBackward(SimulationState* self) {
     if (self->wasBreakpointHit(self)) {
       break;
     }
-    if (self->wasBreakpointHit(self)) {
-      break;
-    }
     if (ddsim->paused) {
       ddsim->paused = false;
       return OK;
@@ -513,6 +510,9 @@ Result ddsimRunAll(SimulationState* self, size_t* failedAssertions) {
 
 Result ddsimRunSimulation(SimulationState* self) {
   auto* ddsim = toDDSimulationState(self);
+  if (!self->canStepForward(self)) {
+    return ERROR;
+  }
   while (!self->isFinished(self)) {
     if (ddsim->paused) {
       ddsim->paused = false;
@@ -531,6 +531,9 @@ Result ddsimRunSimulation(SimulationState* self) {
 
 Result ddsimRunSimulationBackward(SimulationState* self) {
   auto* ddsim = toDDSimulationState(self);
+  if (!self->canStepBackward(self)) {
+    return ERROR;
+  }
   while (self->canStepBackward(self)) {
     if (ddsim->paused) {
       ddsim->paused = false;
@@ -570,12 +573,13 @@ Result ddsimPauseSimulation(SimulationState* self) {
 
 bool ddsimCanStepForward(SimulationState* self) {
   auto* ddsim = toDDSimulationState(self);
-  return ddsim->currentInstruction < ddsim->instructionTypes.size();
+  return ddsim->ready &&
+         ddsim->currentInstruction < ddsim->instructionTypes.size();
 }
 
 bool ddsimCanStepBackward(SimulationState* self) {
   auto* ddsim = toDDSimulationState(self);
-  return !ddsim->previousInstructionStack.empty();
+  return ddsim->ready && !ddsim->previousInstructionStack.empty();
 }
 
 bool ddsimIsFinished(SimulationState* self) {

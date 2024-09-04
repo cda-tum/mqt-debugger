@@ -1,4 +1,6 @@
+#include "common/Span.hpp"
 #include "common/parsing/AssertionParsing.hpp"
+#include "common/parsing/CodePreprocessing.hpp"
 #include "common/parsing/ParsingError.hpp"
 
 #include <gtest/gtest.h>
@@ -61,4 +63,43 @@ TEST_F(ParsingTest, ErrorCircuitEqualityAssertion) {
 
 TEST_F(ParsingTest, ErrorInvalidAssertion) {
   ASSERT_THROW(parseAssertion("assert-fake q[0]", ""), ParsingError);
+}
+
+TEST_F(ParsingTest, ComplexNumberParsing) {
+  // With statevector
+  const auto a1 = parseAssertion("assert-eq 0.5, q[0], q[1]",
+                                 "0.5j, 0.5i, 0.5 + 0i, 0 + 0.5j");
+  ASSERT_EQ(a1->getType(), AssertionType::StatevectorEquality);
+  ASSERT_EQ(a1->getTargetQubits().size(), 2);
+  const auto* sv = dynamic_cast<StatevectorEqualityAssertion*>(a1.get());
+  const Span<Complex> amplitudes(sv->getTargetStatevector().amplitudes,
+                                 sv->getTargetStatevector().numStates);
+  for (size_t i = 0; i < 4; i++) {
+    ASSERT_EQ(amplitudes[i].real, i != 2 ? 0.0 : 0.5);
+    ASSERT_EQ(amplitudes[i].imaginary, i != 2 ? 0.5 : 0.0);
+  }
+}
+
+TEST_F(ParsingTest, ComplexNumberParsingErrorBadSimilarity) {
+  // Similarity > 1
+  ASSERT_THROW(parseAssertion("assert-eq 2, q[0]", "1, 0"), ParsingError);
+
+  // Similarity out of double range
+  ASSERT_THROW(parseAssertion("assert-eq 1e500, q[0]", "1, 0"), ParsingError);
+}
+
+TEST_F(ParsingTest, BadGateDefinition) {
+  const std::string input = "gate my_gate q0;";
+  std::string output;
+  ASSERT_THROW(preprocessCode(input, output), ParsingError);
+}
+
+TEST_F(ParsingTest, BadFunctionCall) {
+  const std::string input =
+      "gate my_gate q0, q1 { h q0; h q1 } qreg q[3]; my_gate q[0];";
+  std::string output;
+  ASSERT_THROW(preprocessCode(input, output), ParsingError);
+  const std::string input2 =
+      "gate my_gate q0, q1 { h q0; h q1 } qreg q[3]; my_gate q[0], q[1], q[2];";
+  ASSERT_THROW(preprocessCode(input2, output), ParsingError);
 }

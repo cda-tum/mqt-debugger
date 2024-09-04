@@ -45,3 +45,11 @@ TEST_F(UtilityTest, GetInstructionPosition) {
         << "Failed for instruction " << instruction;
   }
 }
+
+TEST_F(UtilityTest, BadInstructionPosition) {
+  loadFromFile("complex-jumps");
+
+  size_t start = 0;
+  size_t end = 0;
+  ASSERT_EQ(state->getInstructionPosition(state, 100, &start, &end), ERROR);
+}
