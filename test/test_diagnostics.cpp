@@ -152,3 +152,12 @@ TEST_F(DiagnosticsTest, NoFailedAssertions) {
   ASSERT_EQ(diagnostics->potentialErrorCauses(diagnostics, problems.data(), 5),
             0);
 }
+
+TEST_F(DiagnosticsTest, RequestZeroProblems) {
+  loadFromFile("failing-assertions");
+  state->runSimulation(state);
+  std::array<ErrorCause, 10> problems{};
+  const size_t count =
+      diagnostics->potentialErrorCauses(diagnostics, problems.data(), 0);
+  ASSERT_EQ(count, 0);
+}
