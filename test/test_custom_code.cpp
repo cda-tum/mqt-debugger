@@ -24,7 +24,7 @@ protected:
   size_t offset = 0;
 
   void loadCode(size_t numQubits, size_t numClassics, const char* code,
-                bool shouldFail = false) {
+                bool shouldFail = false, const char* preamble = "") {
     if (numQubits < 1) {
       numQubits = 1;
     }
@@ -32,6 +32,8 @@ protected:
       numClassics = 1;
     }
     std::ostringstream ss;
+
+    ss << preamble;
 
     ss << "qreg q[" << numQubits << "];\n";
     ss << "creg c[" << numClassics << "];\n";
@@ -252,4 +254,21 @@ TEST_F(CustomCodeTest, CommentAtEnd) {
   ASSERT_EQ(state->runAll(state, &errors), OK);
   ASSERT_EQ(errors, 0);
   ASSERT_EQ(state->getCurrentInstruction(state), 3);
+}
+
+TEST_F(CustomCodeTest, QASMPreamble) {
+  loadCode(3, 0, "x q[0]; // Comment", false,
+           "OPENQASM 2.0;\ninclude \"qelib1.inc\";\n");
+  size_t errors = 0;
+  ASSERT_EQ(state->runAll(state, &errors), OK);
+  ASSERT_EQ(errors, 0);
+  ASSERT_EQ(state->getCurrentInstruction(state), 5);
+}
+
+TEST_F(CustomCodeTest, LargeProgram) {
+  loadCode(20, 0, "x q[0]; cx q[0], q[1];");
+  size_t errors = 0;
+  ASSERT_EQ(state->runAll(state, &errors), OK);
+  ASSERT_EQ(errors, 0);
+  ASSERT_EQ(state->getCurrentInstruction(state), 4);
 }

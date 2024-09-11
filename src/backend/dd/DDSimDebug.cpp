@@ -1326,6 +1326,13 @@ std::string preprocessAssertionCode(const char* code,
       ddsim->callSubstitutions.insert(
           {instruction.lineNumber, instruction.callSubstitution});
       ddsim->instructionTypes.push_back(CALL);
+    } else if (instruction.code.find("OPENQASM 2.0") != std::string::npos ||
+               instruction.code.find("OPENQASM 3.0") != std::string::npos ||
+               instruction.code.find("include") != std::string::npos) {
+      if (!instruction.inFunctionDefinition) {
+        correctLines.push_back(instruction.code);
+      }
+      ddsim->instructionTypes.push_back(NOP);
     } else if (instruction.code.find("qreg") != std::string::npos) {
       auto declaration = replaceString(instruction.code, "qreg", "");
       declaration = replaceString(declaration, " ", "");

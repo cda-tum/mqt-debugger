@@ -254,6 +254,9 @@ void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics,
     return;
   }
   const auto numQubits = ddsim->interface.getNumQubits(&ddsim->interface);
+  if (numQubits > 16) {
+    return;
+  }
   const auto& op = (*ddsim->iterator);
   const auto& controls = op->getControls();
 
