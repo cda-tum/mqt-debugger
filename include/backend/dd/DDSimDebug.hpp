@@ -57,9 +57,9 @@ struct DDSimulationState {
   std::vector<size_t> callReturnStack;
   std::map<size_t, std::map<std::string, std::string>> callSubstitutions;
   std::vector<std::pair<size_t, size_t>> restoreCallReturnStack;
-  std::map<size_t, std::vector<size_t>> dataDependencies;
+  std::map<size_t, std::vector<std::pair<size_t, size_t>>> dataDependencies;
   std::set<size_t> breakpoints;
-  std::vector<std::set<std::string>> targetQubits;
+  std::vector<std::vector<std::string>> targetQubits;
 
   bool paused;
 

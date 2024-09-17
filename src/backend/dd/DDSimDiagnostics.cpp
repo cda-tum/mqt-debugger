@@ -61,6 +61,42 @@ size_t dddiagnosticsGetInstructionCount(Diagnostics* self) {
 
 Result dddiagnosticsInit([[maybe_unused]] Diagnostics* self) { return OK; }
 
+size_t findReturn(DDSimulationState* state, size_t instruction) {
+  size_t current = instruction;
+  while (state->instructionTypes[current] != RETURN) {
+    current++;
+  }
+  return current;
+}
+
+void visitCall(DDSimulationState* ddsim, size_t current, size_t qubitIndex,
+               std::set<size_t>& visited, std::set<size_t>& toVisit) {
+  const auto gateStart = ddsim->successorInstructions[current];
+  const auto gateDefinition = gateStart - 1;
+  const std::string stringToSearch =
+      ddsim->targetQubits[gateDefinition][qubitIndex];
+  auto checkInstruction = findReturn(ddsim, gateStart);
+  while (checkInstruction >= gateStart) {
+    const auto found =
+        std::find(ddsim->targetQubits[checkInstruction].begin(),
+                  ddsim->targetQubits[checkInstruction].end(), stringToSearch);
+    if (ddsim->instructionTypes[checkInstruction] != RETURN &&
+        found != ddsim->targetQubits[checkInstruction].end()) {
+      if (visited.find(checkInstruction) == visited.end()) {
+        toVisit.insert(checkInstruction);
+      }
+      if (ddsim->instructionTypes[checkInstruction] == CALL) {
+        const auto position =
+            std::distance(ddsim->targetQubits[checkInstruction].begin(), found);
+        visitCall(ddsim, checkInstruction, static_cast<size_t>(position),
+                  visited, toVisit);
+      }
+      break;
+    }
+    checkInstruction--;
+  }
+}
+
 Result dddiagnosticsGetDataDependencies(Diagnostics* self, size_t instruction,
                                         bool* instructions) {
   auto* ddd = toDDDiagnostics(self);
@@ -74,9 +110,14 @@ Result dddiagnosticsGetDataDependencies(Diagnostics* self, size_t instruction,
     isDependency[current] = true;
     toVisit.erase(toVisit.begin());
     visited.insert(current);
+
     for (auto dep : ddsim->dataDependencies[current]) {
-      if (visited.find(dep) == visited.end()) {
-        toVisit.insert(dep);
+      const auto depInstruction = dep.first;
+      if (visited.find(depInstruction) == visited.end()) {
+        toVisit.insert(depInstruction);
+      }
+      if (ddsim->instructionTypes[depInstruction] == CALL) {
+        visitCall(ddsim, depInstruction, dep.second, visited, toVisit);
       }
     }
   }

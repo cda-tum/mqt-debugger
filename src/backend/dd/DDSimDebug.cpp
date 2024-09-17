@@ -1293,7 +1293,8 @@ std::string preprocessAssertionCode(const char* code,
     ddsim->instructionEnds.push_back(instruction.originalCodeEndPosition);
     ddsim->dataDependencies.insert({instruction.lineNumber, {}});
     for (const auto& dependency : instruction.dataDependencies) {
-      ddsim->dataDependencies[instruction.lineNumber].push_back(dependency);
+      ddsim->dataDependencies[instruction.lineNumber].emplace_back(
+          dependency.first, dependency.second);
     }
 
     // what exactly we do with each instruction depends on its type:

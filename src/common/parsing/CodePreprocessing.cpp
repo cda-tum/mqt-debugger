@@ -16,7 +16,7 @@
 
 Instruction::Instruction(size_t inputLineNumber, std::string inputCode,
                          std::unique_ptr<Assertion>& inputAssertion,
-                         std::set<std::string> inputTargets, size_t startPos,
+                         std::vector<std::string> inputTargets, size_t startPos,
                          size_t endPos, size_t successor, bool isFuncCall,
                          std::string function, bool inFuncDef, bool isFuncDef,
                          Block inputBlock)
@@ -77,7 +77,34 @@ bool isFunctionDefinition(const std::string& line) {
   return startsWith(trim(line), "gate ");
 }
 
+FunctionDefinition parseFunctionDefinition(const std::string& signature) {
+  auto parts = splitString(
+      replaceString(replaceString(signature, "\n", " "), "\t", " "), ' ');
+  std::string name;
+  size_t index = 0;
+  for (auto& part : parts) {
+    index++;
+    if (part != "gate" && !part.empty()) {
+      name = part;
+      break;
+    }
+  }
+
+  std::string parameterParts;
+  for (size_t i = index; i < parts.size(); i++) {
+    parameterParts += parts[i];
+  }
+  auto parameters = splitString(removeWhitespace(parameterParts), ',');
+
+  return {name, parameters};
+}
+
 std::vector<std::string> parseParameters(const std::string& instruction) {
+  if (isFunctionDefinition(instruction)) {
+    const auto fd = parseFunctionDefinition(instruction);
+    return fd.parameters;
+  }
+
   auto parts = splitString(
       replaceString(
           replaceString(replaceString(instruction, ";", " "), "\n", " "), "\t",
@@ -101,28 +128,6 @@ std::vector<std::string> parseParameters(const std::string& instruction) {
   auto parameters = splitString(removeWhitespace(parameterParts), ',');
 
   return parameters;
-}
-
-FunctionDefinition parseFunctionDefinition(const std::string& signature) {
-  auto parts = splitString(
-      replaceString(replaceString(signature, "\n", " "), "\t", " "), ' ');
-  std::string name;
-  size_t index = 0;
-  for (auto& part : parts) {
-    index++;
-    if (part != "gate" && !part.empty()) {
-      name = part;
-      break;
-    }
-  }
-
-  std::string parameterParts;
-  for (size_t i = index; i < parts.size(); i++) {
-    parameterParts += parts[i];
-  }
-  auto parameters = splitString(removeWhitespace(parameterParts), ',');
-
-  return {name, parameters};
 }
 
 std::vector<std::string> sweepFunctionNames(const std::string& code) {
@@ -178,9 +183,6 @@ preprocessCode(const std::string& code, size_t startIndex,
     auto tokens = splitString(trimmedLine, ' ');
     auto isAssert = isAssertion(line);
     auto blockPos = line.find("$__block");
-    const auto targetsVector = parseParameters(line);
-    const std::set<std::string> targets(targetsVector.begin(),
-                                        targetsVector.end());
 
     const size_t trueStart = pos + blocksOffset;
 
@@ -198,6 +200,8 @@ preprocessCode(const std::string& code, size_t startIndex,
       block.valid = true;
       line.replace(blockPos, endPos - blockPos + 1, "");
     }
+
+    const auto targets = parseParameters(line);
 
     const size_t trueEnd = end + blocksOffset;
 
@@ -273,16 +277,16 @@ preprocessCode(const std::string& code, size_t startIndex,
     size_t idx = instr.lineNumber - 1;
     while (!vars.empty() && (instr.lineNumber < instructions.size() ||
                              idx > instr.lineNumber - instructions.size())) {
-      bool found = false;
+      size_t foundIndex = 0;
       for (const auto& var : variableUsages[idx]) {
-        if (std::find(vars.begin(), vars.end(), var) != vars.end()) {
-          found = true;
+        const auto found = std::find(vars.begin(), vars.end(), var);
+        if (found != vars.end()) {
           const auto newEnd = std::remove(vars.begin(), vars.end(), var);
           vars.erase(newEnd, vars.end());
+          instr.dataDependencies.emplace_back(idx,
+                                              static_cast<size_t>(foundIndex));
         }
-      }
-      if (found) {
-        instr.dataDependencies.push_back(idx);
+        foundIndex++;
       }
       if (idx - 1 == instr.lineNumber - instructions.size()) {
         break;

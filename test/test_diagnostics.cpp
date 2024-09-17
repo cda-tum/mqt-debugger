@@ -176,29 +176,29 @@ TEST_F(DiagnosticsTest, DataDependenciesWithJumps) {
   loadFromFile("diagnose-with-jumps");
   auto* diagnostics = state->getDiagnostics(state);
   const std::map<size_t, std::set<size_t>> expected = {
-      {1, {1, 0}},
-      {2, {2, 14, 13, 12, 7, 5, 4, 1, 0}},
-      {3, {}},
+      {1, {1}},
+      {2, {2, 13, 7, 5, 1}},
+      {3, {3}},
 
-      {5, {4}},
-      {6, {5, 4}},
-      {7, {5, 4}},
-      {8, {}},
+      {5, {5}},
+      {6, {6, 5}},
+      {7, {7, 5}},
+      {8, {8}},
 
-      {10, {10, 9}},
-      {13, {13, 12}},
-      {11, {}},
+      {10, {10}},
+      {13, {13}},
+      {11, {11}},
       {9, {9}},
-      {14, {}},
+      {14, {14}},
       {12, {12}},
 
       {15, {15}},
 
-      {16, {16, 15}},
+      {16, {16}},
 
-      {17, {17, 16, 15}},
+      {17, {17, 16}},
 
-      {18, {18, 13, 12, 10, 9, 7, 6, 5, 4, 2, 1, 0, 17, 16, 15}}};
+      {18, {18, 13, 10, 7, 6, 5, 2, 1, 17, 16}}};
 
   for (const auto& pair : expected) {
     std::vector<uint8_t> dependencies(state->getInstructionCount(state), 0);
