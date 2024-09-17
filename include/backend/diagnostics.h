@@ -27,6 +27,7 @@ struct Diagnostics {
                                 bool* instructions);
   Result (*getInteractions)(Diagnostics* self, size_t beforeInstruction,
                             size_t qubit, bool* qubitsAreInteracting);
+  Result (*getZeroControlInstructions)(Diagnostics* self, bool* instructions);
   size_t (*potentialErrorCauses)(Diagnostics* self, ErrorCause* output,
                                  size_t count);
 };

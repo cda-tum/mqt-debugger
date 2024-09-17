@@ -291,6 +291,21 @@ void bindDiagnostics(py::module& m) {
              }
              return result;
            })
+      .def("get_zero_control_instructions",
+           [](Diagnostics* self) {
+             std::vector<uint8_t> instructions(self->getInstructionCount(self));
+             // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+             checkOrThrow(self->getZeroControlInstructions(
+                 self, reinterpret_cast<bool*>(instructions.data())));
+             // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+             std::vector<size_t> result;
+             for (size_t i = 0; i < instructions.size(); i++) {
+               if (instructions[i] != 0) {
+                 result.push_back(i);
+               }
+             }
+             return result;
+           })
       .def("potential_error_causes", [](Diagnostics* self) {
         size_t nextSize = 10;
         while (true) {

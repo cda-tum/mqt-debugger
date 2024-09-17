@@ -161,3 +161,13 @@ TEST_F(DiagnosticsTest, RequestZeroProblems) {
       diagnostics->potentialErrorCauses(diagnostics, problems.data(), 0);
   ASSERT_EQ(count, 0);
 }
+
+TEST_F(DiagnosticsTest, ZeroControlsWithJumps) {
+  loadFromFile("zero-controls-with-jumps");
+  state->runSimulation(state);
+  std::array<bool, 13> zeroControls{};
+  diagnostics->getZeroControlInstructions(diagnostics, zeroControls.data());
+  for (size_t i = 0; i < zeroControls.size(); i++) {
+    ASSERT_FALSE(zeroControls.at(i) ^ (i == 3 || i == 12));
+  }
+}

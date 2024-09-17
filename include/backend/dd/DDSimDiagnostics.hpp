@@ -16,6 +16,7 @@ struct DDDiagnostics {
 
   DDSimulationState* simulationState;
   std::map<size_t, std::set<size_t>> zeroControls;
+  std::map<size_t, std::set<size_t>> nonZeroControls;
 };
 
 size_t dddiagnosticsGetNumQubits(Diagnostics* self);
@@ -25,6 +26,8 @@ Result dddiagnosticsGetDataDependencies(Diagnostics* self, size_t instruction,
                                         bool* instructions);
 Result dddiagnosticsGetInteractions(Diagnostics* self, size_t beforeInstruction,
                                     size_t qubit, bool* qubitsAreInteracting);
+Result dddiagnosticsGetZeroControlInstructions(Diagnostics* self,
+                                               bool* instructions);
 size_t dddiagnosticsPotentialErrorCauses(Diagnostics* self, ErrorCause* output,
                                          size_t count);
 

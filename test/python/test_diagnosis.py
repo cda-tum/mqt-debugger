@@ -70,3 +70,11 @@ def test_missing_interaction() -> None:
     causes = [x for x in s.get_diagnostics().potential_error_causes() if x.type == ErrorCauseType.MissingInteraction]
     assert len(causes) == 1
     assert causes[0].instruction == 4
+
+
+def test_zero_control_listing() -> None:
+    """Test the zero-control list."""
+    s = load_instance("control-always-zero")
+    s.run_simulation()
+    zero_controls = s.get_diagnostics().get_zero_control_instructions()
+    assert zero_controls == [3, 12]

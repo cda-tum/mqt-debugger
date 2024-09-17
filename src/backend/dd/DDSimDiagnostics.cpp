@@ -35,6 +35,8 @@ Result createDDDiagnostics(DDDiagnostics* self, DDSimulationState* state) {
   self->interface.getInstructionCount = dddiagnosticsGetInstructionCount;
   self->interface.getInteractions = dddiagnosticsGetInteractions;
   self->interface.getDataDependencies = dddiagnosticsGetDataDependencies;
+  self->interface.getZeroControlInstructions =
+      dddiagnosticsGetZeroControlInstructions;
   self->interface.potentialErrorCauses = dddiagnosticsPotentialErrorCauses;
 
   return self->interface.init(&self->interface);
@@ -213,6 +215,10 @@ size_t tryFindZeroControls(DDDiagnostics* diagnostics, size_t instruction,
     if (diagnostics->zeroControls.find(i) == diagnostics->zeroControls.end()) {
       continue;
     }
+    if (diagnostics->nonZeroControls.find(i) !=
+        diagnostics->nonZeroControls.end()) {
+      continue;
+    }
     const auto& zeroControls = diagnostics->zeroControls[i];
     if (!zeroControls.empty()) {
       outputs[index].type = ErrorCauseType::ControlAlwaysZero;
@@ -247,6 +253,20 @@ bool isAlwaysZero(const Statevector& sv, size_t qubit, bool checkOne = false) {
   return true;
 }
 
+Result dddiagnosticsGetZeroControlInstructions(Diagnostics* self,
+                                               bool* instructions) {
+  auto* ddd = toDDDiagnostics(self);
+  const Span<bool> instructionSpan(instructions,
+                                   dddiagnosticsGetInstructionCount(self));
+  for (size_t i = 0; i < dddiagnosticsGetInstructionCount(self); i++) {
+    instructionSpan[i] =
+        (ddd->nonZeroControls.find(i) == ddd->nonZeroControls.end()) &&
+        (ddd->zeroControls.find(i) != ddd->zeroControls.end());
+  }
+
+  return OK;
+}
+
 void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics,
                                 size_t instruction) {
   auto* ddsim = diagnostics->simulationState;
@@ -273,6 +293,12 @@ void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics,
         diagnostics->zeroControls[instruction] = std::set<size_t>();
       }
       diagnostics->zeroControls[instruction].insert(qubit);
+    } else {
+      if (diagnostics->nonZeroControls.find(instruction) ==
+          diagnostics->nonZeroControls.end()) {
+        diagnostics->nonZeroControls[instruction] = std::set<size_t>();
+      }
+      diagnostics->nonZeroControls[instruction].insert(qubit);
     }
   }
 }
