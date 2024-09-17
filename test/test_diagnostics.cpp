@@ -171,3 +171,82 @@ TEST_F(DiagnosticsTest, ZeroControlsWithJumps) {
     ASSERT_FALSE(zeroControls.at(i) ^ (i == 3 || i == 12));
   }
 }
+
+TEST_F(DiagnosticsTest, DataDependenciesWithJumps) {
+  loadFromFile("diagnose-with-jumps");
+  auto* diagnostics = state->getDiagnostics(state);
+  const std::map<size_t, std::set<size_t>> expected = {
+      {1, {1, 0}},
+      {2, {2, 14, 13, 12, 7, 5, 4, 1, 0}},
+      {3, {}},
+
+      {5, {4}},
+      {6, {5, 4}},
+      {7, {5, 4}},
+      {8, {}},
+
+      {10, {10, 9}},
+      {13, {13, 12}},
+      {11, {}},
+      {9, {9}},
+      {14, {}},
+      {12, {12}},
+
+      {15, {15}},
+
+      {16, {16, 15}},
+
+      {17, {17, 16, 15}},
+
+      {18, {18, 13, 12, 10, 9, 7, 6, 5, 4, 2, 1, 0, 17, 16, 15}}};
+
+  for (const auto& pair : expected) {
+    std::vector<uint8_t> dependencies(state->getInstructionCount(state), 0);
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+    diagnostics->getDataDependencies(
+        diagnostics, pair.first, reinterpret_cast<bool*>(dependencies.data()));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+    std::set<size_t> dependenciesSet;
+    for (size_t i = 0; i < dependencies.size(); ++i) {
+      if (dependencies[i] != 0) {
+        dependenciesSet.insert(i);
+      }
+    }
+    ASSERT_EQ(dependenciesSet, pair.second)
+        << "Failed for instruction " << pair.first;
+  }
+}
+
+TEST_F(DiagnosticsTest, InteractionsWithJumps) {
+  loadFromFile("diagnose-with-jumps");
+  auto* diagnostics = state->getDiagnostics(state);
+
+  const std::map<std::pair<size_t, size_t>, std::set<size_t>> expected = {
+      {{1, 0}, {}},      {{1, 1}, {}},      {{1, 2}, {}},
+      {{2, 0}, {1}},     {{2, 1}, {0}},     {{2, 2}, {}},
+
+      {{5, 0}, {}},      {{6, 0}, {1}},     {{7, 1}, {0}},
+
+      {{10, 0}, {}},
+
+      {{17, 0}, {}},     {{18, 0}, {1, 2}}, {{18, 1}, {0, 2}},
+      {{18, 2}, {0, 1}}, {{18, 3}, {}}};
+
+  std::vector<uint8_t> interactions(state->getNumQubits(state), 0);
+  for (const auto& pair : expected) {
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+    diagnostics->getInteractions(diagnostics, pair.first.first,
+                                 pair.first.second,
+                                 reinterpret_cast<bool*>(interactions.data()));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+    std::set<size_t> interactionsSet;
+    for (size_t i = 0; i < interactions.size(); ++i) {
+      if (interactions[i] != 0) {
+        interactionsSet.insert(i);
+      }
+    }
+    ASSERT_EQ(interactionsSet, pair.second)
+        << "Failed for instruction " << pair.first.first << " qubit "
+        << pair.first.second;
+  }
+}
