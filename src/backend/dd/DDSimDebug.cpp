@@ -892,6 +892,42 @@ size_t variableToQubit(DDSimulationState* ddsim, const std::string& variable) {
   throw std::runtime_error("Unknown variable name " + var);
 }
 
+std::pair<size_t, size_t> variableToQubitAt(DDSimulationState* ddsim,
+                                            const std::string& variable,
+                                            size_t instruction) {
+  size_t sweep = instruction;
+  size_t functionDef = -1ULL;
+  while (sweep < ddsim->instructionTypes.size()) {
+    if (std::find(ddsim->functionDefinitions.begin(),
+                  ddsim->functionDefinitions.end(),
+                  sweep) != ddsim->functionDefinitions.end()) {
+      functionDef = sweep;
+      break;
+    }
+    if (ddsim->instructionTypes[sweep] == RETURN) {
+      break;
+    }
+    sweep--;
+  }
+
+  if (functionDef == -1ULL) {
+    // In the global scope, we can just use the register's index.
+    return {variableToQubit(ddsim, variable), functionDef};
+  }
+
+  // In a gate-local scope, we have to define qubit indices relative to the
+  // gate.
+  const auto& targets = ddsim->targetQubits[functionDef];
+
+  const auto found = std::find(targets.begin(), targets.end(), variable);
+  if (found == targets.end()) {
+    throw std::runtime_error("Unknown variable name " + variable);
+  }
+
+  return {static_cast<size_t>(std::distance(targets.begin(), found)),
+          functionDef};
+}
+
 double complexMagnitude(Complex& c) {
   return std::sqrt(c.real * c.real + c.imaginary * c.imaginary);
 }

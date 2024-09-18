@@ -222,18 +222,18 @@ TEST_F(DiagnosticsTest, InteractionsWithJumps) {
   auto* diagnostics = state->getDiagnostics(state);
 
   const std::map<std::pair<size_t, size_t>, std::set<size_t>> expected = {
-      {{1, 0}, {}},      {{1, 1}, {}},      {{1, 2}, {}},
-      {{2, 0}, {1}},     {{2, 1}, {0}},     {{2, 2}, {}},
+      {{1, 0}, {0}},        {{1, 1}, {1}},        {{1, 2}, {2}},
+      {{2, 0}, {0, 1}},     {{2, 1}, {0, 1}},     {{2, 2}, {2}},
 
-      {{5, 0}, {}},      {{6, 0}, {1}},     {{7, 1}, {0}},
+      {{5, 0}, {0}},        {{6, 0}, {1, 0}},     {{7, 1}, {0, 1}},
 
-      {{10, 0}, {}},
+      {{10, 0}, {0}},
 
-      {{17, 0}, {}},     {{18, 0}, {1, 2}}, {{18, 1}, {0, 2}},
-      {{18, 2}, {0, 1}}, {{18, 3}, {}}};
+      {{17, 0}, {0}},       {{18, 0}, {1, 2, 0}}, {{18, 1}, {0, 2, 1}},
+      {{18, 2}, {0, 1, 2}}, {{18, 3}, {3}}};
 
-  std::vector<uint8_t> interactions(state->getNumQubits(state), 0);
   for (const auto& pair : expected) {
+    std::vector<uint8_t> interactions(state->getNumQubits(state), 0);
     // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     diagnostics->getInteractions(diagnostics, pair.first.first,
                                  pair.first.second,

@@ -136,14 +136,20 @@ Result dddiagnosticsGetInteractions(Diagnostics* self, size_t beforeInstruction,
   while (found) {
     found = false;
     for (auto i = beforeInstruction - 1; i < beforeInstruction; i--) {
+      if (std::find(ddsim->functionDefinitions.begin(),
+                    ddsim->functionDefinitions.end(),
+                    i) != ddsim->functionDefinitions.end()) {
+        break;
+      }
       if (ddsim->instructionTypes[i] != SIMULATE &&
           ddsim->instructionTypes[i] != CALL) {
         continue;
       }
+
       auto& targets = ddsim->targetQubits[i];
       std::set<size_t> targetQubits;
       for (const auto& target : targets) {
-        targetQubits.insert(variableToQubit(ddsim, target));
+        targetQubits.insert(variableToQubitAt(ddsim, target, i).first);
       }
       if (!std::none_of(targetQubits.begin(), targetQubits.end(),
                         [&interactions](size_t elem) {

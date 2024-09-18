@@ -272,3 +272,77 @@ TEST_F(CustomCodeTest, LargeProgram) {
   ASSERT_EQ(errors, 0);
   ASSERT_EQ(state->getCurrentInstruction(state), 4);
 }
+
+TEST_F(CustomCodeTest, PaperExampleGrover) {
+  loadCode(3, 3,
+           "gate oracle q0, q1, q2, flag {"
+           "assert-sup q0, q1, q2;"
+           "ccz q1, q2, flag;"
+           "assert-ent q0, q1, q2;"
+           "}"
+           "gate diffusion q0, q1, q2 {"
+           "h q0; h q1; h q2;"
+           "x q0; x q1; x q2;"
+           "ccz q0, q1, q2;"
+           "x q2; x q1; x q0;"
+           "h q2; h q1; h q0;"
+           "}"
+           "qreg flag[1];"
+           "x flag;"
+           "oracle q[0], q[1], q[2], flag;"
+           "diffusion q[0], q[1], q[2];"
+           "assert-eq 0.8, q[0], q[1], q[2] { 0, 0, 0, 0, 0, 0, 0, 1 }"
+           "oracle q[0], q[1], q[2], flag;"
+           "diffusion q[0], q[1], q[2];"
+           "assert-eq 0.9, q[0], q[1], q[2] { 0, 0, 0, 0, 0, 0, 0, 1 }",
+           false, "OPENQASM 2.0;\ninclude \"qelib1.inc\";\n");
+
+  auto* diagnosis = state->getDiagnostics(state);
+  std::array<ErrorCause, 10> causes{};
+
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_EQ(state->didAssertionFail(state), true);
+  ASSERT_EQ(state->getCurrentInstruction(state), 5);
+  // We expect no potential errors yet:
+  ASSERT_EQ(
+      diagnosis->potentialErrorCauses(diagnosis, causes.data(), causes.size()),
+      0);
+
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_EQ(state->didAssertionFail(state), true);
+  ASSERT_EQ(state->getCurrentInstruction(state), 7);
+  // We expect three potential errors:
+  //   2 missing interactions: q0 <-> q1 and q0 <-> q2
+  //   1 control always zero: q1 & q2 in instruction 6
+  ASSERT_EQ(
+      diagnosis->potentialErrorCauses(diagnosis, causes.data(), causes.size()),
+      3);
+  ASSERT_EQ(causes[0].type, MissingInteraction);
+  ASSERT_EQ(causes[0].instruction, 7);
+  ASSERT_EQ(causes[1].type, MissingInteraction);
+  ASSERT_EQ(causes[1].instruction, 7);
+  ASSERT_EQ(causes[2].type, ControlAlwaysZero);
+  ASSERT_EQ(causes[2].instruction, 6);
+
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_EQ(state->didAssertionFail(state), true);
+  ASSERT_EQ(state->getCurrentInstruction(state), 28);
+  // We expect one potential error: Control always zero in instruction 6
+  ASSERT_EQ(
+      diagnosis->potentialErrorCauses(diagnosis, causes.data(), causes.size()),
+      1);
+  ASSERT_EQ(causes[0].type, ControlAlwaysZero);
+  ASSERT_EQ(causes[0].instruction, 6);
+
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_EQ(state->didAssertionFail(state), true);
+  ASSERT_EQ(state->getCurrentInstruction(state), 31);
+  // We expect no potential errors, as instruction 6 is no longer always 0
+  ASSERT_EQ(
+      diagnosis->potentialErrorCauses(diagnosis, causes.data(), causes.size()),
+      0);
+
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_EQ(state->didAssertionFail(state), false);
+  ASSERT_EQ(state->isFinished(state), true);
+}
