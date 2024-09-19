@@ -82,6 +82,10 @@ bool isClassicControlledGate(const std::string& line) {
          (line.find(')') != std::string::npos);
 }
 
+bool isVariableDeclaration(const std::string& line) {
+  return startsWith(trim(line), "creg ") || startsWith(trim(line), "qreg ");
+}
+
 FunctionDefinition parseFunctionDefinition(const std::string& signature) {
   auto parts = splitString(
       replaceString(replaceString(signature, "\n", " "), "\t", " "), ' ');
@@ -167,15 +171,44 @@ std::vector<std::string> sweepFunctionNames(const std::string& code) {
   return result;
 }
 
+void unfoldAssertionTargetRegisters(
+    Assertion& assertion, const std::map<std::string, size_t>& definedRegisters,
+    const std::vector<std::string>& shadowedRegisters) {
+  bool found = false;
+  std::vector<std::string> targets;
+  for (const auto& target : assertion.getTargetQubits()) {
+    if (std::find(shadowedRegisters.begin(), shadowedRegisters.end(), target) !=
+        shadowedRegisters.end()) {
+      targets.push_back(target);
+      continue;
+    }
+    if (definedRegisters.find(target) != definedRegisters.end()) {
+      for (size_t i = 0; i < definedRegisters.at(target); i++) {
+        targets.push_back(target + "[" + std::to_string(i) + "]");
+      }
+      found = true;
+    } else {
+      targets.push_back(target);
+    }
+  }
+
+  if (found) {
+    assertion.setTargetQubits(targets);
+  }
+}
+
 std::vector<Instruction> preprocessCode(const std::string& code,
                                         std::string& processedCode) {
-  return preprocessCode(code, 0, 0, {}, processedCode);
+  std::map<std::string, size_t> definedRegisters;
+  return preprocessCode(code, 0, 0, {}, definedRegisters, {}, processedCode);
 }
 
 std::vector<Instruction>
 preprocessCode(const std::string& code, size_t startIndex,
                size_t initialCodeOffset,
                const std::vector<std::string>& allFunctionNames,
+               std::map<std::string, size_t>& definedRegisters,
+               const std::vector<std::string>& shadowedRegisters,
                std::string& processedCode) {
 
   std::map<std::string, std::string> blocks;
@@ -229,6 +262,15 @@ preprocessCode(const std::string& code, size_t startIndex,
 
     const size_t trueEnd = end + blocksOffset;
 
+    if (isVariableDeclaration(line)) {
+      const auto declaration = removeWhitespace(
+          replaceString(replaceString(trimmedLine, "creg", ""), "qreg", ""));
+      const auto parts = splitString(declaration, {'[', ']'});
+      const auto& name = parts[0];
+      const auto size = std::stoi(parts[1]);
+      definedRegisters.insert({name, size});
+    }
+
     if (isFunctionDefinition(line)) {
       if (!block.valid) {
         throw ParsingError("Gate definitions require a body block");
@@ -237,9 +279,9 @@ preprocessCode(const std::string& code, size_t startIndex,
       functionDefinitions.insert({f.name, f});
       i++;
       std::string processedSubCode;
-      auto subInstructions =
-          preprocessCode(block.code, i, code.find('{', trueStart) + 1,
-                         functionNames, processedSubCode);
+      auto subInstructions = preprocessCode(
+          block.code, i, code.find('{', trueStart) + 1, functionNames,
+          definedRegisters, f.parameters, processedSubCode);
       for (auto& instr : subInstructions) {
         instr.inFunctionDefinition = true;
       }
@@ -280,6 +322,8 @@ preprocessCode(const std::string& code, size_t startIndex,
 
     if (isAssert) {
       auto a = parseAssertion(line, block.code);
+      unfoldAssertionTargetRegisters(*a, definedRegisters, shadowedRegisters);
+      a->validate();
       instructions.emplace_back(i, line, a, targets, trueStart, trueEnd, i + 1,
                                 isFunctionCall, calledFunction, false, false,
                                 block);

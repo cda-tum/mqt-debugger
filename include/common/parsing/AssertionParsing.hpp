@@ -23,6 +23,8 @@ public:
   [[nodiscard]] AssertionType getType() const;
   [[nodiscard]] const std::vector<std::string>& getTargetQubits() const;
   virtual ~Assertion() = default;
+  void setTargetQubits(std::vector<std::string> newTargetQubits);
+  virtual void validate() {};
 };
 
 class EntanglementAssertion : public Assertion {
@@ -42,6 +44,7 @@ public:
   EqualityAssertion(double similarityThreshold,
                     std::vector<std::string> targetQubits, AssertionType type);
   [[nodiscard]] double getSimilarityThreshold() const;
+  void validate() override;
 };
 
 class StatevectorEqualityAssertion : public EqualityAssertion {
@@ -54,6 +57,7 @@ public:
   [[nodiscard]] const Statevector& getTargetStatevector() const;
 
   ~StatevectorEqualityAssertion() override;
+  void validate() override;
 };
 
 class CircuitEqualityAssertion : public EqualityAssertion {

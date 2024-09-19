@@ -337,6 +337,43 @@ TEST_F(CustomCodeTest, NonZeroControlsInErrorSearch) {
                                               errors.size()) == 0);
 }
 
+TEST_F(CustomCodeTest, RegisterInAssertion) {
+  loadCode(3, 0,
+           "h q[0]; cx q[0], q[1]; cx q[0], q[2];"
+           "assert-ent q;"
+           "assert-sup q;"
+           "assert-eq 0.9, q { 0.707, 0, 0, 0, 0, 0, 0, 0.707 }");
+  size_t errors = 0;
+  ASSERT_EQ(state->runAll(state, &errors), OK);
+  ASSERT_EQ(errors, 0);
+}
+
+TEST_F(CustomCodeTest, RegisterInAssertionMixed) {
+  loadCode(3, 0,
+           "qreg f[1]; qreg p[2];"
+           "x q[0]; x f[0]; x p[0];"
+           "assert-eq q[0], f { 0, 0, 0, 1 }"
+           "assert-eq q[0], p { 0, 0, 0, 1, 0, 0, 0, 0 }"
+           "assert-eq f, p { 0, 0, 0, 1, 0, 0, 0, 0 }");
+  size_t errors = 0;
+  ASSERT_EQ(state->runAll(state, &errors), OK);
+  ASSERT_EQ(errors, 0);
+}
+
+TEST_F(CustomCodeTest, ShadowedRegisterInAssertionMixed) {
+  loadCode(3, 0,
+           "qreg f[1]; qreg p[2];"
+           "x q[0]; x f[0];"
+           "gate test q {"
+           "  x q;"
+           "  assert-eq q, f { 0, 0, 0, 1 }"
+           "}"
+           "test p[0];");
+  size_t errors = 0;
+  ASSERT_EQ(state->runAll(state, &errors), OK);
+  ASSERT_EQ(errors, 0);
+}
+
 TEST_F(CustomCodeTest, PaperExampleGrover) {
   loadCode(3, 3,
            "gate oracle q0, q1, q2, flag {"
@@ -355,10 +392,10 @@ TEST_F(CustomCodeTest, PaperExampleGrover) {
            "x flag;"
            "oracle q[0], q[1], q[2], flag;"
            "diffusion q[0], q[1], q[2];"
-           "assert-eq 0.8, q[0], q[1], q[2] { 0, 0, 0, 0, 0, 0, 0, 1 }"
+           "assert-eq 0.8, q { 0, 0, 0, 0, 0, 0, 0, 1 }"
            "oracle q[0], q[1], q[2], flag;"
            "diffusion q[0], q[1], q[2];"
-           "assert-eq 0.9, q[0], q[1], q[2] { 0, 0, 0, 0, 0, 0, 0, 1 }",
+           "assert-eq 0.9, q { 0, 0, 0, 0, 0, 0, 0, 1 }",
            false, "OPENQASM 2.0;\ninclude \"qelib1.inc\";\n");
 
   auto* diagnosis = state->getDiagnostics(state);
