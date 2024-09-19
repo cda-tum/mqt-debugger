@@ -23,6 +23,10 @@ const std::vector<std::string>& Assertion::getTargetQubits() const {
   return targetQubits;
 }
 
+void Assertion::setTargetQubits(std::vector<std::string> newTargetQubits) {
+  targetQubits = std::move(newTargetQubits);
+}
+
 EntanglementAssertion::EntanglementAssertion(
     std::vector<std::string> inputTargetQubits)
     : Assertion(std::move(inputTargetQubits), AssertionType::Entanglement) {}
@@ -35,11 +39,15 @@ EqualityAssertion::EqualityAssertion(double inputSimilarityThreshold,
                                      std::vector<std::string> inputTargetQubits,
                                      AssertionType assertionType)
     : Assertion(std::move(inputTargetQubits), assertionType),
-      similarityThreshold(inputSimilarityThreshold) {
+      similarityThreshold(inputSimilarityThreshold) {}
+
+void EqualityAssertion::validate() {
   if (similarityThreshold < 0 || similarityThreshold > 1) {
     throw ParsingError("Similarity threshold must be between 0 and 1");
   }
+  Assertion::validate();
 }
+
 double EqualityAssertion::getSimilarityThreshold() const {
   return similarityThreshold;
 }
@@ -49,12 +57,16 @@ StatevectorEqualityAssertion::StatevectorEqualityAssertion(
     std::vector<std::string> inputTargetQubits)
     : EqualityAssertion(inputSimilarityThreshold, std::move(inputTargetQubits),
                         AssertionType::StatevectorEquality),
-      targetStatevector(inputTargetStatevector) {
+      targetStatevector(inputTargetStatevector) {}
+
+void StatevectorEqualityAssertion::validate() {
   if (targetStatevector.numQubits != getTargetQubits().size()) {
     throw ParsingError(
         "Number of target qubits must match number of qubits in statevector");
   }
+  EqualityAssertion::validate();
 }
+
 const Statevector& StatevectorEqualityAssertion::getTargetStatevector() const {
   return targetStatevector;
 }

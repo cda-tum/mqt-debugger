@@ -51,15 +51,18 @@ TEST_F(ParsingTest, SuperpositionAssertion) {
 }
 
 TEST_F(ParsingTest, ErrorStatevectorEqualityAssertion) {
-  ASSERT_THROW(parseAssertion("assert-eq 1.5, q[0]", "1, 0"), ParsingError);
-  ASSERT_THROW(parseAssertion("assert-eq 0.5, q[0]", "1, 0, 0"), ParsingError);
-  ASSERT_THROW(parseAssertion("assert-eq 0.5, q[0]", "1, 0, 0, 0"),
+  ASSERT_THROW(parseAssertion("assert-eq 1.5, q[0]", "1, 0")->validate(),
+               ParsingError);
+  ASSERT_THROW(parseAssertion("assert-eq 0.5, q[0]", "1, 0, 0")->validate(),
+               ParsingError);
+  ASSERT_THROW(parseAssertion("assert-eq 0.5, q[0]", "1, 0, 0, 0")->validate(),
                ParsingError);
 }
 
 TEST_F(ParsingTest, ErrorCircuitEqualityAssertion) {
-  ASSERT_THROW(parseAssertion("assert-eq 1.5, q[0]", "qreg q[1]; h q[0];"),
-               ParsingError);
+  ASSERT_THROW(
+      parseAssertion("assert-eq 1.5, q[0]", "qreg q[1]; h q[0];")->validate(),
+      ParsingError);
 }
 
 TEST_F(ParsingTest, ErrorInvalidAssertion) {
@@ -83,10 +86,12 @@ TEST_F(ParsingTest, ComplexNumberParsing) {
 
 TEST_F(ParsingTest, ComplexNumberParsingErrorBadSimilarity) {
   // Similarity > 1
-  ASSERT_THROW(parseAssertion("assert-eq 2, q[0]", "1, 0"), ParsingError);
+  ASSERT_THROW(parseAssertion("assert-eq 2, q[0]", "1, 0")->validate(),
+               ParsingError);
 
   // Similarity out of double range
-  ASSERT_THROW(parseAssertion("assert-eq 1e500, q[0]", "1, 0"), ParsingError);
+  ASSERT_THROW(parseAssertion("assert-eq 1e500, q[0]", "1, 0")->validate(),
+               ParsingError);
 }
 
 TEST_F(ParsingTest, BadGateDefinition) {

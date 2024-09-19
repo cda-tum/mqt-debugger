@@ -350,11 +350,25 @@ TEST_F(CustomCodeTest, RegisterInAssertion) {
 
 TEST_F(CustomCodeTest, RegisterInAssertionMixed) {
   loadCode(3, 0,
-           "qreg f[1], qreg p[2];"
+           "qreg f[1]; qreg p[2];"
            "x q[0]; x f[0]; x p[0];"
            "assert-eq q[0], f { 0, 0, 0, 1 }"
-           "assert-eq q[0], p { 0, 0, 0, 0, 1, 0, 0, 0 }"
-           "assert-eq f, p { 0, 0, 0, 0, 1, 0, 0, 0 }");
+           "assert-eq q[0], p { 0, 0, 0, 1, 0, 0, 0, 0 }"
+           "assert-eq f, p { 0, 0, 0, 1, 0, 0, 0, 0 }");
+  size_t errors = 0;
+  ASSERT_EQ(state->runAll(state, &errors), OK);
+  ASSERT_EQ(errors, 0);
+}
+
+TEST_F(CustomCodeTest, ShadowedRegisterInAssertionMixed) {
+  loadCode(3, 0,
+           "qreg f[1]; qreg p[2];"
+           "x q[0]; x f[0];"
+           "gate test q {"
+           "  x q;"
+           "  assert-eq q, f { 0, 0, 0, 1 }"
+           "}"
+           "test p[0];");
   size_t errors = 0;
   ASSERT_EQ(state->runAll(state, &errors), OK);
   ASSERT_EQ(errors, 0);
