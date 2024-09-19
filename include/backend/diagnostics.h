@@ -24,7 +24,7 @@ struct Diagnostics {
   size_t (*getNumQubits)(Diagnostics* self);
   size_t (*getInstructionCount)(Diagnostics* self);
   Result (*getDataDependencies)(Diagnostics* self, size_t instruction,
-                                bool* instructions);
+                                bool includeCallers, bool* instructions);
   Result (*getInteractions)(Diagnostics* self, size_t beforeInstruction,
                             size_t qubit, bool* qubitsAreInteracting);
   Result (*getZeroControlInstructions)(Diagnostics* self, bool* instructions);

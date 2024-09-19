@@ -57,9 +57,10 @@ struct DDSimulationState {
   std::vector<size_t> callReturnStack;
   std::map<size_t, std::map<std::string, std::string>> callSubstitutions;
   std::vector<std::pair<size_t, size_t>> restoreCallReturnStack;
-  std::map<size_t, std::vector<size_t>> dataDependencies;
+  std::map<size_t, std::vector<std::pair<size_t, size_t>>> dataDependencies;
+  std::map<size_t, std::set<size_t>> functionCallers;
   std::set<size_t> breakpoints;
-  std::vector<std::set<std::string>> targetQubits;
+  std::vector<std::vector<std::string>> targetQubits;
 
   bool paused;
 
@@ -127,8 +128,14 @@ bool checkAssertion(DDSimulationState* ddsim,
                     std::unique_ptr<Assertion>& assertion);
 std::string getClassicalBitName(DDSimulationState* ddsim, size_t index);
 size_t variableToQubit(DDSimulationState* ddsim, const std::string& variable);
+std::pair<size_t, size_t> variableToQubitAt(DDSimulationState* ddsim,
+                                            const std::string& variable,
+                                            size_t instruction);
 bool isSubStateVectorLegal(const Statevector& full,
                            std::vector<size_t>& targetQubits);
 std::vector<std::vector<Complex>>
 getPartialTraceFromStateVector(const Statevector& sv,
                                const std::vector<size_t>& traceOut);
+
+std::vector<std::string> getTargetVariables(DDSimulationState* ddsim,
+                                            size_t instruction);

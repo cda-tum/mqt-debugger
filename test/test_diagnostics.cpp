@@ -1,6 +1,7 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
+#include "common.h"
 #include "utils_test.hpp"
 
 #include <array>
@@ -49,7 +50,8 @@ TEST_F(DiagnosticsTest, DataDependencies) {
     std::vector<uint8_t> dependencies(state->getInstructionCount(state), 0);
     // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     diagnostics->getDataDependencies(
-        diagnostics, instruction, reinterpret_cast<bool*>(dependencies.data()));
+        diagnostics, instruction, false,
+        reinterpret_cast<bool*>(dependencies.data()));
     // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     std::set<size_t> dependenciesSet;
     for (size_t i = 0; i < dependencies.size(); ++i) {
@@ -170,4 +172,99 @@ TEST_F(DiagnosticsTest, ZeroControlsWithJumps) {
   for (size_t i = 0; i < zeroControls.size(); i++) {
     ASSERT_FALSE(zeroControls.at(i) ^ (i == 3 || i == 12));
   }
+}
+
+TEST_F(DiagnosticsTest, DataDependenciesWithJumps) {
+  loadFromFile("diagnose-with-jumps");
+  const std::map<size_t, std::set<size_t>> expected = {
+      {1, {1}},
+      {2, {2, 13, 7, 5, 1}},
+      {3, {3}},
+
+      {5, {5}},
+      {6, {6, 5}},
+      {7, {7, 5}},
+      {8, {8}},
+
+      {10, {10}},
+      {13, {13}},
+      {11, {11}},
+      {9, {9}},
+      {14, {14}},
+      {12, {12}},
+
+      {15, {15}},
+
+      {16, {16}},
+
+      {17, {17, 16}},
+
+      {18, {18, 13, 10, 7, 6, 5, 2, 1, 17, 16}}};
+
+  for (const auto& pair : expected) {
+    std::vector<uint8_t> dependencies(state->getInstructionCount(state), 0);
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+    diagnostics->getDataDependencies(
+        diagnostics, pair.first, false,
+        reinterpret_cast<bool*>(dependencies.data()));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+    std::set<size_t> dependenciesSet;
+    for (size_t i = 0; i < dependencies.size(); ++i) {
+      if (dependencies[i] != 0) {
+        dependenciesSet.insert(i);
+      }
+    }
+    ASSERT_EQ(dependenciesSet, pair.second)
+        << "Failed for instruction " << pair.first;
+  }
+}
+
+TEST_F(DiagnosticsTest, InteractionsWithJumps) {
+  loadFromFile("diagnose-with-jumps");
+
+  const std::map<std::pair<size_t, size_t>, std::set<size_t>> expected = {
+      {{1, 0}, {0}},        {{1, 1}, {1}},        {{1, 2}, {2}},
+      {{2, 0}, {0, 1}},     {{2, 1}, {0, 1}},     {{2, 2}, {2}},
+
+      {{5, 0}, {0}},        {{6, 0}, {1, 0}},     {{7, 1}, {0, 1}},
+
+      {{10, 0}, {0}},
+
+      {{17, 0}, {0}},       {{18, 0}, {1, 2, 0}}, {{18, 1}, {0, 2, 1}},
+      {{18, 2}, {0, 1, 2}}, {{18, 3}, {3}}};
+
+  for (const auto& pair : expected) {
+    std::vector<uint8_t> interactions(state->getNumQubits(state), 0);
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+    diagnostics->getInteractions(diagnostics, pair.first.first,
+                                 pair.first.second,
+                                 reinterpret_cast<bool*>(interactions.data()));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+    std::set<size_t> interactionsSet;
+    for (size_t i = 0; i < interactions.size(); ++i) {
+      if (interactions[i] != 0) {
+        interactionsSet.insert(i);
+      }
+    }
+    ASSERT_EQ(interactionsSet, pair.second)
+        << "Failed for instruction " << pair.first.first << " qubit "
+        << pair.first.second;
+  }
+}
+
+TEST_F(DiagnosticsTest, RuntimeInteractions) {
+  loadFromFile("runtime-interaction");
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_TRUE(state->didAssertionFail(state));
+  ASSERT_EQ(state->getCurrentInstruction(state), 3);
+
+  std::array<ErrorCause, 10> errors{};
+  ASSERT_EQ(diagnostics->potentialErrorCauses(diagnostics, errors.data(), 10),
+            1);
+
+  // Interaction happens outside of the instruction, so we don't expect a
+  // missing interaction.
+
+  ASSERT_EQ(errors[0].type, ErrorCauseType::ControlAlwaysZero);
+  ASSERT_EQ(errors[0].instruction, 6);
 }

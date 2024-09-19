@@ -24,6 +24,7 @@
 #include <cstring>
 #include <exception>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <numeric>
 #include <random>
@@ -854,6 +855,52 @@ Result destroyDDSimulationState(DDSimulationState* self) {
 }
 
 //-----------------------------------------------------------------------------------------
+
+std::vector<std::string> getTargetVariables(DDSimulationState* ddsim,
+                                            size_t instruction) {
+  std::vector<std::string> result;
+  size_t parentFunction = -1ULL;
+  size_t i = instruction;
+  while (true) {
+    if (ddsim->functionDefinitions.find(i) !=
+        ddsim->functionDefinitions.end()) {
+      parentFunction = i;
+      break;
+    }
+    if (ddsim->instructionTypes[i] == RETURN) {
+      break;
+    }
+    if (i == 0) {
+      break;
+    }
+    i--;
+  }
+
+  const auto parameters = parentFunction != -1ULL
+                              ? ddsim->targetQubits[parentFunction]
+                              : std::vector<std::string>{};
+  for (const auto& target : ddsim->targetQubits[instruction]) {
+    if (std::find(parameters.begin(), parameters.end(), target) !=
+        parameters.end()) {
+      result.push_back(target);
+      continue;
+    }
+    const auto foundRegister =
+        std::find_if(ddsim->qubitRegisters.begin(), ddsim->qubitRegisters.end(),
+                     [target](const QubitRegisterDefinition& reg) {
+                       return reg.name == target;
+                     });
+    if (foundRegister != ddsim->qubitRegisters.end()) {
+      for (size_t j = 0; j < foundRegister->size; j++) {
+        result.push_back(target + "[" + std::to_string(j) + "]");
+      }
+    } else {
+      result.push_back(target);
+    }
+  }
+  return result;
+}
+
 size_t variableToQubit(DDSimulationState* ddsim, const std::string& variable) {
   auto declaration = replaceString(variable, " ", "");
   declaration = replaceString(declaration, "\t", "");
@@ -890,6 +937,42 @@ size_t variableToQubit(DDSimulationState* ddsim, const std::string& variable) {
     }
   }
   throw std::runtime_error("Unknown variable name " + var);
+}
+
+std::pair<size_t, size_t> variableToQubitAt(DDSimulationState* ddsim,
+                                            const std::string& variable,
+                                            size_t instruction) {
+  size_t sweep = instruction;
+  size_t functionDef = -1ULL;
+  while (sweep < ddsim->instructionTypes.size()) {
+    if (std::find(ddsim->functionDefinitions.begin(),
+                  ddsim->functionDefinitions.end(),
+                  sweep) != ddsim->functionDefinitions.end()) {
+      functionDef = sweep;
+      break;
+    }
+    if (ddsim->instructionTypes[sweep] == RETURN) {
+      break;
+    }
+    sweep--;
+  }
+
+  if (functionDef == -1ULL) {
+    // In the global scope, we can just use the register's index.
+    return {variableToQubit(ddsim, variable), functionDef};
+  }
+
+  // In a gate-local scope, we have to define qubit indices relative to the
+  // gate.
+  const auto& targets = ddsim->targetQubits[functionDef];
+
+  const auto found = std::find(targets.begin(), targets.end(), variable);
+  if (found == targets.end()) {
+    throw std::runtime_error("Unknown variable name " + variable);
+  }
+
+  return {static_cast<size_t>(std::distance(targets.begin(), found)),
+          functionDef};
 }
 
 double complexMagnitude(Complex& c) {
@@ -1283,6 +1366,7 @@ std::string preprocessAssertionCode(const char* code,
   ddsim->qubitRegisters.clear();
   ddsim->successorInstructions.clear();
   ddsim->dataDependencies.clear();
+  ddsim->functionCallers.clear();
   ddsim->targetQubits.clear();
 
   for (auto& instruction : instructions) {
@@ -1293,7 +1377,17 @@ std::string preprocessAssertionCode(const char* code,
     ddsim->instructionEnds.push_back(instruction.originalCodeEndPosition);
     ddsim->dataDependencies.insert({instruction.lineNumber, {}});
     for (const auto& dependency : instruction.dataDependencies) {
-      ddsim->dataDependencies[instruction.lineNumber].push_back(dependency);
+      ddsim->dataDependencies[instruction.lineNumber].emplace_back(
+          dependency.first, dependency.second);
+    }
+    if (instruction.isFunctionCall) {
+      const size_t successorInFunction = instruction.successorIndex;
+      const size_t functionIndex = successorInFunction - 1;
+      if (ddsim->functionCallers.find(functionIndex) ==
+          ddsim->functionCallers.end()) {
+        ddsim->functionCallers.insert({functionIndex, {}});
+      }
+      ddsim->functionCallers[functionIndex].insert(instruction.lineNumber);
     }
 
     // what exactly we do with each instruction depends on its type:

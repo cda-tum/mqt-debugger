@@ -1,5 +1,6 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
+#include "backend/diagnostics.h"
 #include "common.h"
 #include "utils_test.hpp"
 
@@ -58,9 +59,9 @@ protected:
   }
 };
 
-TEST_F(CustomCodeTest, ClassicControlledOperation) {
+TEST_F(CustomCodeTest, ClassicControlledOperationFalse) {
   loadCode(2, 1,
-           "h q[0];"
+           "z q[0];"
            "cx q[0], q[1];"
            "measure q[0] -> c[0];"
            "if(c==1) x q[1];"
@@ -70,8 +71,24 @@ TEST_F(CustomCodeTest, ClassicControlledOperation) {
   std::array<Complex, 4> amplitudes{};
   Statevector sv{2, 4, amplitudes.data()};
   state->getStateVectorFull(state, &sv);
-  ASSERT_TRUE(complexEquality(amplitudes[0], 1, 0.0) ||
-              complexEquality(amplitudes[1], 1, 0.0));
+  ASSERT_TRUE(complexEquality(amplitudes[0], 1, 0.0));
+
+  ASSERT_EQ(state->stepBackward(state), OK);
+}
+
+TEST_F(CustomCodeTest, ClassicControlledOperationTrue) {
+  loadCode(2, 1,
+           "x q[0];"
+           "cx q[0], q[1];"
+           "measure q[0] -> c[0];"
+           "if(c==1) x q[1];"
+           "if(c==0) z q[1];");
+  ASSERT_EQ(state->runSimulation(state), OK);
+
+  std::array<Complex, 4> amplitudes{};
+  Statevector sv{2, 4, amplitudes.data()};
+  state->getStateVectorFull(state, &sv);
+  ASSERT_TRUE(complexEquality(amplitudes[1], 1, 0.0));
 
   ASSERT_EQ(state->stepBackward(state), OK);
 }
@@ -271,4 +288,125 @@ TEST_F(CustomCodeTest, LargeProgram) {
   ASSERT_EQ(state->runAll(state, &errors), OK);
   ASSERT_EQ(errors, 0);
   ASSERT_EQ(state->getCurrentInstruction(state), 4);
+}
+
+TEST_F(CustomCodeTest, CollectiveGateAsDependency) {
+  loadCode(2, 0, "x q; barrier q[0];");
+  auto* diagnosis = state->getDiagnostics(state);
+  std::array<bool, 4> dependencies{};
+  ASSERT_EQ(
+      diagnosis->getDataDependencies(diagnosis, 3, false, dependencies.data()),
+      OK);
+  ASSERT_EQ(dependencies[0], false);
+  ASSERT_EQ(dependencies[1], false);
+  ASSERT_EQ(dependencies[2], true);
+  ASSERT_EQ(dependencies[3], true);
+}
+
+TEST_F(CustomCodeTest, CollectiveGateAsInteraction) {
+  loadCode(1, 0, "qreg p[1]; cx q, p; assert-ent q[0], p[0];");
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_TRUE(state->didAssertionFail(state));
+
+  auto* diagnosis = state->getDiagnostics(state);
+
+  std::array<bool, 2> interactions{};
+  ASSERT_EQ(diagnosis->getInteractions(diagnosis, 4, 0, interactions.data()),
+            OK);
+
+  ASSERT_TRUE(interactions[0]);
+  ASSERT_TRUE(interactions[1]);
+
+  std::array<ErrorCause, 1> causes{};
+  ASSERT_EQ(
+      diagnosis->potentialErrorCauses(diagnosis, causes.data(), causes.size()),
+      1);
+  ASSERT_EQ(causes[0].type, ControlAlwaysZero);
+  ASSERT_EQ(causes[0].instruction, 3);
+}
+
+TEST_F(CustomCodeTest, NonZeroControlsInErrorSearch) {
+  loadCode(2, 0,
+           "gate test q1, q2 { cx q1, q2; } x q[0]; test q[1], q[0]; test "
+           "q[0], q[1]; assert-sup q[0];");
+  auto* diagnosis = state->getDiagnostics(state);
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_TRUE(state->didAssertionFail(state));
+  std::array<ErrorCause, 5> errors{};
+  ASSERT_TRUE(diagnosis->potentialErrorCauses(diagnosis, errors.data(),
+                                              errors.size()) == 0);
+}
+
+TEST_F(CustomCodeTest, PaperExampleGrover) {
+  loadCode(3, 3,
+           "gate oracle q0, q1, q2, flag {"
+           "assert-sup q0, q1, q2;"
+           "ccz q1, q2, flag;"
+           "assert-ent q0, q1, q2;"
+           "}"
+           "gate diffusion q0, q1, q2 {"
+           "h q0; h q1; h q2;"
+           "x q0; x q1; x q2;"
+           "ccz q0, q1, q2;"
+           "x q2; x q1; x q0;"
+           "h q2; h q1; h q0;"
+           "}"
+           "qreg flag[1];"
+           "x flag;"
+           "oracle q[0], q[1], q[2], flag;"
+           "diffusion q[0], q[1], q[2];"
+           "assert-eq 0.8, q[0], q[1], q[2] { 0, 0, 0, 0, 0, 0, 0, 1 }"
+           "oracle q[0], q[1], q[2], flag;"
+           "diffusion q[0], q[1], q[2];"
+           "assert-eq 0.9, q[0], q[1], q[2] { 0, 0, 0, 0, 0, 0, 0, 1 }",
+           false, "OPENQASM 2.0;\ninclude \"qelib1.inc\";\n");
+
+  auto* diagnosis = state->getDiagnostics(state);
+  std::array<ErrorCause, 10> causes{};
+
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_EQ(state->didAssertionFail(state), true);
+  ASSERT_EQ(state->getCurrentInstruction(state), 5);
+  // We expect no potential errors yet:
+  ASSERT_EQ(
+      diagnosis->potentialErrorCauses(diagnosis, causes.data(), causes.size()),
+      0);
+
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_EQ(state->didAssertionFail(state), true);
+  ASSERT_EQ(state->getCurrentInstruction(state), 7);
+  // We expect three potential errors:
+  //   2 missing interactions: q0 <-> q1 and q0 <-> q2
+  //   1 control always zero: q1 & q2 in instruction 6
+  ASSERT_EQ(
+      diagnosis->potentialErrorCauses(diagnosis, causes.data(), causes.size()),
+      3);
+  ASSERT_EQ(causes[0].type, MissingInteraction);
+  ASSERT_EQ(causes[0].instruction, 7);
+  ASSERT_EQ(causes[1].type, MissingInteraction);
+  ASSERT_EQ(causes[1].instruction, 7);
+  ASSERT_EQ(causes[2].type, ControlAlwaysZero);
+  ASSERT_EQ(causes[2].instruction, 6);
+
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_EQ(state->didAssertionFail(state), true);
+  ASSERT_EQ(state->getCurrentInstruction(state), 28);
+  // We expect one potential error: Control always zero in instruction 6
+  ASSERT_EQ(
+      diagnosis->potentialErrorCauses(diagnosis, causes.data(), causes.size()),
+      1);
+  ASSERT_EQ(causes[0].type, ControlAlwaysZero);
+  ASSERT_EQ(causes[0].instruction, 6);
+
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_EQ(state->didAssertionFail(state), true);
+  ASSERT_EQ(state->getCurrentInstruction(state), 31);
+  // We expect no potential errors, as instruction 6 is no longer always 0
+  ASSERT_EQ(
+      diagnosis->potentialErrorCauses(diagnosis, causes.data(), causes.size()),
+      0);
+
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_EQ(state->didAssertionFail(state), false);
+  ASSERT_EQ(state->isFinished(state), true);
 }

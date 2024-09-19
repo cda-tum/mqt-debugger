@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <vector>
 
 struct DDSimulationState;
 
@@ -17,12 +18,15 @@ struct DDDiagnostics {
   DDSimulationState* simulationState;
   std::map<size_t, std::set<size_t>> zeroControls;
   std::map<size_t, std::set<size_t>> nonZeroControls;
+
+  std::map<size_t, std::set<std::vector<size_t>>> actualQubits;
 };
 
 size_t dddiagnosticsGetNumQubits(Diagnostics* self);
 size_t dddiagnosticsGetInstructionCount(Diagnostics* self);
-Result dddiagnosticsInit([[maybe_unused]] Diagnostics* self);
+Result dddiagnosticsInit(Diagnostics* self);
 Result dddiagnosticsGetDataDependencies(Diagnostics* self, size_t instruction,
+                                        bool includeCallers,
                                         bool* instructions);
 Result dddiagnosticsGetInteractions(Diagnostics* self, size_t beforeInstruction,
                                     size_t qubit, bool* qubitsAreInteracting);

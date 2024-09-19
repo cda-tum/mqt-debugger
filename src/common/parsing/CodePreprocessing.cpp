@@ -9,14 +9,13 @@
 #include <iterator>
 #include <map>
 #include <memory>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 Instruction::Instruction(size_t inputLineNumber, std::string inputCode,
                          std::unique_ptr<Assertion>& inputAssertion,
-                         std::set<std::string> inputTargets, size_t startPos,
+                         std::vector<std::string> inputTargets, size_t startPos,
                          size_t endPos, size_t successor, bool isFuncCall,
                          std::string function, bool inFuncDef, bool isFuncDef,
                          Block inputBlock)
@@ -77,30 +76,10 @@ bool isFunctionDefinition(const std::string& line) {
   return startsWith(trim(line), "gate ");
 }
 
-std::vector<std::string> parseParameters(const std::string& instruction) {
-  auto parts = splitString(
-      replaceString(
-          replaceString(replaceString(instruction, ";", " "), "\n", " "), "\t",
-          " "),
-      ' ');
-  size_t index = 0;
-  for (auto& part : parts) {
-    index++;
-    if (!part.empty()) {
-      break;
-    }
-  }
-
-  std::string parameterParts;
-  for (size_t i = index; i < parts.size(); i++) {
-    if (parts[i].empty()) {
-      continue;
-    }
-    parameterParts += parts[i];
-  }
-  auto parameters = splitString(removeWhitespace(parameterParts), ',');
-
-  return parameters;
+bool isClassicControlledGate(const std::string& line) {
+  return startsWith(trim(line), "if") &&
+         (line.find('(') != std::string::npos) &&
+         (line.find(')') != std::string::npos);
 }
 
 FunctionDefinition parseFunctionDefinition(const std::string& signature) {
@@ -123,6 +102,56 @@ FunctionDefinition parseFunctionDefinition(const std::string& signature) {
   auto parameters = splitString(removeWhitespace(parameterParts), ',');
 
   return {name, parameters};
+}
+
+std::vector<std::string> parseParameters(const std::string& instruction) {
+  if (isFunctionDefinition(instruction)) {
+    const auto fd = parseFunctionDefinition(instruction);
+    return fd.parameters;
+  }
+
+  if (instruction.find("->") != std::string::npos) {
+    // We only add the quantum variable to the measurement's targets.
+    return parseParameters(splitString(instruction, '-')[0]);
+  }
+
+  if (isClassicControlledGate(instruction)) {
+    const auto end = instruction.find(')');
+
+    return parseParameters(
+        instruction.substr(end + 1, instruction.length() - end - 1));
+  }
+
+  auto parts = splitString(
+      replaceString(
+          replaceString(replaceString(instruction, ";", " "), "\n", " "), "\t",
+          " "),
+      ' ');
+  size_t index = 0;
+  size_t openBrackets = 0;
+  for (auto& part : parts) {
+    index++;
+    openBrackets +=
+        static_cast<size_t>(std::count(part.begin(), part.end(), '('));
+    openBrackets -=
+        static_cast<size_t>(std::count(part.begin(), part.end(), ')'));
+    if (!part.empty() && openBrackets == 0) {
+      break;
+    }
+  }
+
+  std::string parameterParts;
+  for (size_t i = index; i < parts.size(); i++) {
+    if (parts[i].empty()) {
+      continue;
+    }
+    parameterParts += parts[i];
+  }
+  auto parameters = splitString(removeWhitespace(parameterParts), ',');
+  if (parameters.size() == 1 && parameters[0].empty()) {
+    return {};
+  }
+  return parameters;
 }
 
 std::vector<std::string> sweepFunctionNames(const std::string& code) {
@@ -178,9 +207,6 @@ preprocessCode(const std::string& code, size_t startIndex,
     auto tokens = splitString(trimmedLine, ' ');
     auto isAssert = isAssertion(line);
     auto blockPos = line.find("$__block");
-    const auto targetsVector = parseParameters(line);
-    const std::set<std::string> targets(targetsVector.begin(),
-                                        targetsVector.end());
 
     const size_t trueStart = pos + blocksOffset;
 
@@ -198,6 +224,8 @@ preprocessCode(const std::string& code, size_t startIndex,
       block.valid = true;
       line.replace(blockPos, endPos - blockPos + 1, "");
     }
+
+    const auto targets = parseParameters(line);
 
     const size_t trueEnd = end + blocksOffset;
 
@@ -271,20 +299,23 @@ preprocessCode(const std::string& code, size_t startIndex,
   for (auto& instr : instructions) {
     auto vars = parseParameters(instr.code);
     size_t idx = instr.lineNumber - 1;
-    while (!vars.empty() && (instr.lineNumber < instructions.size() ||
-                             idx > instr.lineNumber - instructions.size())) {
-      bool found = false;
+    while (instr.lineNumber != 0 && !vars.empty() &&
+           (instr.lineNumber < instructions.size() ||
+            idx > instr.lineNumber - instructions.size())) {
+      size_t foundIndex = 0;
       for (const auto& var : variableUsages[idx]) {
-        if (std::find(vars.begin(), vars.end(), var) != vars.end()) {
-          found = true;
+        const auto found =
+            std::find_if(vars.begin(), vars.end(), [&var](const auto& v) {
+              return variablesEqual(v, var);
+            });
+        if (found != vars.end()) {
           const auto newEnd = std::remove(vars.begin(), vars.end(), var);
           vars.erase(newEnd, vars.end());
+          instr.dataDependencies.emplace_back(idx, foundIndex);
         }
+        foundIndex++;
       }
-      if (found) {
-        instr.dataDependencies.push_back(idx);
-      }
-      if (idx - 1 == instr.lineNumber - instructions.size()) {
+      if (idx - 1 == instr.lineNumber - instructions.size() || idx == 0) {
         break;
       }
       idx--;

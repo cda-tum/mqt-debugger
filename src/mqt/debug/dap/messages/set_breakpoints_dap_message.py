@@ -9,8 +9,6 @@ from .dap_message import DAPMessage
 if TYPE_CHECKING:
     from .. import DAPServer
 
-# TODO this fails if another file also has breakpoints
-
 
 class SetBreakpointsDAPMessage(DAPMessage):
     """Represents the 'setBreakpoints' DAP request."""
