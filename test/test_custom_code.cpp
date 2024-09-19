@@ -58,9 +58,9 @@ protected:
   }
 };
 
-TEST_F(CustomCodeTest, ClassicControlledOperation) {
+TEST_F(CustomCodeTest, ClassicControlledOperationFalse) {
   loadCode(2, 1,
-           "h q[0];"
+           "z q[0];"
            "cx q[0], q[1];"
            "measure q[0] -> c[0];"
            "if(c==1) x q[1];"
@@ -70,8 +70,24 @@ TEST_F(CustomCodeTest, ClassicControlledOperation) {
   std::array<Complex, 4> amplitudes{};
   Statevector sv{2, 4, amplitudes.data()};
   state->getStateVectorFull(state, &sv);
-  ASSERT_TRUE(complexEquality(amplitudes[0], 1, 0.0) ||
-              complexEquality(amplitudes[1], 1, 0.0));
+  ASSERT_TRUE(complexEquality(amplitudes[0], 1, 0.0));
+
+  ASSERT_EQ(state->stepBackward(state), OK);
+}
+
+TEST_F(CustomCodeTest, ClassicControlledOperationTrue) {
+  loadCode(2, 1,
+           "x q[0];"
+           "cx q[0], q[1];"
+           "measure q[0] -> c[0];"
+           "if(c==1) x q[1];"
+           "if(c==0) z q[1];");
+  ASSERT_EQ(state->runSimulation(state), OK);
+
+  std::array<Complex, 4> amplitudes{};
+  Statevector sv{2, 4, amplitudes.data()};
+  state->getStateVectorFull(state, &sv);
+  ASSERT_TRUE(complexEquality(amplitudes[1], 1, 0.0));
 
   ASSERT_EQ(state->stepBackward(state), OK);
 }
@@ -306,6 +322,18 @@ TEST_F(CustomCodeTest, CollectiveGateAsInteraction) {
       1);
   ASSERT_EQ(causes[0].type, ControlAlwaysZero);
   ASSERT_EQ(causes[0].instruction, 3);
+}
+
+TEST_F(CustomCodeTest, NonZeroControlsInErrorSearch) {
+  loadCode(2, 0,
+           "gate test q1, q2 { cx q1, q2; } x q[0]; test q[1], q[0]; test "
+           "q[0], q[1]; assert-sup q[0];");
+  auto* diagnosis = state->getDiagnostics(state);
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_TRUE(state->didAssertionFail(state));
+  std::array<ErrorCause, 5> errors{};
+  ASSERT_TRUE(diagnosis->potentialErrorCauses(diagnosis, errors.data(),
+                                              errors.size()) == 0);
 }
 
 TEST_F(CustomCodeTest, PaperExampleGrover) {

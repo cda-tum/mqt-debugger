@@ -438,7 +438,8 @@ void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics,
   if (ddsim->instructionTypes[instruction] != SIMULATE) {
     return;
   }
-  const auto numQubits = ddsim->interface.getNumQubits(&ddsim->interface);
+  const auto numQubits =
+      diagnostics->interface.getNumQubits(&diagnostics->interface);
   if (numQubits > 16) {
     return;
   }

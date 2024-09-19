@@ -83,10 +83,6 @@ bool isClassicControlledGate(const std::string& line) {
          (line.find(')') != std::string::npos);
 }
 
-bool isVariableDeclation(const std::string& line) {
-  return startsWith(trim(line), "qreg ") || startsWith(trim(line), "creg ");
-}
-
 FunctionDefinition parseFunctionDefinition(const std::string& signature) {
   auto parts = splitString(
       replaceString(replaceString(signature, "\n", " "), "\t", " "), ' ');
@@ -123,9 +119,6 @@ std::vector<std::string> parseParameters(const std::string& instruction) {
   if (isClassicControlledGate(instruction)) {
     const auto start = instruction.find('(');
     const auto end = instruction.find(')');
-    if (start == std::string::npos || end == std::string::npos) {
-      throw ParsingError("Invalid classic control gate definition");
-    }
 
     return parseParameters(
         instruction.substr(end + 1, instruction.length() - end - 1));
