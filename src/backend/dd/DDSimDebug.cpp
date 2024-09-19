@@ -870,6 +870,9 @@ std::vector<std::string> getTargetVariables(DDSimulationState* ddsim,
     if (ddsim->instructionTypes[i] == RETURN) {
       break;
     }
+    if (i == 0) {
+      break;
+    }
     i--;
   }
 
