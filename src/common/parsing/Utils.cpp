@@ -55,3 +55,16 @@ std::string removeWhitespace(std::string str) {
   str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
   return str;
 }
+
+bool variablesEqual(const std::string& v1, const std::string& v2) {
+  if (v1.find('[') != std::string::npos && v2.find('[') != std::string::npos) {
+    return v1 == v2;
+  }
+  if (v1.find('[') != std::string::npos) {
+    return variablesEqual(splitString(v1, '[')[0], v2);
+  }
+  if (v2.find('[') != std::string::npos) {
+    return variablesEqual(splitString(v2, '[')[0], v1);
+  }
+  return v1 == v2;
+}

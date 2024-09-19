@@ -273,6 +273,41 @@ TEST_F(CustomCodeTest, LargeProgram) {
   ASSERT_EQ(state->getCurrentInstruction(state), 4);
 }
 
+TEST_F(CustomCodeTest, CollectiveGateAsDependency) {
+  loadCode(2, 0, "x q; barrier q[0];");
+  auto* diagnosis = state->getDiagnostics(state);
+  std::array<bool, 4> dependencies{};
+  ASSERT_EQ(
+      diagnosis->getDataDependencies(diagnosis, 3, false, dependencies.data()),
+      OK);
+  ASSERT_EQ(dependencies[0], false);
+  ASSERT_EQ(dependencies[1], false);
+  ASSERT_EQ(dependencies[2], true);
+  ASSERT_EQ(dependencies[3], true);
+}
+
+TEST_F(CustomCodeTest, CollectiveGateAsInteraction) {
+  loadCode(1, 0, "qreg p[1]; cx q, p; assert-ent q[0], p[0];");
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_TRUE(state->didAssertionFail(state));
+
+  auto* diagnosis = state->getDiagnostics(state);
+
+  std::array<bool, 2> interactions{};
+  ASSERT_EQ(diagnosis->getInteractions(diagnosis, 4, 0, interactions.data()),
+            OK);
+
+  ASSERT_TRUE(interactions[0]);
+  ASSERT_TRUE(interactions[1]);
+
+  std::array<ErrorCause, 1> causes{};
+  ASSERT_EQ(
+      diagnosis->potentialErrorCauses(diagnosis, causes.data(), causes.size()),
+      1);
+  ASSERT_EQ(causes[0].type, ControlAlwaysZero);
+  ASSERT_EQ(causes[0].instruction, 3);
+}
+
 TEST_F(CustomCodeTest, PaperExampleGrover) {
   loadCode(3, 3,
            "gate oracle q0, q1, q2, flag {"

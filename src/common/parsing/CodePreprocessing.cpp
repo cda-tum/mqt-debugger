@@ -83,6 +83,10 @@ bool isClassicControlledGate(const std::string& line) {
          (line.find(')') != std::string::npos);
 }
 
+bool isVariableDeclation(const std::string& line) {
+  return startsWith(trim(line), "qreg ") || startsWith(trim(line), "creg ");
+}
+
 FunctionDefinition parseFunctionDefinition(const std::string& signature) {
   auto parts = splitString(
       replaceString(replaceString(signature, "\n", " "), "\t", " "), ' ');
@@ -304,11 +308,15 @@ preprocessCode(const std::string& code, size_t startIndex,
   for (auto& instr : instructions) {
     auto vars = parseParameters(instr.code);
     size_t idx = instr.lineNumber - 1;
-    while (!vars.empty() && (instr.lineNumber < instructions.size() ||
-                             idx > instr.lineNumber - instructions.size())) {
+    while (instr.lineNumber != 0 && !vars.empty() &&
+           (instr.lineNumber < instructions.size() ||
+            idx > instr.lineNumber - instructions.size())) {
       size_t foundIndex = 0;
       for (const auto& var : variableUsages[idx]) {
-        const auto found = std::find(vars.begin(), vars.end(), var);
+        const auto found =
+            std::find_if(vars.begin(), vars.end(), [&var](const auto& v) {
+              return variablesEqual(v, var);
+            });
         if (found != vars.end()) {
           const auto newEnd = std::remove(vars.begin(), vars.end(), var);
           vars.erase(newEnd, vars.end());
@@ -317,7 +325,7 @@ preprocessCode(const std::string& code, size_t startIndex,
         }
         foundIndex++;
       }
-      if (idx - 1 == instr.lineNumber - instructions.size()) {
+      if (idx - 1 == instr.lineNumber - instructions.size() || idx == 0) {
         break;
       }
       idx--;

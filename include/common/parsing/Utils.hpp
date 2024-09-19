@@ -14,3 +14,5 @@ std::string replaceString(std::string str, const std::string& from,
                           const std::string& to);
 
 std::string removeWhitespace(std::string str);
+
+bool variablesEqual(const std::string& v1, const std::string& v2);

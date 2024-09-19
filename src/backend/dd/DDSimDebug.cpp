@@ -854,6 +854,50 @@ Result destroyDDSimulationState(DDSimulationState* self) {
 }
 
 //-----------------------------------------------------------------------------------------
+
+std::vector<std::string> getTargetVariables(DDSimulationState* ddsim,
+                                            size_t instruction) {
+  std::vector<std::string> result;
+  const auto& targets = ddsim->targetQubits[instruction];
+  size_t parentFunction = -1ULL;
+  size_t i = instruction;
+  while (true) {
+    if (ddsim->functionDefinitions.find(i) !=
+        ddsim->functionDefinitions.end()) {
+      parentFunction = i;
+      break;
+    }
+    if (ddsim->instructionTypes[i] == RETURN) {
+      break;
+    }
+    i--;
+  }
+
+  const auto parameters = parentFunction != -1ULL
+                              ? ddsim->targetQubits[parentFunction]
+                              : std::vector<std::string>{};
+  for (const auto& target : ddsim->targetQubits[instruction]) {
+    if (std::find(parameters.begin(), parameters.end(), target) !=
+        parameters.end()) {
+      result.push_back(target);
+      continue;
+    }
+    const auto foundRegister =
+        std::find_if(ddsim->qubitRegisters.begin(), ddsim->qubitRegisters.end(),
+                     [target](const QubitRegisterDefinition& reg) {
+                       return reg.name == target;
+                     });
+    if (foundRegister != ddsim->qubitRegisters.end()) {
+      for (size_t j = 0; j < foundRegister->size; j++) {
+        result.push_back(target + "[" + std::to_string(j) + "]");
+      }
+    } else {
+      result.push_back(target);
+    }
+  }
+  return result;
+}
+
 size_t variableToQubit(DDSimulationState* ddsim, const std::string& variable) {
   auto declaration = replaceString(variable, " ", "");
   declaration = replaceString(declaration, "\t", "");

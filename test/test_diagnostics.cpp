@@ -175,7 +175,6 @@ TEST_F(DiagnosticsTest, ZeroControlsWithJumps) {
 
 TEST_F(DiagnosticsTest, DataDependenciesWithJumps) {
   loadFromFile("diagnose-with-jumps");
-  auto* diagnostics = state->getDiagnostics(state);
   const std::map<size_t, std::set<size_t>> expected = {
       {1, {1}},
       {2, {2, 13, 7, 5, 1}},
@@ -221,7 +220,6 @@ TEST_F(DiagnosticsTest, DataDependenciesWithJumps) {
 
 TEST_F(DiagnosticsTest, InteractionsWithJumps) {
   loadFromFile("diagnose-with-jumps");
-  auto* diagnostics = state->getDiagnostics(state);
 
   const std::map<std::pair<size_t, size_t>, std::set<size_t>> expected = {
       {{1, 0}, {0}},        {{1, 1}, {1}},        {{1, 2}, {2}},
@@ -259,7 +257,6 @@ TEST_F(DiagnosticsTest, RuntimeInteractions) {
   ASSERT_TRUE(state->didAssertionFail(state));
   ASSERT_EQ(state->getCurrentInstruction(state), 3);
 
-  auto* diagnostics = state->getDiagnostics(state);
   std::array<ErrorCause, 10> errors{};
   ASSERT_EQ(diagnostics->potentialErrorCauses(diagnostics, errors.data(), 10),
             1);

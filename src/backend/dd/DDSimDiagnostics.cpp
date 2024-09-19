@@ -99,6 +99,9 @@ void visitCall(DDSimulationState* ddsim, size_t current, size_t qubitIndex,
       }
       break;
     }
+    if (checkInstruction == 0) {
+      break;
+    }
     checkInstruction--;
   }
 }
@@ -162,6 +165,9 @@ Result dddiagnosticsGetDataDependencies(Diagnostics* self, size_t instruction,
 
     for (auto dep : ddsim->dataDependencies[current]) {
       const auto depInstruction = dep.first;
+      if (ddsim->instructionTypes[depInstruction] == NOP) {
+        continue; // We don't want variable declarations as dependencies.
+      }
       if (visited.find(depInstruction) == visited.end()) {
         toVisit.insert(depInstruction);
       }
@@ -203,7 +209,7 @@ Result dddiagnosticsGetInteractions(Diagnostics* self, size_t beforeInstruction,
         continue;
       }
 
-      auto& targets = ddsim->targetQubits[i];
+      auto targets = getTargetVariables(ddsim, i);
       std::set<size_t> targetQubits;
       for (const auto& target : targets) {
         targetQubits.insert(variableToQubitAt(ddsim, target, i).first);
@@ -411,7 +417,7 @@ Result dddiagnosticsGetZeroControlInstructions(Diagnostics* self,
 void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics,
                                 size_t instruction) {
   auto* ddsim = diagnostics->simulationState;
-  const auto& targets = ddsim->targetQubits[instruction];
+  const auto targets = getTargetVariables(ddsim, instruction);
 
   // Add actual qubits to tracker.
   if (ddsim->instructionTypes[instruction] == SIMULATE ||

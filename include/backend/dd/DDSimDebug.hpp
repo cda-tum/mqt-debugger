@@ -136,3 +136,6 @@ bool isSubStateVectorLegal(const Statevector& full,
 std::vector<std::vector<Complex>>
 getPartialTraceFromStateVector(const Statevector& sv,
                                const std::vector<size_t>& traceOut);
+
+std::vector<std::string> getTargetVariables(DDSimulationState* ddsim,
+                                            size_t instruction);
