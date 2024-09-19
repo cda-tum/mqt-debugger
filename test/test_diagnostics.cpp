@@ -49,7 +49,8 @@ TEST_F(DiagnosticsTest, DataDependencies) {
     std::vector<uint8_t> dependencies(state->getInstructionCount(state), 0);
     // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     diagnostics->getDataDependencies(
-        diagnostics, instruction, reinterpret_cast<bool*>(dependencies.data()));
+        diagnostics, instruction, false,
+        reinterpret_cast<bool*>(dependencies.data()));
     // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     std::set<size_t> dependenciesSet;
     for (size_t i = 0; i < dependencies.size(); ++i) {
@@ -204,7 +205,8 @@ TEST_F(DiagnosticsTest, DataDependenciesWithJumps) {
     std::vector<uint8_t> dependencies(state->getInstructionCount(state), 0);
     // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     diagnostics->getDataDependencies(
-        diagnostics, pair.first, reinterpret_cast<bool*>(dependencies.data()));
+        diagnostics, pair.first, false,
+        reinterpret_cast<bool*>(dependencies.data()));
     // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     std::set<size_t> dependenciesSet;
     for (size_t i = 0; i < dependencies.size(); ++i) {
@@ -249,4 +251,22 @@ TEST_F(DiagnosticsTest, InteractionsWithJumps) {
         << "Failed for instruction " << pair.first.first << " qubit "
         << pair.first.second;
   }
+}
+
+TEST_F(DiagnosticsTest, RuntimeInteractions) {
+  loadFromFile("runtime-interaction");
+  ASSERT_EQ(state->runSimulation(state), OK);
+  ASSERT_TRUE(state->didAssertionFail(state));
+  ASSERT_EQ(state->getCurrentInstruction(state), 3);
+
+  auto* diagnostics = state->getDiagnostics(state);
+  std::array<ErrorCause, 10> errors{};
+  ASSERT_EQ(diagnostics->potentialErrorCauses(diagnostics, errors.data(), 10),
+            1);
+
+  // Interaction happens outside of the instruction, so we don't expect a
+  // missing interaction.
+
+  ASSERT_EQ(errors[0].type, ErrorCauseType::ControlAlwaysZero);
+  ASSERT_EQ(errors[0].instruction, 6);
 }

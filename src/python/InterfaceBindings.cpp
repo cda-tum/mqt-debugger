@@ -259,22 +259,24 @@ void bindDiagnostics(py::module& m) {
            [](Diagnostics* self) { return self->getNumQubits(self); })
       .def("get_instruction_count",
            [](Diagnostics* self) { return self->getInstructionCount(self); })
-      .def("get_data_dependencies",
-           [](Diagnostics* self, size_t instruction) {
-             std::vector<uint8_t> instructions(self->getInstructionCount(self));
-             // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
-             checkOrThrow(self->getDataDependencies(
-                 self, instruction,
-                 reinterpret_cast<bool*>(instructions.data())));
-             // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
-             std::vector<size_t> result;
-             for (size_t i = 0; i < instructions.size(); i++) {
-               if (instructions[i] != 0) {
-                 result.push_back(i);
-               }
-             }
-             return result;
-           })
+      .def(
+          "get_data_dependencies",
+          [](Diagnostics* self, size_t instruction, bool includeCallers) {
+            std::vector<uint8_t> instructions(self->getInstructionCount(self));
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+            checkOrThrow(self->getDataDependencies(
+                self, instruction, includeCallers,
+                reinterpret_cast<bool*>(instructions.data())));
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+            std::vector<size_t> result;
+            for (size_t i = 0; i < instructions.size(); i++) {
+              if (instructions[i] != 0) {
+                result.push_back(i);
+              }
+            }
+            return result;
+          },
+          py::arg("instruction"), py::arg("include_callers") = false)
       .def("get_interactions",
            [](Diagnostics* self, size_t beforeInstruction, size_t qubit) {
              std::vector<uint8_t> qubits(self->getNumQubits(self));

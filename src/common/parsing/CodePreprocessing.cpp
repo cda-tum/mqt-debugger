@@ -77,6 +77,12 @@ bool isFunctionDefinition(const std::string& line) {
   return startsWith(trim(line), "gate ");
 }
 
+bool isClassicControlledGate(const std::string& line) {
+  return startsWith(trim(line), "if") &&
+         (line.find('(') != std::string::npos) &&
+         (line.find(')') != std::string::npos);
+}
+
 FunctionDefinition parseFunctionDefinition(const std::string& signature) {
   auto parts = splitString(
       replaceString(replaceString(signature, "\n", " "), "\t", " "), ' ');
@@ -105,15 +111,36 @@ std::vector<std::string> parseParameters(const std::string& instruction) {
     return fd.parameters;
   }
 
+  if (instruction.find("->") != std::string::npos) {
+    // We only add the quantum variable to the measurement's targets.
+    return parseParameters(splitString(instruction, '-')[0]);
+  }
+
+  if (isClassicControlledGate(instruction)) {
+    const auto start = instruction.find('(');
+    const auto end = instruction.find(')');
+    if (start == std::string::npos || end == std::string::npos) {
+      throw ParsingError("Invalid classic control gate definition");
+    }
+
+    return parseParameters(
+        instruction.substr(end + 1, instruction.length() - end - 1));
+  }
+
   auto parts = splitString(
       replaceString(
           replaceString(replaceString(instruction, ";", " "), "\n", " "), "\t",
           " "),
       ' ');
   size_t index = 0;
+  size_t openBrackets = 0;
   for (auto& part : parts) {
     index++;
-    if (!part.empty()) {
+    openBrackets +=
+        static_cast<size_t>(std::count(part.begin(), part.end(), '('));
+    openBrackets -=
+        static_cast<size_t>(std::count(part.begin(), part.end(), ')'));
+    if (!part.empty() && openBrackets == 0) {
       break;
     }
   }
@@ -126,7 +153,9 @@ std::vector<std::string> parseParameters(const std::string& instruction) {
     parameterParts += parts[i];
   }
   auto parameters = splitString(removeWhitespace(parameterParts), ',');
-
+  if (parameters.size() == 1 && parameters[0].empty()) {
+    return {};
+  }
   return parameters;
 }
 

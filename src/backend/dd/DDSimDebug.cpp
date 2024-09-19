@@ -1319,6 +1319,7 @@ std::string preprocessAssertionCode(const char* code,
   ddsim->qubitRegisters.clear();
   ddsim->successorInstructions.clear();
   ddsim->dataDependencies.clear();
+  ddsim->functionCallers.clear();
   ddsim->targetQubits.clear();
 
   for (auto& instruction : instructions) {
@@ -1331,6 +1332,15 @@ std::string preprocessAssertionCode(const char* code,
     for (const auto& dependency : instruction.dataDependencies) {
       ddsim->dataDependencies[instruction.lineNumber].emplace_back(
           dependency.first, dependency.second);
+    }
+    if (instruction.isFunctionCall) {
+      const size_t successorInFunction = instruction.successorIndex;
+      const size_t functionIndex = successorInFunction - 1;
+      if (ddsim->functionCallers.find(functionIndex) ==
+          ddsim->functionCallers.end()) {
+        ddsim->functionCallers.insert({functionIndex, {}});
+      }
+      ddsim->functionCallers[functionIndex].insert(instruction.lineNumber);
     }
 
     // what exactly we do with each instruction depends on its type:

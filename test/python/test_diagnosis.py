@@ -44,7 +44,7 @@ def test_data_dependencies_jumps() -> None:
     dependencies = s.get_diagnostics().get_data_dependencies(4)
     assert dependencies == [2, 3, 4]
     dependencies = s.get_diagnostics().get_data_dependencies(9)
-    assert dependencies == [6, 7, 8, 9]
+    assert dependencies == [2, 3, 4, 6, 7, 8, 9]
     destroy_ddsim_simulation_state(s)
 
 
@@ -54,10 +54,13 @@ def test_control_always_zero() -> None:
     s.run_simulation()
     causes = s.get_diagnostics().potential_error_causes()
 
-    assert len(causes) == 1  # once diagnosis can step into jumps, this should be 2
+    assert len(causes) == 2
 
     assert causes[0].type == ErrorCauseType.ControlAlwaysZero
-    assert causes[0].instruction == 12
+    assert causes[0].instruction == 3
+
+    assert causes[1].type == ErrorCauseType.ControlAlwaysZero
+    assert causes[1].instruction == 12
 
 
 def test_missing_interaction() -> None:
@@ -78,3 +81,15 @@ def test_zero_control_listing() -> None:
     s.run_simulation()
     zero_controls = s.get_diagnostics().get_zero_control_instructions()
     assert zero_controls == [3, 12]
+
+
+def test_data_dependencies_with_callers() -> None:
+    """Tests the data dependency analysis with enabling callers."""
+    s = load_instance("data-dependencies-with-callers")
+    s.run_simulation()
+    dependencies = s.get_diagnostics().get_data_dependencies(2, include_callers=True)
+    assert dependencies == [2, 4, 6, 8, 9]
+
+    dependencies = s.get_diagnostics().get_data_dependencies(7, include_callers=True)
+    assert dependencies == [2, 4, 6, 7]
+    # 8 and 9 are not included `test` doesn't have unknown callers in this case, so the analysis won't include all callers.

@@ -127,7 +127,7 @@ void CliFrontEnd::printState(SimulationState* state, size_t inspecting,
     auto* deps = inspectingDependencies.data();
     // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     state->getDiagnostics(state)->getDataDependencies(
-        state->getDiagnostics(state), inspecting,
+        state->getDiagnostics(state), inspecting, true,
         reinterpret_cast<bool*>(deps));
     // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     uint8_t on = 0;
