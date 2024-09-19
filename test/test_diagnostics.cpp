@@ -1,6 +1,7 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
+#include "common.h"
 #include "utils_test.hpp"
 
 #include <array>

@@ -8,7 +8,6 @@
 #include "backend/diagnostics.h"
 #include "common.h"
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>

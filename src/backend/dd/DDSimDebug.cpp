@@ -24,6 +24,7 @@
 #include <cstring>
 #include <exception>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <numeric>
 #include <random>
@@ -858,7 +859,6 @@ Result destroyDDSimulationState(DDSimulationState* self) {
 std::vector<std::string> getTargetVariables(DDSimulationState* ddsim,
                                             size_t instruction) {
   std::vector<std::string> result;
-  const auto& targets = ddsim->targetQubits[instruction];
   size_t parentFunction = -1ULL;
   size_t i = instruction;
   while (true) {
