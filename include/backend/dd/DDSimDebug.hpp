@@ -1,3 +1,8 @@
+/**
+ * @file DDSimDebug.hpp
+ * @brief Contains the implementation of the `SimulationState` interface for the
+ * DD simulator and related data structures and tools.
+ */
 #pragma once
 
 #include "DDSimDiagnostics.hpp"
