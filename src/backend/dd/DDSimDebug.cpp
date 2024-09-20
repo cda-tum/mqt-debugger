@@ -1406,7 +1406,7 @@ std::string preprocessAssertionCode(const char* code,
       ddsim->instructionTypes.push_back(ASSERTION);
       ddsim->assertionInstructions.insert(
           {instruction.lineNumber, std::move(instruction.assertion)});
-    } else if (instruction.isFunctionDefition) {
+    } else if (instruction.isFunctionDefinition) {
       if (!instruction.inFunctionDefinition) {
         correctLines.push_back(
             validCodeFromChildren(instruction, instructions));

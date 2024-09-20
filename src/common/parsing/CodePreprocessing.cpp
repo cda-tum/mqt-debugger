@@ -24,7 +24,7 @@ Instruction::Instruction(size_t inputLineNumber, std::string inputCode,
       originalCodeStartPosition(startPos), originalCodeEndPosition(endPos),
       successorIndex(successor), isFunctionCall(isFuncCall),
       calledFunction(std::move(function)), inFunctionDefinition(inFuncDef),
-      isFunctionDefition(isFuncDef), block(std::move(inputBlock)) {}
+      isFunctionDefinition(isFuncDef), block(std::move(inputBlock)) {}
 
 std::string sweepBlocks(const std::string& code,
                         std::map<std::string, std::string>& blocks) {
