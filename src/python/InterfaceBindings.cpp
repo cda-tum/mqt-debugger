@@ -21,12 +21,23 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
+/**
+ * @brief Checks whether the given result is OK, and throws a runtime_error
+ * otherwise.
+ * @param result The result to check.
+ */
 void checkOrThrow(Result result) {
   if (result != OK) {
     throw std::runtime_error("An error occurred while executing the operation");
   }
 }
 
+/**
+ * @brief A representation of statevectors in C++ style, using std::vector
+ * instead of a raw pointer.
+ *
+ * This is used to make the statevector more easily accessible from Python.
+ */
 struct StatevectorCPP {
   size_t numQubits = 0;
   size_t numStates = 0;
