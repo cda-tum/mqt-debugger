@@ -1,3 +1,8 @@
+/**
+ * @file CodePreprocessing.cpp
+ * @brief Implementation of the code preprocessing functionality.
+ */
+
 #include "common/parsing/CodePreprocessing.hpp"
 
 #include "common/parsing/AssertionParsing.hpp"
@@ -26,6 +31,13 @@ Instruction::Instruction(size_t inputLineNumber, std::string inputCode,
       calledFunction(std::move(function)), inFunctionDefinition(inFuncDef),
       isFunctionDefinition(isFuncDef), block(std::move(inputBlock)) {}
 
+/**
+ * @brief Sweep a given code string for blocks and replace them with a unique
+ * identifier.
+ * @param code The code to sweep.
+ * @param blocks A map to store the blocks and their respective identifiers in.
+ * @return The code with the blocks replaced by their identifiers.
+ */
 std::string sweepBlocks(const std::string& code,
                         std::map<std::string, std::string>& blocks) {
   std::string result = code;
@@ -55,6 +67,12 @@ std::string sweepBlocks(const std::string& code,
   return result;
 }
 
+/**
+ * @brief Sweep a given code string for comments and replace them with
+ * whitespace.
+ * @param code The code to sweep.
+ * @return The code with the comments replaced by whitespace.
+ */
 std::string removeComments(const std::string& code) {
   std::string result = code;
   for (size_t pos = 0; pos < result.size(); pos++) {
@@ -72,20 +90,46 @@ std::string removeComments(const std::string& code) {
   return result;
 }
 
+/**
+ * @brief Check if a given line is a function definition.
+ *
+ * This is done by checking if it starts with `gate `.
+ * @param line The line to check.
+ * @return True if the line is a function definition, false otherwise.
+ */
 bool isFunctionDefinition(const std::string& line) {
   return startsWith(trim(line), "gate ");
 }
 
+/**
+ * @brief Check if a given line is a classic controlled gate.
+ *
+ * This is done by checking if it starts with `if` and contains parentheses.
+ * @param line The line to check.
+ * @return True if the line is a classic controlled gate, false otherwise.
+ */
 bool isClassicControlledGate(const std::string& line) {
   return startsWith(trim(line), "if") &&
          (line.find('(') != std::string::npos) &&
          (line.find(')') != std::string::npos);
 }
 
+/**
+ * @brief Check if a given line is a variable declaration.
+ *
+ * This is done by checking if it contains `creg ` or `qreg `.
+ * @param line The line to check.
+ * @return True if the line is a variable declaration, false otherwise.
+ */
 bool isVariableDeclaration(const std::string& line) {
   return startsWith(trim(line), "creg ") || startsWith(trim(line), "qreg ");
 }
 
+/**
+ * @brief Parse a function definition from a given signature.
+ * @param signature The signature to parse.
+ * @return The parsed function definition.
+ */
 FunctionDefinition parseFunctionDefinition(const std::string& signature) {
   auto parts = splitString(
       replaceString(replaceString(signature, "\n", " "), "\t", " "), ' ');
@@ -108,6 +152,11 @@ FunctionDefinition parseFunctionDefinition(const std::string& signature) {
   return {name, parameters};
 }
 
+/**
+ * @brief Parse the parameters or arguments from a given instruction.
+ * @param instruction The instruction to parse.
+ * @return A vector containing the parsed parameters.
+ */
 std::vector<std::string> parseParameters(const std::string& instruction) {
   if (isFunctionDefinition(instruction)) {
     const auto fd = parseFunctionDefinition(instruction);
@@ -158,6 +207,11 @@ std::vector<std::string> parseParameters(const std::string& instruction) {
   return parameters;
 }
 
+/**
+ * @brief Sweep a given code string for function names.
+ * @param code The code to sweep.
+ * @return A vector containing the function names.
+ */
 std::vector<std::string> sweepFunctionNames(const std::string& code) {
   std::vector<std::string> result;
   const std::vector<char> delimiters{';', '}'};
@@ -171,6 +225,16 @@ std::vector<std::string> sweepFunctionNames(const std::string& code) {
   return result;
 }
 
+/**
+ * @brief Unfold the targets of assertions that otherwise target full registers.
+ *
+ * E.g. `assert-ent q` can be unfolded into `assert-ent q[0], q[1], q[2],
+ * ...`.\n `shadowedRegisters` contains all registers that are shadowed by
+ * function-local variables and should therefore not be unfolded.
+ * @param assertion The assertion to unfold.
+ * @param definedRegisters The defined registers in the code.
+ * @param shadowedRegisters The shadowed registers in the code.
+ */
 void unfoldAssertionTargetRegisters(
     Assertion& assertion, const std::map<std::string, size_t>& definedRegisters,
     const std::vector<std::string>& shadowedRegisters) {

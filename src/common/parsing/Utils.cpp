@@ -1,3 +1,8 @@
+/**
+ * @file Utils.cpp
+ * @brief Implementation of utility functions used by the debugger.
+ */
+
 #include "common/parsing/Utils.hpp"
 
 #include <algorithm>

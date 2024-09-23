@@ -1,3 +1,8 @@
+/**
+ * @file AssertionParsing.cpp
+ * @brief Implementation of the assertion parsing functionality.
+ */
+
 #include "common/parsing/AssertionParsing.hpp"
 
 #include "common.h"
@@ -84,6 +89,12 @@ const std::string& CircuitEqualityAssertion::getCircuitCode() const {
   return circuitCode;
 }
 
+/**
+ * @brief Extract the targets of the assertion from its string representation.
+ * @param targetPart The string representation of the full targets of the
+ * assertion.
+ * @return The targets of the assertion.
+ */
 std::vector<std::string> extractTargetQubits(const std::string& targetPart) {
   const auto parts = splitString(targetPart, ',');
   std::vector<std::string> trimmedParts(parts.size());
@@ -91,6 +102,11 @@ std::vector<std::string> extractTargetQubits(const std::string& targetPart) {
   return trimmedParts;
 }
 
+/**
+ * @brief Parse a complex number from a string.
+ * @param complexString The string representation of the complex number.
+ * @return The parsed complex number.
+ */
 Complex parseComplex(std::string complexString) {
   complexString = removeWhitespace(complexString);
   auto parts = splitString(complexString, '+');
@@ -108,6 +124,11 @@ Complex parseComplex(std::string complexString) {
   return {real, imaginary};
 }
 
+/**
+ * @brief Parse a statevector from a string.
+ * @param statevectorString The string representation of the statevector.
+ * @return The parsed statevector.
+ */
 Statevector parseStatevector(std::string statevectorString) {
   statevectorString = removeWhitespace(statevectorString);
   auto parts = splitString(statevectorString, ',');
@@ -134,6 +155,14 @@ Statevector parseStatevector(std::string statevectorString) {
   return sv;
 }
 
+/**
+ * @brief Check if the given expression is an assertion.
+ *
+ * This is done by checking if it starts with `assert-ent`, `assert-sup`, or
+ * `assert-eq`.
+ * @param expression The expression to check.
+ * @return True if the expression is an assertion, false otherwise.
+ */
 bool isAssertion(std::string expression) {
   expression = trim(expression);
   return startsWith(expression, "assert-ent") ||

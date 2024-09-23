@@ -581,7 +581,7 @@ Diagnostics* ddsimGetDiagnostics(SimulationState* self);
 /**
  * @brief Creates a new `DDSimulationState` instance.
  *
- * This method expects an allocated memory block for the `DDSimulationState`
+ * This function expects an allocated memory block for the `DDSimulationState`
  * instance.
  * @param self The instance to create.
  * @return The result of the operation.
