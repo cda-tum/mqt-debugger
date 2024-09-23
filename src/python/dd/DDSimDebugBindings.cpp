@@ -1,3 +1,11 @@
+/**
+ * @file DDSimDebugBindings.cpp
+ * @brief Implements Python bindings for the DD Debugger.
+ *
+ * This includes bindings for creating and destroying DD SimulationStates and
+ * Diagnostics states.
+ */
+
 #include "python/dd/DDSimDebugBindings.hpp"
 
 #include "backend/dd/DDSimDebug.hpp"

@@ -1,3 +1,9 @@
+/**
+ * @file InterfaceBindings.cpp
+ * @brief Implementation of the Python bindings for the general debugging and
+ * diagnostics interfaces.
+ */
+
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
 #include "common.h"
