@@ -1,3 +1,8 @@
+/**
+ * @file testDDSimDebugger.cpp
+ * @brief A test application that runs the CLI frontend using the DD backend.
+ */
+
 #include "backend/dd/DDSimDebug.hpp"
 #include "frontend/cli/CliFrontEnd.hpp"
 
