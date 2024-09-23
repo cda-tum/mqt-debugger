@@ -1,3 +1,8 @@
+/**
+ * @file test_simulation.cpp
+ * @brief Test the functionality of the simulation methods.
+ */
+
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "common.h"
@@ -10,6 +15,12 @@
 #include <utility>
 #include <vector>
 
+/**
+ * @brief Fixture for testing the correctness of the simulation methods.
+ *
+ * This parametrized fixture creates a DDSimulationState. The parameter value
+ * defines the specific file to run the tests on.
+ */
 class SimulationTest : public testing::TestWithParam<std::string> {
   void SetUp() override {
     createDDSimulationState(&ddState);
@@ -18,14 +29,55 @@ class SimulationTest : public testing::TestWithParam<std::string> {
   }
 
 protected:
+  /**
+   * @brief The DDSimulationState to use for testing.
+   */
   DDSimulationState ddState{};
+  /**
+   * @brief A reference to the SimulationState interface for easier access.
+   */
   SimulationState* state = nullptr;
 
+  /**
+   * @brief Load the code from the file with the given name.
+   *
+   * The given file should be located in the `circuits` directory and use the
+   * `.qasm` extension.
+   * @param testName The name of the file to load (not including the `circuits`
+   * directory path and the extension).
+   */
   void loadFromFile(const std::string& testName) {
     const auto code = readFromCircuitsPath(testName);
     state->loadCode(state, code.c_str());
   }
 
+  /**
+   * @brief Move the simulation through the given sequence of movements and
+   * check the results.
+   *
+   * The caller provides a list of actions and the expected instruction after
+   * each action. The method will execute the actions and check if the expected
+   * instruction is reached. It will also test that no error is returned by any
+   * step.\n\n
+   *
+   * By providing the movement type `assertion`, the method will check if the
+   * previous step failed an assertion.\n\n
+   *
+   * Supported movement types are:\n
+   * - `sf`: step forward\n
+   * - `of`: step over forward\n
+   * - `uf`: step out forward\n
+   * - `rf`: run simulation forward\n
+   * - `sb`: step backward\n
+   * - `ob`: step over backward\n
+   * - `ub`: step out backward\n
+   * - `rb`: run simulation backward\n
+   * - `assertion`: check if the previous step failed an assertion
+   *
+   * @param movements A list of pairs representing the desired movement. The
+   * first element of the pair is the movement type, the second element is the
+   * expected instruction after the movement.
+   */
   void moveAndCheck(
       const std::vector<std::pair<const std::string, size_t>>& movements) {
     size_t step = 0;
@@ -68,6 +120,14 @@ protected:
   }
 };
 
+/**
+ * @test Repeatedly step forward through the code until the end is reached and
+ * check, whether the expected instructions are traversed.
+ *
+ * For `failing-assertions`, this is a straight line from 0 to 10, repeating the
+ * indices of all failed assertions.\n For `complex-jumps`, this includes
+ * several calls leading to jumps through the code.
+ */
 TEST_P(SimulationTest, StepThroughCode) {
   const std::map<const std::string, std::vector<size_t>> expected = {
       {"complex-jumps", {0, 1,  4, 9,  12, 5, 6, 10, 2,  3,  11, 7, 10, 2,
@@ -79,6 +139,14 @@ TEST_P(SimulationTest, StepThroughCode) {
   }
 }
 
+/**
+ * @test Test the correctness of the `getStackDepth` and `getStackTrace` methods
+ * of the debugging interface at each instruction.
+ *
+ * For `failing-assertions`, the stack trace is always 1, as there are no jumps
+ * or calls.\n For `complex-jumps`, the stack traces are different, as it
+ * includes multiple calls and jumps.
+ */
 TEST_P(SimulationTest, StackTraceRetrieval) {
   const std::map<const std::string, std::vector<size_t>> expectedDepths = {
       {"complex-jumps", {1, 1, 1, 1, 1, 2, 2, 3, 4, 4, 3, 2, 3, 4,
@@ -146,6 +214,14 @@ TEST_P(SimulationTest, StackTraceRetrieval) {
   }
 }
 
+/**
+ * @test Test that breakpoints can be set correctly at top-level instructions in
+ * the code.
+ *
+ * This tests that the breakpoints land at the expected instructions and that a
+ * running simulation will pause at the correct instruction.\n It also tests
+ * that removing breakpoints works as expected.
+ */
 TEST_P(SimulationTest, TopLevelBreakpoints) {
   const std::map<const std::string, std::vector<size_t>> breakpointPositions = {
       {"complex-jumps", {174, 451, 488, 525}},
@@ -196,14 +272,17 @@ TEST_P(SimulationTest, TopLevelBreakpoints) {
   }
 }
 
+/**
+ * @test Tests the correctness of the `pauseSimulation` method.
+ *
+ * The protocol allows us to be lenient with the 'pause' operation. We do not
+ * need to pause immediately, instead we can pause at the next convenient
+ * time. 'stepOver' and 'stepOut' methods therefore do not necessarily stop if
+ * 'pause' was called before they started. `run` (in both directions), on the
+ * other hand, will ALWAYS pause immediately, even if 'pause' was called
+ * before they started.
+ */
 TEST_P(SimulationTest, PauseSimulation) {
-  // The protocol allows us to be lenient with the 'pause' operation. We do not
-  // need to pause immediately, instead we can pause at the next convenient
-  // time. 'stepOver' and 'stepOut' methods therefore do not necessarily stop if
-  // 'pause' was called before they started. `run` (in both directions), on the
-  // other hand, will ALWAYS pause immediately, even if 'pause' was called
-  // before they started.
-
   ASSERT_EQ(state->stepForward(state), Result::OK);
 
   size_t currentPosition = state->getCurrentInstruction(state);
@@ -283,6 +362,12 @@ TEST_P(SimulationTest, PauseSimulation) {
   ASSERT_EQ(state->getCurrentInstruction(state), 5);
 }
 
+/**
+ * @test Test the correctness of the `resetSimulation` method.
+ *
+ * This is done by first running the simulation for a few steps, then resetting
+ * it and checking if the simulation starts from the beginning.
+ */
 TEST_P(SimulationTest, ResetSimulation) {
   for (size_t i = 0; i < 10; i++) {
     ASSERT_EQ(state->stepOverForward(state), Result::OK);
@@ -302,6 +387,18 @@ TEST_P(SimulationTest, ResetSimulation) {
   }
 }
 
+/**
+ * @test Test the correctness of the `stepOverForward` and `stepOverBackward`
+ * methods.
+ *
+ * This test steps through the simulation in both directions using different
+ * movement types and checks the "step over" methods at different times during
+ * execution, such as before a custom gate call, after one, etc.\n\n
+ *
+ * For `complex-jumps`, this specifically concerns the jumps and calls in the
+ * code.\n For `failing-assertions`, this concerns the encountered assertions,
+ * making sure that they are identified correctly.
+ */
 TEST_P(SimulationTest, StepOver) {
   const std::map<const std::string,
                  std::vector<std::pair<const std::string, size_t>>>
@@ -329,6 +426,18 @@ TEST_P(SimulationTest, StepOver) {
   moveAndCheck(expected.at(GetParam()));
 }
 
+/**
+ * @test Test the correctness of the `stepOutForward` and `stepOutBackward`
+ * methods.
+ *
+ * This test steps through the simulation in both directions using different
+ * movement types and checks the "step out" methods at different times during
+ * execution, such as before a custom gate call, after one, etc.\n\n
+ *
+ * For `complex-jumps`, this specifically concerns the jumps and calls in the
+ * code.\n For `failing-assertions`, this concerns the encountered assertions,
+ * making sure that they are identified correctly.
+ */
 TEST_P(SimulationTest, StepOut) {
   const std::map<const std::string,
                  std::vector<std::pair<const std::string, size_t>>>
@@ -352,6 +461,18 @@ TEST_P(SimulationTest, StepOut) {
   moveAndCheck(expected.at(GetParam()));
 }
 
+/**
+ * @test Test the correctness of the `runSimulation` and `runSimulationBackward`
+ * methods.
+ *
+ * This test steps through the simulation in both directions using different
+ * movement types and checks the "run" methods at different times during
+ * execution, such as before a custom gate call, after one, etc.\n\n
+ *
+ * For `complex-jumps`, this specifically concerns the jumps and calls in the
+ * code.\n For `failing-assertions`, this concerns the encountered assertions,
+ * making sure that they are identified correctly.
+ */
 TEST_P(SimulationTest, RunSimulation) {
   const std::map<const std::string,
                  std::vector<std::pair<const std::string, size_t>>>
@@ -383,6 +504,13 @@ TEST_P(SimulationTest, RunSimulation) {
   ASSERT_TRUE(state->isFinished(state));
 }
 
+/**
+ * @test Test that breakpoints located inside gate definitions are handled
+ * correctly.
+ *
+ * This particularly also checks the interactions of breakpoints with "step out"
+ * and "step over" instructions.
+ */
 TEST_P(SimulationTest, InGateDefinitionBreakpoints) {
   if (GetParam() != "complex-jumps") {
     return;
@@ -457,6 +585,10 @@ TEST_P(SimulationTest, InGateDefinitionBreakpoints) {
   }
 }
 
+/**
+ * @test Test that errors are returned when trying to step forward at the end of
+ * the code or backward at the beginning.
+ */
 TEST_P(SimulationTest, StepAtEnds) {
   size_t errors = 0;
   state->runAll(state, &errors);
@@ -469,6 +601,10 @@ TEST_P(SimulationTest, StepAtEnds) {
   ASSERT_EQ(state->stepOutBackward(state), Result::ERROR);
 }
 
+/**
+ * @test Test that errors are returned when placing breakpoints outside the
+ * code.
+ */
 TEST_P(SimulationTest, BreakpointOutside) {
   size_t location = 0;
   ASSERT_EQ(state->setBreakpoint(state, 9999, &location), ERROR);

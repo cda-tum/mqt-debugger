@@ -1,3 +1,11 @@
+/**
+ * @file test_data_retrieval.cpp
+ * @brief Test the functionality of data-retrieval functions in the simulation.
+ *
+ * This includes the access to classical variables, qubits, and the state
+ * vector.
+ */
+
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "common.h"
@@ -9,6 +17,13 @@
 #include <string>
 #include <vector>
 
+/**
+ * @brief Fixture for testing the correctness of the debugger for data retrieval
+ * operations.
+ *
+ * This fixture creates a DDSimulationState and loads the code from the file
+ * `circuits/classical-storage`.
+ */
 class DataRetrievalTest : public testing::Test {
   void SetUp() override {
     createDDSimulationState(&ddState);
@@ -17,14 +32,33 @@ class DataRetrievalTest : public testing::Test {
   }
 
 protected:
+  /**
+   * @brief The DDSimulationState to use for testing.
+   */
   DDSimulationState ddState;
+  /**
+   * @brief A reference to the SimulationState interface for easier access.
+   */
   SimulationState* state = nullptr;
 
+  /**
+   * @brief Load the code from the file with the given name.
+   *
+   * The given file should be located in the `circuits` directory and use the
+   * `.qasm` extension.
+   * @param testName The name of the file to load (not including the `circuits`
+   * directory path and the extension).
+   */
   void loadFromFile(const std::string& testName) {
     const auto code = readFromCircuitsPath(testName);
     state->loadCode(state, code.c_str());
   }
 
+  /**
+   * @brief Continue execution until the given instruction is reached.
+   *
+   * @param instruction The instruction to forward to.
+   */
   void forwardTo(size_t instruction) {
     size_t currentInstruction = state->getCurrentInstruction(state);
     while (currentInstruction < instruction) {
@@ -34,14 +68,28 @@ protected:
   }
 };
 
+/**
+ * @test Test the correctness of `getNumQubits` method of the debugging
+ * interface.r
+ */
 TEST_F(DataRetrievalTest, GetNumQubits) {
   ASSERT_EQ(state->getNumQubits(state), 4);
 }
 
+/**
+ * @test Test the correctness of `getNumClassicalVariables` method of the
+ * debugging interface.
+ */
 TEST_F(DataRetrievalTest, GetNumClassicalVariables) {
   ASSERT_EQ(state->getNumClassicalVariables(state), 4);
 }
 
+/**
+ * @test Test the correctness of amplitude retrieval methods of the debugging
+ * interface.
+ *
+ * This includes the retrieval of amplitudes by index and by bitstring.
+ */
 TEST_F(DataRetrievalTest, GetAmplitudes) {
   Complex result;
 
@@ -88,6 +136,10 @@ TEST_F(DataRetrievalTest, GetAmplitudes) {
   ASSERT_TRUE(complexEquality(result, 0.0, 0.0));
 }
 
+/**
+ * @test Test the correctness of the `getClassicalVariableName` method of the
+ * debugging interface.
+ */
 TEST_F(DataRetrievalTest, GetClassicalVariableNames) {
   std::array<char, 256> name = {0};
   std::vector<std::string> expectedNames = {"c[0]", "c[1]", "c[2]", "hello[0]"};
@@ -97,6 +149,14 @@ TEST_F(DataRetrievalTest, GetClassicalVariableNames) {
   }
 }
 
+/**
+ * @test Test the correctness of the `getClassicalVariable` method of the
+ * debugging interface.
+ *
+ * This tests access to variables that have not yet been set, variables of
+ * different sizes (including single bits), and their effects on the quantum
+ * state.
+ */
 TEST_F(DataRetrievalTest, GetClassicalVariable) {
   Variable v;
 
@@ -132,6 +192,10 @@ TEST_F(DataRetrievalTest, GetClassicalVariable) {
   ASSERT_TRUE(classicalEquals(v, entangledValue));
 }
 
+/**
+ * @test Test the correctness of the `getStateVectorFull` method of the
+ * debugging interface at different times during execution.
+ */
 TEST_F(DataRetrievalTest, GetStateVectorFull) {
   std::array<Complex, 16> amplitudes{};
   Statevector sv{4, 16, amplitudes.data()};
@@ -146,6 +210,10 @@ TEST_F(DataRetrievalTest, GetStateVectorFull) {
   ASSERT_TRUE(complexEquality(amplitudes[11], -0.707, 0.0));
 }
 
+/**
+ * @test Test the correctness of the `getStateVectorSub` method of the debugging
+ * interface at different times during execution.
+ */
 TEST_F(DataRetrievalTest, GetStateVectorSub) {
   std::array<Complex, 4> amplitudes{};
   Statevector sv{2, 4, amplitudes.data()};
@@ -169,12 +237,15 @@ TEST_F(DataRetrievalTest, GetStateVectorSub) {
   qubits[0] = 1;
   ASSERT_EQ(state->getStateVectorSub(state, 2, qubits.data(), &sv), OK);
   ASSERT_TRUE(complexEquality(amplitudes[0], 0.0, 0.0));
-  ASSERT_TRUE(complexEquality(amplitudes[1], 1.0,
-                              0.0)); // 0 because of destructive interference
+  ASSERT_TRUE(complexEquality(amplitudes[1], 1.0, 0.0));
   ASSERT_TRUE(complexEquality(amplitudes[2], 0.0, 0.0));
   ASSERT_TRUE(complexEquality(amplitudes[3], 0.0, 0.0));
 }
 
+/**
+ * @test Test that an error is returned when trying to access an unknown
+ * classical variable.
+ */
 TEST_F(DataRetrievalTest, GetUnknownClassicalVariable) {
   Variable v;
 
@@ -182,6 +253,10 @@ TEST_F(DataRetrievalTest, GetUnknownClassicalVariable) {
   ASSERT_EQ(state->getClassicalVariable(state, "u[0]", &v), ERROR);
 }
 
+/**
+ * @test Test that an error is returned when trying to access a classical
+ * variable at an invalid index.
+ */
 TEST_F(DataRetrievalTest, GetBadClassicalVariableName) {
   std::array<char, 256> name = {0};
   forwardTo(6);

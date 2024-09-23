@@ -1,3 +1,12 @@
+/**
+ * @file test_custom_code.cpp
+ * @brief Tests the correctness of the framework for smaller, very specific edge
+ * cases that can be provided as custom code directly.
+ *
+ * These tests are typically used to verify bug fixes or cover edge cases that
+ * are not covered by the other tests.
+ */
+
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
@@ -10,6 +19,12 @@
 #include <sstream>
 #include <string>
 
+/**
+ * @brief Fixture for testing the correctness of the debugger on custom code.
+ *
+ * This fixture sets up a DDSimulationState and provides the method
+ * `loadCode` to load custom code into the state.
+ */
 class CustomCodeTest : public testing::Test {
   void SetUp() override {
     createDDSimulationState(&ddState);
@@ -17,13 +32,44 @@ class CustomCodeTest : public testing::Test {
   }
 
 protected:
+  /**
+   * @brief The DDSimulationState to use for testing.
+   */
   DDSimulationState ddState;
+  /**
+   * @brief A reference to the SimulationState interface for easier access.
+   */
   SimulationState* state = nullptr;
 
+  /**
+   * @brief The full code to load into the state.
+   */
   std::string fullCode;
-  std::string userCode;
-  size_t offset = 0;
 
+  /**
+   * @brief The code provided by the user explicitly.
+   */
+  std::string userCode;
+
+  /*
+   * @brief Load custom code into the state.
+   *
+   * Classical and Quantum registers of the given size are created automatically
+   * with the names `c` and `q`. Therefore, the first instruction in the
+   * provided code will have instruction index 2, as 0 and 1 are reserved for
+   * the registers.\n\n
+   *
+   * At least one classical and quantum bit will always be created, even if the
+   * given number is less than 1.
+   *
+   * @param numQubits The number of qubits to create.
+   * @param numClassics The number of classical bits to create.
+   * @param code The code to load into the state.
+   * @param shouldFail Asserts whether the code should fail to load (i.e., due
+   * to an expected error).
+   * @param preamble The preamble to add to the code before loading declaring
+   * the registers (e.g., library imports).
+   */
   void loadCode(size_t numQubits, size_t numClassics, const char* code,
                 bool shouldFail = false, const char* preamble = "") {
     if (numQubits < 1) {
@@ -39,8 +85,6 @@ protected:
     ss << "qreg q[" << numQubits << "];\n";
     ss << "creg c[" << numClassics << "];\n";
 
-    offset = ss.str().size();
-
     ss << code;
 
     userCode = code;
@@ -49,6 +93,14 @@ protected:
               shouldFail ? ERROR : OK);
   }
 
+  /**
+   * @brief Continue execution until the given instruction is reached.
+   *
+   * Instruction numbers start with 0 for the first instruction defined in the
+   * user code.
+   *
+   * @param instruction The instruction to forward to.
+   */
   void forwardTo(size_t instruction) {
     instruction += 2; // Skip the qreg and creg declarations
     size_t currentInstruction = state->getCurrentInstruction(state);
@@ -59,6 +111,10 @@ protected:
   }
 };
 
+/**
+ * @test Test the usage of classically controlled operations where the condition
+ * evaluates to false.
+ */
 TEST_F(CustomCodeTest, ClassicControlledOperationFalse) {
   loadCode(2, 1,
            "z q[0];"
@@ -76,6 +132,10 @@ TEST_F(CustomCodeTest, ClassicControlledOperationFalse) {
   ASSERT_EQ(state->stepBackward(state), OK);
 }
 
+/**
+ * @test Test the usage of classically controlled operations where the condition
+ * evaluates to true.
+ */
 TEST_F(CustomCodeTest, ClassicControlledOperationTrue) {
   loadCode(2, 1,
            "x q[0];"
@@ -93,6 +153,9 @@ TEST_F(CustomCodeTest, ClassicControlledOperationTrue) {
   ASSERT_EQ(state->stepBackward(state), OK);
 }
 
+/**
+ * @test Test the `reset` instruction.
+ */
 TEST_F(CustomCodeTest, ResetGate) {
   loadCode(1, 1,
            "x q[0];"
@@ -110,6 +173,10 @@ TEST_F(CustomCodeTest, ResetGate) {
   ASSERT_TRUE(complexEquality(result, -1.0, 0.0));
 }
 
+/**
+ * @test Test that parsing works correctly even if a custom gate name includes
+ * the keyword `gate`.
+ */
 TEST_F(CustomCodeTest, GateInGateName) {
   loadCode(1, 1,
            "gate my_gate q0 {"
@@ -121,6 +188,9 @@ TEST_F(CustomCodeTest, GateInGateName) {
   state->runSimulation(state);
 }
 
+/**
+ * @test Test the different types of equality assertions.
+ */
 TEST_F(CustomCodeTest, EqualityAssertion) {
   loadCode(2, 0,
            "h q[0];"
@@ -132,6 +202,10 @@ TEST_F(CustomCodeTest, EqualityAssertion) {
   ASSERT_EQ(numErrors, 0);
 }
 
+/**
+ * @test Test that destructive interference does not influence sub-state
+ * vectors.
+ */
 TEST_F(CustomCodeTest, DestructiveInterference) {
   loadCode(3, 0,
            "x q[0];"
@@ -145,6 +219,11 @@ TEST_F(CustomCodeTest, DestructiveInterference) {
   ASSERT_EQ(numErrors, 0);
 }
 
+/**
+ * @test Test that an error is returned if a sub-state vector is created where
+ * included qubits are entangled with non-included qubits for statevector
+ * equality assertions.
+ */
 TEST_F(CustomCodeTest, IllegalSubstateSVEqualityAssertion) {
   loadCode(3, 0,
            "x q[0];"
@@ -156,6 +235,11 @@ TEST_F(CustomCodeTest, IllegalSubstateSVEqualityAssertion) {
   ASSERT_EQ(state->runAll(state, &numErrors), ERROR);
 }
 
+/**
+ * @test Test that no error is returned if a sub-state vector is created where
+ * included qubits are not entangled with non-included qubits for statevector
+ * equality assertions.
+ */
 TEST_F(CustomCodeTest, LegalSubstateSVEqualityAssertion) {
   loadCode(3, 0,
            "x q[0];"
@@ -168,6 +252,11 @@ TEST_F(CustomCodeTest, LegalSubstateSVEqualityAssertion) {
   ASSERT_EQ(numErrors, 0);
 }
 
+/**
+ * @test Test that an error is returned if a sub-state vector is created where
+ * included qubits are entangled with non-included qubits for circuit equality
+ * assertions.
+ */
 TEST_F(CustomCodeTest, IllegalSubstateCircuitEqualityAssertion) {
   loadCode(3, 0,
            "x q[0];"
@@ -179,6 +268,11 @@ TEST_F(CustomCodeTest, IllegalSubstateCircuitEqualityAssertion) {
   ASSERT_EQ(state->runAll(state, &numErrors), ERROR);
 }
 
+/**
+ * @test Test that no error is returned if a sub-state vector is created where
+ * included qubits are not entangled with non-included qubits for circuit
+ * equality assertions.
+ */
 TEST_F(CustomCodeTest, LegalSubstateCircuitEqualityAssertion) {
   loadCode(3, 0,
            "x q[0];"
@@ -191,6 +285,11 @@ TEST_F(CustomCodeTest, LegalSubstateCircuitEqualityAssertion) {
   ASSERT_EQ(numErrors, 0);
 }
 
+/**
+ * @test Test that an error in the code is correctly detected at "compile"-time.
+ *
+ * The error is caused by using an incorrect register name.
+ */
 TEST_F(CustomCodeTest, ErrorInCode) {
   loadCode(3, 0, "x f[0];", true);
   size_t numErrors = 0;
@@ -200,6 +299,10 @@ TEST_F(CustomCodeTest, ErrorInCode) {
   ASSERT_EQ(state->runSimulationBackward(state), ERROR);
 }
 
+/**
+ * @test Test that the stack trace cannot be retrieved if an error occurred when
+ * loading the code.
+ */
 TEST_F(CustomCodeTest, StackTraceErrorInCode) {
   loadCode(3, 0, "x f[0];", true);
   size_t depth = 0;
@@ -207,6 +310,10 @@ TEST_F(CustomCodeTest, StackTraceErrorInCode) {
   ASSERT_EQ(state->getStackTrace(state, 10, nullptr), ERROR);
 }
 
+/**
+ * @test Test that an error is returned if a circuit equality assertion is
+ * executed that tries to use an assertion in its body.
+ */
 TEST_F(CustomCodeTest, ErrorAssertionInCircuitEqualityAssertion) {
   loadCode(3, 0,
            "x q[0];"
@@ -214,6 +321,9 @@ TEST_F(CustomCodeTest, ErrorAssertionInCircuitEqualityAssertion) {
   ASSERT_EQ(state->runAll(state, nullptr), ERROR);
 }
 
+/**
+ * @test Test the correctness of `barrier` instructions.
+ */
 TEST_F(CustomCodeTest, BarrierInstruction) {
   loadCode(1, 0,
            "barrier;"
@@ -227,6 +337,10 @@ TEST_F(CustomCodeTest, BarrierInstruction) {
   ASSERT_EQ(state->stepOverBackward(state), OK);
 }
 
+/**
+ * @test Test that an error is returned at runtime if an invalid register index
+ * is accessed by an assertion.
+ */
 TEST_F(CustomCodeTest, ErrorAssertionInvalidIndex) {
   loadCode(3, 0,
            "x q[0];"
@@ -234,6 +348,10 @@ TEST_F(CustomCodeTest, ErrorAssertionInvalidIndex) {
   ASSERT_EQ(state->runAll(state, nullptr), ERROR);
 }
 
+/**
+ * @test Test that an error is returned at runtime if an invalid register is
+ * accessed by an assertion.
+ */
 TEST_F(CustomCodeTest, ErrorAssertionInvalidQubit) {
   loadCode(3, 0,
            "x q[0];"
@@ -241,6 +359,9 @@ TEST_F(CustomCodeTest, ErrorAssertionInvalidQubit) {
   ASSERT_EQ(state->runAll(state, nullptr), ERROR);
 }
 
+/**
+ * @test Test that assertions can be used in custom gates.
+ */
 TEST_F(CustomCodeTest, AssertionInCustomGate) {
   loadCode(3, 0,
            "gate test q0 {"
@@ -253,6 +374,10 @@ TEST_F(CustomCodeTest, AssertionInCustomGate) {
   ASSERT_EQ(errors, 0);
 }
 
+/**
+ * @test Test that assertions can be used in custom gates and reference the
+ * correct variable, if variable shadowing occurs.
+ */
 TEST_F(CustomCodeTest, AssertionInCustomGateShadowing) {
   loadCode(3, 0,
            "gate test q {"
@@ -265,6 +390,10 @@ TEST_F(CustomCodeTest, AssertionInCustomGateShadowing) {
   ASSERT_EQ(errors, 0);
 }
 
+/**
+ * @test Test that parsing is successful even if a comment is located at the end
+ * of the program.
+ */
 TEST_F(CustomCodeTest, CommentAtEnd) {
   loadCode(3, 0, "x q[0]; // Comment");
   size_t errors = 0;
@@ -273,6 +402,10 @@ TEST_F(CustomCodeTest, CommentAtEnd) {
   ASSERT_EQ(state->getCurrentInstruction(state), 3);
 }
 
+/**
+ * @test Test that the `OPENQASM 2.0;` preamble and additional `include`s are
+ * handled correctly.
+ */
 TEST_F(CustomCodeTest, QASMPreamble) {
   loadCode(3, 0, "x q[0]; // Comment", false,
            "OPENQASM 2.0;\ninclude \"qelib1.inc\";\n");
@@ -282,6 +415,10 @@ TEST_F(CustomCodeTest, QASMPreamble) {
   ASSERT_EQ(state->getCurrentInstruction(state), 5);
 }
 
+/**
+ * @test Test that the simulation works even if a large number of qubits is
+ * used.
+ */
 TEST_F(CustomCodeTest, LargeProgram) {
   loadCode(20, 0, "x q[0]; cx q[0], q[1];");
   size_t errors = 0;
@@ -290,6 +427,10 @@ TEST_F(CustomCodeTest, LargeProgram) {
   ASSERT_EQ(state->getCurrentInstruction(state), 4);
 }
 
+/**
+ * @test Test that a "packed" instruction referencing a full register at once is
+ * still correctly treated as a data dependency.
+ */
 TEST_F(CustomCodeTest, CollectiveGateAsDependency) {
   loadCode(2, 0, "x q; barrier q[0];");
   auto* diagnosis = state->getDiagnostics(state);
@@ -303,6 +444,10 @@ TEST_F(CustomCodeTest, CollectiveGateAsDependency) {
   ASSERT_EQ(dependencies[3], true);
 }
 
+/**
+ * @test Test that a "packed" instruction referencing a full register at once is
+ * still correctly treated as an interaction.
+ */
 TEST_F(CustomCodeTest, CollectiveGateAsInteraction) {
   loadCode(1, 0, "qreg p[1]; cx q, p; assert-ent q[0], p[0];");
   ASSERT_EQ(state->runSimulation(state), OK);
@@ -325,6 +470,13 @@ TEST_F(CustomCodeTest, CollectiveGateAsInteraction) {
   ASSERT_EQ(causes[0].instruction, 3);
 }
 
+/**
+ * @test Test that the non-zero-control flag correctly overrules the
+ * zero-control flag.
+ *
+ * Because of this, the `cx` instruction in this code should not be considered
+ * as an error.
+ */
 TEST_F(CustomCodeTest, NonZeroControlsInErrorSearch) {
   loadCode(2, 0,
            "gate test q1, q2 { cx q1, q2; } x q[0]; test q[1], q[0]; test "
@@ -337,6 +489,9 @@ TEST_F(CustomCodeTest, NonZeroControlsInErrorSearch) {
                                               errors.size()) == 0);
 }
 
+/**
+ * @test Test that a full register can be named as an argument for an assertion.
+ */
 TEST_F(CustomCodeTest, RegisterInAssertion) {
   loadCode(3, 0,
            "h q[0]; cx q[0], q[1]; cx q[0], q[2];"
@@ -348,6 +503,10 @@ TEST_F(CustomCodeTest, RegisterInAssertion) {
   ASSERT_EQ(errors, 0);
 }
 
+/**
+ * @test Test that a full register can be named as an argument for an assertion
+ * together with other full registers or single qubits.
+ */
 TEST_F(CustomCodeTest, RegisterInAssertionMixed) {
   loadCode(3, 0,
            "qreg f[1]; qreg p[2];"
@@ -360,6 +519,10 @@ TEST_F(CustomCodeTest, RegisterInAssertionMixed) {
   ASSERT_EQ(errors, 0);
 }
 
+/**
+ * @test Test that register shadowing works correctly even if non-shadowed
+ * registers are included in an assertion.
+ */
 TEST_F(CustomCodeTest, ShadowedRegisterInAssertionMixed) {
   loadCode(3, 0,
            "qreg f[1]; qreg p[2];"
@@ -374,6 +537,9 @@ TEST_F(CustomCodeTest, ShadowedRegisterInAssertionMixed) {
   ASSERT_EQ(errors, 0);
 }
 
+/**
+ * @test Test the "running example" from the paper.
+ */
 TEST_F(CustomCodeTest, PaperExampleGrover) {
   loadCode(3, 3,
            "gate oracle q0, q1, q2, flag {"

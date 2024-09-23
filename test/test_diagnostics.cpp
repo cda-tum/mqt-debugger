@@ -1,3 +1,8 @@
+/**
+ * @file test_diagnostics.cpp
+ * @brief Test the functionality of the diagnostics module.
+ */
+
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
@@ -14,6 +19,12 @@
 #include <utility>
 #include <vector>
 
+/**
+ * @brief Fixture for testing the correctness of the diagnostics module.
+ *
+ * This fixture creates a DDSimulationState and allows to load code from files
+ * in the `circuits` directory.
+ */
 class DiagnosticsTest : public testing::Test {
   void SetUp() override {
     createDDSimulationState(&ddState);
@@ -22,16 +33,36 @@ class DiagnosticsTest : public testing::Test {
   }
 
 protected:
+  /**
+   * @brief The DDSimulationState to use for testing.
+   */
   DDSimulationState ddState;
+  /**
+   * @brief A reference to the SimulationState interface for easier access.
+   */
   SimulationState* state = nullptr;
+  /**
+   * @brief A reference to the Diagnostics interface for easier access.
+   */
   Diagnostics* diagnostics = nullptr;
 
+  /**
+   * @brief Load the code from the file with the given name.
+   *
+   * The given file should be located in the `circuits` directory and use the
+   * `.qasm` extension.
+   * @param testName The name of the file to load (not including the `circuits`
+   * directory path and the extension).
+   */
   void loadFromFile(const std::string& testName) {
     const auto code = readFromCircuitsPath(testName);
     state->loadCode(state, code.c_str());
   }
 };
 
+/**
+ * @test Test the correctness of the data dependencies retrieval.
+ */
 TEST_F(DiagnosticsTest, DataDependencies) {
   loadFromFile("failing-assertions");
   const std::map<size_t, std::set<size_t>> expected = {
@@ -64,6 +95,10 @@ TEST_F(DiagnosticsTest, DataDependencies) {
   }
 }
 
+/**
+ * @test Test whether error causes related to zero-controls are correctly
+ * identified.
+ */
 TEST_F(DiagnosticsTest, ControlAlwaysZeroTest) {
   loadFromFile("failing-assertions");
   state->runSimulation(state);
@@ -75,6 +110,10 @@ TEST_F(DiagnosticsTest, ControlAlwaysZeroTest) {
   ASSERT_EQ(problems[0].instruction, 4);
 }
 
+/**
+ * @test Test whether error causes related to zero-controls are correctly
+ * identified, even when the maximum number of problems is reached.
+ */
 TEST_F(DiagnosticsTest, MaximumControlAlwaysZeroTest) {
   loadFromFile("failing-assertions-multiple-zero-controls");
   state->runSimulation(state);
@@ -87,6 +126,10 @@ TEST_F(DiagnosticsTest, MaximumControlAlwaysZeroTest) {
             2);
 }
 
+/**
+ * @test Test whether error causes related to missing interactions are correctly
+ * identified.
+ */
 TEST_F(DiagnosticsTest, MissingInteraction) {
   loadFromFile("failing-assertions-missing-interaction");
   state->runSimulation(state);
@@ -99,6 +142,10 @@ TEST_F(DiagnosticsTest, MissingInteraction) {
   ASSERT_EQ(problems[0].instruction, 7);
 }
 
+/**
+ * @test Test whether error causes related to missing interactions are correctly
+ * identified, even when the maximum number of problems is reached.
+ */
 TEST_F(DiagnosticsTest, MaximumMissingInteraction) {
   loadFromFile("failing-assertions-multiple-missing-interaction");
   state->runSimulation(state);
@@ -112,6 +159,10 @@ TEST_F(DiagnosticsTest, MaximumMissingInteraction) {
             3);
 }
 
+/**
+ * @test Test whether mixed error causes are correctly identified, even when the
+ * maximum number of problems is reached.
+ */
 TEST_F(DiagnosticsTest, MaximumMultipleCauses) {
   loadFromFile("failing-assertions-multiple-causes");
   state->runSimulation(state);
@@ -147,6 +198,10 @@ TEST_F(DiagnosticsTest, MaximumMultipleCauses) {
   }
 }
 
+/**
+ * @test Test that `potentialErrorCauses` works correctly even when there are no
+ * failed assertions.
+ */
 TEST_F(DiagnosticsTest, NoFailedAssertions) {
   loadFromFile("complex-jumps");
   state->runSimulation(state);
@@ -155,6 +210,10 @@ TEST_F(DiagnosticsTest, NoFailedAssertions) {
             0);
 }
 
+/**
+ * @test Test that `potentialErrorCauses` works correctly even when the maximum
+ * number of allowed problems is zero.
+ */
 TEST_F(DiagnosticsTest, RequestZeroProblems) {
   loadFromFile("failing-assertions");
   state->runSimulation(state);
@@ -164,6 +223,12 @@ TEST_F(DiagnosticsTest, RequestZeroProblems) {
   ASSERT_EQ(count, 0);
 }
 
+/**
+ * @test Test the correctness of the `getZeroControlInstructions` method of the
+ * diagnostics interface.
+ *
+ * This is tested on code that includes jumps.
+ */
 TEST_F(DiagnosticsTest, ZeroControlsWithJumps) {
   loadFromFile("zero-controls-with-jumps");
   state->runSimulation(state);
@@ -174,6 +239,10 @@ TEST_F(DiagnosticsTest, ZeroControlsWithJumps) {
   }
 }
 
+/**
+ * @test Test the correctness of the `getDataDependencies` method of the
+ * diagnostics interface in the presence of jumps.
+ */
 TEST_F(DiagnosticsTest, DataDependenciesWithJumps) {
   loadFromFile("diagnose-with-jumps");
   const std::map<size_t, std::set<size_t>> expected = {
@@ -219,6 +288,10 @@ TEST_F(DiagnosticsTest, DataDependenciesWithJumps) {
   }
 }
 
+/**
+ * @test Test the correctness of the `getInteractions` method of the diagnostics
+ * interface in the presence of jumps.
+ */
 TEST_F(DiagnosticsTest, InteractionsWithJumps) {
   loadFromFile("diagnose-with-jumps");
 
@@ -252,6 +325,10 @@ TEST_F(DiagnosticsTest, InteractionsWithJumps) {
   }
 }
 
+/**
+ * @test Test that at runtime, the interaction retrieval correctly identifies
+ * existing interactions even outside of the current scope.
+ */
 TEST_F(DiagnosticsTest, RuntimeInteractions) {
   loadFromFile("runtime-interaction");
   ASSERT_EQ(state->runSimulation(state), OK);
