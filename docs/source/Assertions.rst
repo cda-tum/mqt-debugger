@@ -21,13 +21,13 @@ entanglement must exist between each possible pair.
 
 **QASM Syntax**:
 
-.. code-block:: qasm
+.. code-block::
 
-    assert-ent <target_qubit_1>, <target_qubit_2> [, ...]*;
+    assert-ent <target_qubit_1> [, <target_qubit_2> ...]*;
 
 *Example*:
 
-.. code-block:: qasm
+.. code-block::
 
     assert-ent q[0], q[1], q[2];
 
@@ -49,13 +49,13 @@ This means, that not every qubit in the set must be in a superposition state ind
 
 **QASM Syntax**:
 
-.. code-block:: qasm
+.. code-block::
 
-    assert-sup <target_qubit_1>, <target_qubit_2> [, ...]*;
+    assert-sup <target_qubit_1> [, <target_qubit_2> ...]*;
 
 *Example*:
 
-.. code-block:: qasm
+.. code-block::
 
     assert-sup q[0], q[1], q[2];
 
@@ -69,7 +69,7 @@ In this case, only a single state (:math:`|00\rangle`) has a non-zero amplitude,
 
 
 Equality Assertion
-==================
+##################
 
 Equality assertions compare the state of a set of qubits to a given state and fail if the states are not equal.
 Furthermore, a similarity threshold can be passed to the assertion, allowing for approximate comparisons. The similarity is computed through the
@@ -78,17 +78,17 @@ cosine similarity of two functions and can be set between 0 and 1. If no similar
 The target state to compare to can be expressed as a state vector or as a new quantum circuit.
 **QASM Syntax**:
 
-.. code-block:: qasm
+.. code-block::
 
-    assert-eq [similarity], <target_qubit_1>, <target_qubit_2> [, ...]* { STATE_REPRESENTATION }
+    assert-eq [similarity], <target_qubit_1> [, <target_qubit_2> ...]* { STATE_REPRESENTATION }
 
-.. code-block:: qasm
+.. code-block::
 
     STATE_REPRESENTATION =
         | <STATEVECTOR>
         | <CIRCUIT>
 
-    STATEVECTOR = <amplitude_1>, <amplitude_2> [, ...]*
+    STATEVECTOR = <amplitude_1> [, <amplitude_2> ...]*
 
     CIRCUIT = <QASM_CODE>
 
@@ -100,13 +100,13 @@ must use the same number of qubits as the assertion compares to. The current sys
 
 *Example*:
 
-.. code-block:: qasm
+.. code-block::
 
     assert-eq 0.9, q[0], q[1] { 0.5, 0.5, 0.5, 0.5 };
 
 This assertion checks whether the state of qubits ``q[0]`` and ``q[1]`` is equal to the state :math:`\frac{1}{2}(|00\rangle + |01\rangle + |10\rangle + |11\rangle)` with a similarity threshold of 0.9.
 
-.. code-block:: qasm
+.. code-block::
 
     assert-eq q[0], q[1] {
         h q[0];

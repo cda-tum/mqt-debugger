@@ -13,3 +13,37 @@ Then proceed to the :doc:`quickstart guide <Quickstart>` and read the :doc:`refe
 If you are interested in the theory behind MQT Debugger, have a look at the publications in the :doc:`publication list <Publications>`.
 
 We appreciate any feedback and contributions to the project. If you want to contribute, you can find more information in the :doc:`Contribution <Contributing>` guide. If you are having trouble with the installation or the usage of QCEC, please let us know at our :doc:`Support <Support>` page.
+
+----
+
+ .. toctree::
+    :hidden:
+
+    self
+
+ .. toctree::
+    :maxdepth: 2
+    :caption: User Guide
+    :glob:
+
+    Installation
+    Quickstart
+    Assertions
+    Diagnosis
+    Publications
+
+ .. toctree::
+    :maxdepth: 2
+    :caption: Developers
+    :glob:
+
+    Contributing
+    DevelopmentGuide
+    Support
+
+ .. toctree::
+    :maxdepth: 6
+    :caption: API Reference
+    :glob:
+
+    library/Library

@@ -10,7 +10,6 @@
 // NOLINTBEGIN(modernize-use-using, performance-enum-size)
 
 #ifndef __cplusplus
-typedef char bool;
 #else
 #include <cstddef>
 extern "C" {

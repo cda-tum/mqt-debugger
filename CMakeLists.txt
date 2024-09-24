@@ -5,7 +5,8 @@ project(
   DESCRIPTION "MQT Debug - A debugging tool for Quantum Circuits")
 
 option(BUILD_MQT_DEBUG_BINDINGS "Build the MQT DEBUG Python bindings" OFF)
-option(BUILD_MQT_DEBUG_TESTS "Also build tests for the MQT QCEC project" ON)
+option(BUILD_MQT_DEBUG_TESTS "Also build tests for the MQT Debug project" ON)
+option(BUILD_MQT_DEBUG_APP "Also build the CLI app for the MQT Debug project" ON)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -41,7 +42,9 @@ include(cmake/ExternalDependencies.cmake)
 add_subdirectory(src)
 
 # add test app
-add_subdirectory(app)
+if(BUILD_MQT_DEBUG_APP)
+  add_subdirectory(app)
+endif()
 
 # add test code
 if(BUILD_MQT_DEBUG_TESTS)

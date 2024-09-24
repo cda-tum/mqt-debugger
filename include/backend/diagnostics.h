@@ -40,8 +40,9 @@ typedef enum {
 /**
  * @brief Represents an error cause.
  */
-typedef struct ErrorCause ErrorCause;
-struct ErrorCause {
+typedef struct ErrorCauseStruct ErrorCause;
+
+struct ErrorCauseStruct {
   /**
    * @brief The type of the error cause.
    */
@@ -56,11 +57,9 @@ struct ErrorCause {
 /**
  * @brief An interface representing the diagnostic capabilities of a debugger.
  */
-typedef struct Diagnostics Diagnostics;
-/**
- * @brief An interface representing the diagnostic capabilities of a debugger.
- */
-struct Diagnostics {
+typedef struct DiagnosticsStruct Diagnostics;
+
+struct DiagnosticsStruct {
   /**
    * @brief Initializes the diagnostics interface.
    * @param self The instance to initialize.

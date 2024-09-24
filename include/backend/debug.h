@@ -17,11 +17,6 @@ extern "C" {
 
 /**
  * @brief A C-style interface for the debugging and simulation interface.
- */
-typedef struct SimulationState SimulationState;
-
-/**
- * @brief A C-style interface for the debugging and simulation interface.
  *
  * This interface provides a way to interact with the simulation state, stepping
  * through the simulation, and inspecting the state of the simulation. \n\n
@@ -31,7 +26,9 @@ typedef struct SimulationState SimulationState;
  * Continuing the simulation from there will skip the failing assertion and
  * `didAssertionFail` will return `false` until another assertion fails.
  */
-struct SimulationState {
+typedef struct SimulationStateStruct SimulationState;
+
+struct SimulationStateStruct {
   /**
    * @brief Initializes the simulation state.
    * @param self The instance to initialize.

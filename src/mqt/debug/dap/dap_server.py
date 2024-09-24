@@ -370,7 +370,7 @@ class DAPServer:
         """Send a hierarchy of messages to the client.
 
         Args:
-            message (dict[str, str | list[str], dict[str, Any]]): An object representing the message to send. Supported keys are `title`, `body`, `end`.
+            message (dict[str, str | list[str], dict[str, Any]]): An object representing the message to send. Supported keys are "title", "body", "end".
             line (int): The line number.
             column (int): The column number.
             connection (socket.socket): The client socket.

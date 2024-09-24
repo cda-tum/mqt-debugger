@@ -10,6 +10,7 @@ Error Cause Analysis
 #####################
 
 When an assertion fails, several methods can be used to find potential error clauses.
+
 .. For further information, please refer to :cite:labelpar:`rovara2025debugging`.
 
 Cone of Influence Analysis
@@ -40,7 +41,7 @@ Whenever a failed entanglement assertion is encountered, the Interaction Analysi
 If this is not the case, then clearly, no entanglement can be prepared, so it is treated as a potential error cause. The following code shows an example situation,
 in which Interaction Analysis would find a potential error cause:
 
-.. code-block:: qasm
+.. code-block::
 
     qreg q[3];
 
@@ -71,7 +72,7 @@ It is automatically called when using ``Diagnostics.potential_error_causes()`` (
 
 The following code shows an example situation, in which Control-Value Analysis would find a potential error cause:
 
-.. code-block:: qasm
+.. code-block::
 
     qreg q[3];
 

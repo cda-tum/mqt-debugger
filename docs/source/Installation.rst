@@ -39,7 +39,7 @@ A Detailed Walk Through
 
 First, save the following lines as :code:`ghz.qasm` in a folder where you want to install MQT Debugger:
 
-    .. code-block:: qasm
+    .. code-block::
 
         qreg q[3];
 
