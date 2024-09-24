@@ -7,9 +7,9 @@ import socket
 import sys
 from typing import Any, cast
 
-import mqt.debug
+import mqt.debugger
 
-from ..pydebug import ErrorCauseType, SimulationState
+from ..pydebugger import ErrorCauseType, SimulationState
 from .messages import (
     ConfigurationDoneDAPMessage,
     ContinueDAPMessage,
@@ -153,45 +153,49 @@ class DAPServer:
             result_payload = json.dumps(result)
             send_message(result_payload, connection)
 
-            e: mqt.debug.dap.messages.DAPEvent | None = None
-            if isinstance(cmd, mqt.debug.dap.messages.LaunchDAPMessage):
-                e = mqt.debug.dap.messages.InitializedDAPEvent()
+            e: mqt.debugger.dap.messages.DAPEvent | None = None
+            if isinstance(cmd, mqt.debugger.dap.messages.LaunchDAPMessage):
+                e = mqt.debugger.dap.messages.InitializedDAPEvent()
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
             if (
-                isinstance(cmd, (mqt.debug.dap.messages.LaunchDAPMessage, mqt.debug.dap.messages.RestartDAPMessage))
+                isinstance(
+                    cmd, (mqt.debugger.dap.messages.LaunchDAPMessage, mqt.debugger.dap.messages.RestartDAPMessage)
+                )
                 and cmd.stop_on_entry
             ):
-                e = mqt.debug.dap.messages.StoppedDAPEvent(mqt.debug.dap.messages.StopReason.ENTRY, "Stopped on entry")
+                e = mqt.debugger.dap.messages.StoppedDAPEvent(
+                    mqt.debugger.dap.messages.StopReason.ENTRY, "Stopped on entry"
+                )
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
             if isinstance(
                 cmd,
                 (
-                    mqt.debug.dap.messages.NextDAPMessage,
-                    mqt.debug.dap.messages.StepBackDAPMessage,
-                    mqt.debug.dap.messages.StepInDAPMessage,
-                    mqt.debug.dap.messages.StepOutDAPMessage,
-                    mqt.debug.dap.messages.ContinueDAPMessage,
-                    mqt.debug.dap.messages.ReverseContinueDAPMessage,
-                    mqt.debug.dap.messages.RestartFrameDAPMessage,
+                    mqt.debugger.dap.messages.NextDAPMessage,
+                    mqt.debugger.dap.messages.StepBackDAPMessage,
+                    mqt.debugger.dap.messages.StepInDAPMessage,
+                    mqt.debugger.dap.messages.StepOutDAPMessage,
+                    mqt.debugger.dap.messages.ContinueDAPMessage,
+                    mqt.debugger.dap.messages.ReverseContinueDAPMessage,
+                    mqt.debugger.dap.messages.RestartFrameDAPMessage,
                 ),
             ) or (
                 isinstance(
                     cmd,
                     (
-                        mqt.debug.dap.messages.LaunchDAPMessage,
-                        mqt.debug.dap.messages.RestartDAPMessage,
+                        mqt.debugger.dap.messages.LaunchDAPMessage,
+                        mqt.debugger.dap.messages.RestartDAPMessage,
                     ),
                 )
                 and not cmd.stop_on_entry
             ):
                 event = (
-                    mqt.debug.dap.messages.StopReason.EXCEPTION
+                    mqt.debugger.dap.messages.StopReason.EXCEPTION
                     if self.simulation_state.did_assertion_fail()
-                    else mqt.debug.dap.messages.StopReason.BREAKPOINT_INSTRUCTION
+                    else mqt.debugger.dap.messages.StopReason.BREAKPOINT_INSTRUCTION
                     if self.simulation_state.was_breakpoint_hit()
-                    else mqt.debug.dap.messages.StopReason.STEP
+                    else mqt.debugger.dap.messages.StopReason.STEP
                 )
                 message = (
                     "An assertion failed"
@@ -200,21 +204,21 @@ class DAPServer:
                     if self.simulation_state.was_breakpoint_hit()
                     else "Stopped after step"
                 )
-                e = mqt.debug.dap.messages.StoppedDAPEvent(event, message)
+                e = mqt.debugger.dap.messages.StoppedDAPEvent(event, message)
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
                 if self.simulation_state.did_assertion_fail():
                     self.handle_assertion_fail(connection)
-            if isinstance(cmd, mqt.debug.dap.messages.TerminateDAPMessage):
-                e = mqt.debug.dap.messages.TerminatedDAPEvent()
+            if isinstance(cmd, mqt.debugger.dap.messages.TerminateDAPMessage):
+                e = mqt.debugger.dap.messages.TerminatedDAPEvent()
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
-                e = mqt.debug.dap.messages.ExitedDAPEvent(143)
+                e = mqt.debugger.dap.messages.ExitedDAPEvent(143)
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
-            if isinstance(cmd, mqt.debug.dap.messages.PauseDAPMessage):
-                e = mqt.debug.dap.messages.StoppedDAPEvent(
-                    mqt.debug.dap.messages.StopReason.PAUSE, "Stopped after pause"
+            if isinstance(cmd, mqt.debugger.dap.messages.PauseDAPMessage):
+                e = mqt.debugger.dap.messages.StoppedDAPEvent(
+                    mqt.debugger.dap.messages.StopReason.PAUSE, "Stopped after pause"
                 )
                 event_payload = json.dumps(e.encode())
                 send_message(event_payload, connection)
@@ -226,17 +230,17 @@ class DAPServer:
         Args:
             connection (socket.socket): The client socket.
         """
-        e: mqt.debug.dap.messages.DAPEvent | None = None
+        e: mqt.debugger.dap.messages.DAPEvent | None = None
         if self.simulation_state.is_finished() and self.simulation_state.get_instruction_count() != 0:
-            e = mqt.debug.dap.messages.ExitedDAPEvent(0)
+            e = mqt.debugger.dap.messages.ExitedDAPEvent(0)
             event_payload = json.dumps(e.encode())
             send_message(event_payload, connection)
         if self.can_step_back != self.simulation_state.can_step_backward():
             self.can_step_back = self.simulation_state.can_step_backward()
-            e = mqt.debug.dap.messages.CapabilitiesDAPEvent({"supportsStepBack": self.can_step_back})
+            e = mqt.debugger.dap.messages.CapabilitiesDAPEvent({"supportsStepBack": self.can_step_back})
             event_payload = json.dumps(e.encode())
 
-    def handle_command(self, command: dict[str, Any]) -> tuple[dict[str, Any], mqt.debug.dap.messages.DAPMessage]:
+    def handle_command(self, command: dict[str, Any]) -> tuple[dict[str, Any], mqt.debugger.dap.messages.DAPMessage]:
         """Handle an incoming command from the client and return the corresponding response.
 
         Args:
@@ -246,7 +250,7 @@ class DAPServer:
             RuntimeError: If the command is not supported.
 
         Returns:
-            tuple[dict[str, Any], mqt.debug.dap.messages.DAPMessage]: The response to the message as a dictionary and the message object.
+            tuple[dict[str, Any], mqt.debugger.dap.messages.DAPMessage]: The response to the message as a dictionary and the message object.
         """
         for message_type in supported_messages:
             if message_type.message_type_name == command["command"]:
@@ -270,7 +274,7 @@ class DAPServer:
             start, end = self.simulation_state.get_instruction_position(i)
             gray_out_areas.append((start, end))
 
-        e = mqt.debug.dap.messages.GrayOutDAPEvent(gray_out_areas, self.source_file)
+        e = mqt.debugger.dap.messages.GrayOutDAPEvent(gray_out_areas, self.source_file)
         event_payload = json.dumps(e.encode())
         send_message(event_payload, connection)
 
@@ -345,11 +349,11 @@ class DAPServer:
             pos -= 1
         return pos
 
-    def format_error_cause(self, cause: mqt.debug.ErrorCause) -> str:
+    def format_error_cause(self, cause: mqt.debugger.ErrorCause) -> str:
         """Format an error cause for output.
 
         Args:
-            cause (mqt.debug.ErrorCause): The error cause.
+            cause (mqt.debugger.ErrorCause): The error cause.
 
         Returns:
             str: The formatted error cause.
@@ -376,7 +380,7 @@ class DAPServer:
             connection (socket.socket): The client socket.
         """
         if "title" in message:
-            title_event = mqt.debug.dap.messages.OutputDAPEvent(
+            title_event = mqt.debugger.dap.messages.OutputDAPEvent(
                 "console", cast(str, message["title"]), "start", line, column, self.source_file
             )
             send_message(json.dumps(title_event.encode()), connection)
@@ -388,20 +392,20 @@ class DAPServer:
                     if isinstance(msg, dict):
                         self.send_message_hierarchy(msg, line, column, connection)
                     else:
-                        output_event = mqt.debug.dap.messages.OutputDAPEvent(
+                        output_event = mqt.debugger.dap.messages.OutputDAPEvent(
                             "console", msg, None, line, column, self.source_file
                         )
                         send_message(json.dumps(output_event.encode()), connection)
             elif isinstance(body, dict):
                 self.send_message_hierarchy(body, line, column, connection)
             elif isinstance(body, str):
-                output_event = mqt.debug.dap.messages.OutputDAPEvent(
+                output_event = mqt.debugger.dap.messages.OutputDAPEvent(
                     "console", body, None, line, column, self.source_file
                 )
                 send_message(json.dumps(output_event.encode()), connection)
 
         if "end" in message or "title" in message:
-            end_event = mqt.debug.dap.messages.OutputDAPEvent(
+            end_event = mqt.debugger.dap.messages.OutputDAPEvent(
                 "console", cast(str, message.get("end")), "end", line, column, self.source_file
             )
             send_message(json.dumps(end_event.encode()), connection)

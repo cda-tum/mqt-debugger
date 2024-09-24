@@ -1,10 +1,10 @@
-"""A module for interfacing with the mqt-debug library."""
+"""A module for interfacing with the mqt-debugger library."""
 
 from __future__ import annotations
 
 from . import dap
 from ._version import version as __version__
-from .pydebug import (
+from .pydebugger import (
     Complex,
     ErrorCause,
     ErrorCauseType,

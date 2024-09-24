@@ -1,7 +1,7 @@
 mqt.debugger
 ============
 
-.. automodule:: mqt.debug
+.. automodule:: mqt.debugger
    :members:
    :undoc-members:
    :show-inheritance:

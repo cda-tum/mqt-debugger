@@ -3,7 +3,7 @@ requires = ["scikit-build-core>=0.8.1", "setuptools-scm>=7", "pybind11>=2.13"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "mqt-debug"
+name = "mqt-debugger"
 description = "A quantum circuit debugging tool"
 readme = "README.md"
 authors = [
@@ -36,8 +36,8 @@ requires-python = ">=3.8"
 dynamic = ["version"]
 
 [project.optional-dependencies]
-test = ["pytest>=7.0", "pytest-console-scripts>=1.4", "mqt.debug[qiskit, evaluation]"]
-coverage = ["mqt.debug[test]", "pytest-cov>=4"]
+test = ["pytest>=7.0", "pytest-console-scripts>=1.4", "mqt.debugger[qiskit, evaluation]"]
+coverage = ["mqt.debugger[test]", "pytest-cov>=4"]
 evaluation = [
     "pandas[output_formatting]>=2.0; python_version < '3.9'",
     "pandas[output-formatting]>=2.1.2; python_version >= '3.9'",
@@ -57,21 +57,21 @@ docs = [
     "ipykernel",
     "sphinx-autoapi",
     "qiskit[visualization]",
-    "mqt.debug[evaluation]"
+    "mqt.debugger[evaluation]"
 ]
 qiskit = [
     "qiskit[qasm3-import]>=1.0.0",
 ]
-dev = ["mqt.debug[coverage, docs]",]
+dev = ["mqt.debugger[coverage, docs]",]
 
 [project.scripts]
-mqt-debug-compare = "mqt.debug.evaluation:main"
+mqt-debugger-compare = "mqt.debugger.evaluation:main"
 
 [project.urls]
-Homepage = "https://github.com/cda-tum/mqt-debug"
-Documentation = "https://mqt.readthedocs.io/projects/debug"
-Issues = "https://github.com/cda-tum/mqt-debug/issues"
-Discussions = "https://github.com/cda-tum/mqt-debug/discussions"
+Homepage = "https://github.com/cda-tum/mqt-debugger"
+Documentation = "https://mqt.readthedocs.io/projects/debugger"
+Issues = "https://github.com/cda-tum/mqt-debugger/issues"
+Discussions = "https://github.com/cda-tum/mqt-debugger/discussions"
 
 
 [tool.scikit-build]
@@ -79,7 +79,7 @@ Discussions = "https://github.com/cda-tum/mqt-debug/discussions"
 minimum-version = "0.8.1"
 
 # Set the wheel install directory
-wheel.install-dir = "mqt/debug"
+wheel.install-dir = "mqt/debugger"
 
 # Set required CMake and Ninja versions
 cmake.version = ">=3.19"
@@ -92,13 +92,13 @@ build-dir = "build/{wheel_tag}"
 wheel.packages = ["src/mqt"]
 
 # Only build the Python bindings target
-cmake.targets = ["pydebug"]
+cmake.targets = ["pydebugger"]
 
 # Only install the Python package component
-install.components = ["mqt-debug_Python"]
+install.components = ["mqt-debugger_Python"]
 
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
-sdist.include = ["src/mqt/debug/_version.py"]
+sdist.include = ["src/mqt/debugger/_version.py"]
 sdist.exclude = [
     "**/.github",
     "**/doc",
@@ -110,19 +110,20 @@ sdist.exclude = [
 ]
 
 [tool.check-sdist]
-sdist-only = ["src/mqt/debug/_version.py"]
+sdist-only = ["src/mqt/debugger/_version.py"]
 git-only = [
     "docs/*",
     "test/*",
 ]
 
 [tool.scikit-build.cmake.define]
-BUILD_MQT_DEBUG_BINDINGS = "ON"
-BUILD_MQT_DEBUG_TESTS = "OFF"
+BUILD_MQT_DEBUGGER_BINDINGS = "ON"
+BUILD_MQT_DEBUGGER_TESTS = "OFF"
+BUILD_MQT_DEBUGGER_APP = "OFF"
 
 
 [tool.setuptools_scm]
-write_to = "src/mqt/debug/_version.py"
+write_to = "src/mqt/debugger/_version.py"
 
 
 [tool.pytest.ini_options]
@@ -140,7 +141,7 @@ testpaths = ["test/python"]
 
 
 [tool.coverage]
-run.source = ["mqt.debug"]
+run.source = ["mqt.debugger"]
 run.omit = [
     '*/_compat/*',
 ]
@@ -228,7 +229,7 @@ ignore = [
     "S101",    # Use of assert detected
     "S404",    # `subprocess` module is possibly insecure
 ]
-typing-modules = ["mqt.debug._compat.typing"]
+typing-modules = ["mqt.debugger._compat.typing"]
 isort.required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
@@ -237,9 +238,9 @@ isort.required-imports = ["from __future__ import annotations"]
 "typing.Mapping".msg = "Use collections.abc.Mapping instead."
 "typing.Sequence".msg = "Use collections.abc.Sequence instead."
 "typing.Set".msg = "Use collections.abc.Set instead."
-"typing.Self".msg = "Use mqt.debug._compat.typing.Self instead."
-"typing_extensions.Self".msg = "Use mqt.debug._compat.typing.Self instead."
-"typing.assert_never".msg = "Use mqt.debug._compat.typing.assert_never instead."
+"typing.Self".msg = "Use mqt.debugger._compat.typing.Self instead."
+"typing_extensions.Self".msg = "Use mqt.debugger._compat.typing.Self instead."
+"typing.assert_never".msg = "Use mqt.debugger._compat.typing.assert_never instead."
 
 [tool.ruff.lint.per-file-ignores]
 "test/python/**" = ["T20", "ANN"]
@@ -251,9 +252,9 @@ isort.required-imports = ["from __future__ import annotations"]
     "E402", # Allow imports to appear anywhere in Jupyter notebooks
     "I002", # Allow missing `from __future__ import annotations` import
 ]
-"src/mqt/debug/_compat/**.py" = ["TID251"]
-"src/mqt/debug/evaluation.py" = ["T201"]
-"src/mqt/debug/__main__.py" = ["T201"]
+"src/mqt/debugger/_compat/**.py" = ["TID251"]
+"src/mqt/debugger/evaluation.py" = ["T201"]
+"src/mqt/debugger/__main__.py" = ["T201"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -276,7 +277,7 @@ ignore = [
 build = "cp3*"
 skip = "*-musllinux_*"
 archs = "auto64"
-test-command = "python -c \"from mqt import debug\""
+test-command = "python -c \"from mqt import debugger\""
 test-skip = "cp38-macosx_arm64"
 build-frontend = "build[uv]"
 

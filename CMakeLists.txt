@@ -1,16 +1,16 @@
 cmake_minimum_required(VERSION 3.26)
 project(
-  mqt_debug
+  mqt_debugger
   LANGUAGES CXX
-  DESCRIPTION "MQT Debug - A debugging tool for Quantum Circuits")
+  DESCRIPTION "MQT Debugger - A debugging tool for Quantum Circuits")
 
-option(BUILD_MQT_DEBUG_BINDINGS "Build the MQT DEBUG Python bindings" OFF)
-option(BUILD_MQT_DEBUG_TESTS "Also build tests for the MQT Debug project" ON)
-option(BUILD_MQT_DEBUG_APP "Also build the CLI app for the MQT Debug project" ON)
+option(BUILD_MQT_DEBUGGER_BINDINGS "Build the MQT Debugger Python bindings" OFF)
+option(BUILD_MQT_DEBUGGER_TESTS "Also build tests for the MQT Debugger project" ON)
+option(BUILD_MQT_DEBUGGER_APP "Also build the CLI app for the MQT Debugger project" ON)
 
 set(CMAKE_CXX_STANDARD 17)
 
-if(BUILD_MQT_DEBUG_BINDINGS)
+if(BUILD_MQT_DEBUGGER_BINDINGS)
   # ensure that the BINDINGS option is set
   set(BINDINGS
       ON
@@ -42,12 +42,12 @@ include(cmake/ExternalDependencies.cmake)
 add_subdirectory(src)
 
 # add test app
-if(BUILD_MQT_DEBUG_APP)
+if(BUILD_MQT_DEBUGGER_APP)
   add_subdirectory(app)
 endif()
 
 # add test code
-if(BUILD_MQT_DEBUG_TESTS)
+if(BUILD_MQT_DEBUGGER_TESTS)
   enable_testing()
   include(GoogleTest)
   add_subdirectory(test)
@@ -55,5 +55,5 @@ endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
                ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake IMMEDIATE @ONLY)
-add_custom_target(uninstall-debug COMMAND ${CMAKE_COMMAND} -P
-                                          ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+add_custom_target(uninstall-debugger COMMAND ${CMAKE_COMMAND} -P
+                                             ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)

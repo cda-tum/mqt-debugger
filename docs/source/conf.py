@@ -19,10 +19,10 @@ ROOT = Path(__file__).parent.parent.resolve()
 
 
 try:
-    from mqt.debug import __version__ as version
+    from mqt.debugger import __version__ as version
 except ModuleNotFoundError:
     try:
-        version = metadata.version("mqt.debug")
+        version = metadata.version("mqt.debugger")
     except ModuleNotFoundError:
         msg = (
             "Package should be installed to produce documentation! "

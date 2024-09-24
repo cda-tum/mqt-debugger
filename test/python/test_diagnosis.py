@@ -5,7 +5,7 @@ from __future__ import annotations
 import locale
 from pathlib import Path
 
-from mqt.debug import (
+from mqt.debugger import (
     ErrorCauseType,
     SimulationState,
     create_ddsim_simulation_state,
