@@ -60,9 +60,7 @@ Building (and running) is continuously tested under Linux, macOS, and Windows us
 
 ## References
 
-MQT Debug has been developed based on methods proposed in the following papers:
-
-TODO
+MQT Debug has been developed based on methods proposed in a scientific paper that has not been released yet.
 
 ## Acknowledgements
 
