@@ -11,44 +11,44 @@ from typing import Generator, Tuple, cast
 
 import pytest
 
-import mqt.debug
+import mqt.debugger
 
-SimulationInstance = Tuple[mqt.debug.SimulationState, int]
+SimulationInstance = Tuple[mqt.debugger.SimulationState, int]
 
 
 @pytest.fixture(scope="module")
 def simulation_instance_ghz() -> Generator[SimulationInstance, None, None]:
     """Fixture for the GHZ state simulation instance."""
-    simulation_state = mqt.debug.create_ddsim_simulation_state()
+    simulation_state = mqt.debugger.create_ddsim_simulation_state()
     with Path("test/python/resources/bindings/ghz-incorrect.qasm").open(
         encoding=locale.getpreferredencoding(False)
     ) as f:
         code = f.read()
         simulation_state.load_code(code)
     yield (simulation_state, 0)
-    mqt.debug.destroy_ddsim_simulation_state(simulation_state)
+    mqt.debugger.destroy_ddsim_simulation_state(simulation_state)
 
 
 @pytest.fixture(scope="module")
 def simulation_instance_jumps() -> Generator[SimulationInstance, None, None]:
     """Fixture for the Jumps simulation instance."""
-    simulation_state = mqt.debug.create_ddsim_simulation_state()
+    simulation_state = mqt.debugger.create_ddsim_simulation_state()
     with Path("test/python/resources/bindings/jumps.qasm").open(encoding=locale.getpreferredencoding(False)) as f:
         code = f.read()
         simulation_state.load_code(code)
     yield (simulation_state, 1)
-    mqt.debug.destroy_ddsim_simulation_state(simulation_state)
+    mqt.debugger.destroy_ddsim_simulation_state(simulation_state)
 
 
 @pytest.fixture(scope="module")
 def simulation_instance_classical() -> Generator[SimulationInstance, None, None]:
     """Fixture for the Classical simulation instance."""
-    simulation_state = mqt.debug.create_ddsim_simulation_state()
+    simulation_state = mqt.debugger.create_ddsim_simulation_state()
     with Path("test/python/resources/bindings/classical.qasm").open(encoding=locale.getpreferredencoding(False)) as f:
         code = f.read()
         simulation_state.load_code(code)
     yield (simulation_state, 2)
-    mqt.debug.destroy_ddsim_simulation_state(simulation_state)
+    mqt.debugger.destroy_ddsim_simulation_state(simulation_state)
 
 
 @pytest.fixture(autouse=True)
@@ -67,9 +67,9 @@ def simulation_state_cleanup(
     simulation_instance_classical[0].clear_breakpoints()
 
 
-def load_fixture(request: pytest.FixtureRequest, name: str) -> tuple[mqt.debug.SimulationState, int]:
+def load_fixture(request: pytest.FixtureRequest, name: str) -> tuple[mqt.debugger.SimulationState, int]:
     """Loads a fixture with the given name."""
-    return cast(Tuple[mqt.debug.SimulationState, int], request.getfixturevalue(name))
+    return cast(Tuple[mqt.debugger.SimulationState, int], request.getfixturevalue(name))
 
 
 @pytest.mark.parametrize(
@@ -234,9 +234,9 @@ def test_classical_get(simulation_instance_classical: SimulationInstance) -> Non
     assert simulation_state.get_classical_variable("c[1]").name == "c[1]"
     assert simulation_state.get_classical_variable("c[2]").name == "c[2]"
 
-    assert simulation_state.get_classical_variable("c[0]").type == mqt.debug.VariableType.VarBool
-    assert simulation_state.get_classical_variable("c[1]").type == mqt.debug.VariableType.VarBool
-    assert simulation_state.get_classical_variable("c[2]").type == mqt.debug.VariableType.VarBool
+    assert simulation_state.get_classical_variable("c[0]").type == mqt.debugger.VariableType.VarBool
+    assert simulation_state.get_classical_variable("c[1]").type == mqt.debugger.VariableType.VarBool
+    assert simulation_state.get_classical_variable("c[2]").type == mqt.debugger.VariableType.VarBool
 
     first = simulation_state.get_classical_variable("c[0]").value.bool_value
     assert simulation_state.get_classical_variable("c[1]").value.bool_value == first

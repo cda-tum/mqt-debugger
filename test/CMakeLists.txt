@@ -1,6 +1,6 @@
 package_add_test(
-  mqt_debug_test
-  MQT::Debug
+  mqt_debugger_test
+  MQT::Debugger
   utils_test.cpp
   test_utility.cpp
   test_simulation.cpp
@@ -10,4 +10,4 @@ package_add_test(
   test_parsing.cpp)
 
 # set include directories
-target_include_directories(mqt_debug_test PUBLIC ${PROJECT_SOURCE_DIR}/test/utils)
+target_include_directories(mqt_debugger_test PUBLIC ${PROJECT_SOURCE_DIR}/test/utils)

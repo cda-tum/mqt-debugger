@@ -40,8 +40,9 @@ typedef enum {
 /**
  * @brief Represents an error cause.
  */
-typedef struct ErrorCause ErrorCause;
-struct ErrorCause {
+typedef struct ErrorCauseStruct ErrorCause;
+
+struct ErrorCauseStruct {
   /**
    * @brief The type of the error cause.
    */
@@ -56,11 +57,9 @@ struct ErrorCause {
 /**
  * @brief An interface representing the diagnostic capabilities of a debugger.
  */
-typedef struct Diagnostics Diagnostics;
-/**
- * @brief An interface representing the diagnostic capabilities of a debugger.
- */
-struct Diagnostics {
+typedef struct DiagnosticsStruct Diagnostics;
+
+struct DiagnosticsStruct {
   /**
    * @brief Initializes the diagnostics interface.
    * @param self The instance to initialize.
@@ -103,7 +102,7 @@ struct Diagnostics {
    *
    * @param self The diagnostics instance to query.
    * @param instruction The instruction to extract the data dependencies for.
-   * @param includeCallers True if the data dependencies should include all
+   * @param includeCallers True, if the data dependencies should include all
    * possible callers of the containing custom gate.
    * @param instructions An array of booleans that will be set to true for each
    * instruction that is a data dependency.

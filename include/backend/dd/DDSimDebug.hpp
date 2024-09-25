@@ -434,11 +434,11 @@ size_t ddsimGetNumQubits(SimulationState* self);
  * representation of the state.
  *
  * @param self The instance to query.
- * @param qubit The index of the qubit.
+ * @param index The index of the state.
  * @param output A reference to a `Complex` instance to store the amplitude.
  * @return The result of the operation.
  */
-Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
+Result ddsimGetAmplitudeIndex(SimulationState* self, size_t index,
                               Complex* output);
 /**
  * @brief Gets the complex amplitude of a state in the full state vector.
@@ -446,7 +446,7 @@ Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
  * The amplitude is selected by a bitstring representing the state.
  *
  * @param self The instance to query.
- * @param qubit The index of the qubit as a bitstring.
+ * @param bitstring The index of the qubit as a bitstring.
  * @param output A reference to a `Complex` instance to store the amplitude.
  * @return The result of the operation.
  */

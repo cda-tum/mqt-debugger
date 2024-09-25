@@ -17,11 +17,6 @@ extern "C" {
 
 /**
  * @brief A C-style interface for the debugging and simulation interface.
- */
-typedef struct SimulationState SimulationState;
-
-/**
- * @brief A C-style interface for the debugging and simulation interface.
  *
  * This interface provides a way to interact with the simulation state, stepping
  * through the simulation, and inspecting the state of the simulation. \n\n
@@ -31,7 +26,9 @@ typedef struct SimulationState SimulationState;
  * Continuing the simulation from there will skip the failing assertion and
  * `didAssertionFail` will return `false` until another assertion fails.
  */
-struct SimulationState {
+typedef struct SimulationStateStruct SimulationState;
+
+struct SimulationStateStruct {
   /**
    * @brief Initializes the simulation state.
    * @param self The instance to initialize.
@@ -168,11 +165,11 @@ struct SimulationState {
   bool (*canStepBackward)(SimulationState* self);
 
   /**
-   * @brief Indicates whether the simulation has finished.
+   * @brief Indicates whether the execution has finished.
    *
-   * The simulation is considered finished if it has reached the end of the code
+   * The execution is considered finished if it has reached the end of the code.
    * @param self The instance to query.
-   * @return True if the simulation has finished, false otherwise.
+   * @return True if the execution has finished, false otherwise.
    */
   bool (*isFinished)(SimulationState* self);
 
@@ -237,11 +234,11 @@ struct SimulationState {
    * binary representation of the state.
    *
    * @param self The instance to query.
-   * @param qubit The index of the qubit.
+   * @param index The index of the state.
    * @param output A reference to a `Complex` instance to store the amplitude.
    * @return The result of the operation.
    */
-  Result (*getAmplitudeIndex)(SimulationState* self, size_t qubit,
+  Result (*getAmplitudeIndex)(SimulationState* self, size_t index,
                               Complex* output);
 
   /**
@@ -250,7 +247,7 @@ struct SimulationState {
    * The amplitude is selected by a bitstring representing the state.
    *
    * @param self The instance to query.
-   * @param qubit The index of the qubit as a bitstring.
+   * @param bitstring The index of the state as a bitstring.
    * @param output A reference to a `Complex` instance to store the amplitude.
    * @return The result of the operation.
    */

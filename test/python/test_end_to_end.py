@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from mqt.debug import Complex, SimulationState, Statevector, create_ddsim_simulation_state
-from mqt.debug.pydebug import destroy_ddsim_simulation_state
+from mqt.debugger import Complex, SimulationState, Statevector, create_ddsim_simulation_state
+from mqt.debugger.pydebugger import destroy_ddsim_simulation_state
 
 
 @dataclass
