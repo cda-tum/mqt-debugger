@@ -6,6 +6,7 @@ from . import dap
 from ._version import version as __version__
 from .pydebugger import (
     Complex,
+    Diagnostics,
     ErrorCause,
     ErrorCauseType,
     SimulationState,
@@ -19,6 +20,7 @@ from .pydebugger import (
 
 __all__ = [
     "Complex",
+    "Diagnostics",
     "ErrorCause",
     "ErrorCauseType",
     "SimulationState",

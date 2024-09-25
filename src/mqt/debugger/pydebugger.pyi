@@ -256,7 +256,7 @@ class SimulationState:
             bitstring (str): The index of the state as a bitstring.
 
         Returns:
-        Complex: The complex amplitude of the state.
+            Complex: The complex amplitude of the state.
         """
 
     def get_classical_variable(self, name: str) -> Variable:

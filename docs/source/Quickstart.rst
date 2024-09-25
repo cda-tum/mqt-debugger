@@ -24,13 +24,13 @@ All main functionalities are included in the module ``mqt.debugger``, no other m
     state = dbg.create_ddsim_simulation_state()
 
 The first step is to create a simulation state. The current implementation of MQT Debugger implements a single simulation backend based on
-decision diagrams from `MQT Core <https://github.com/cda-tum/mqt-core>`_. This backend is instantiated by calling ``create_ddsim_simulation_state``.
+decision diagrams from `MQT Core <https://github.com/cda-tum/mqt-core>`_. This backend is instantiated by calling :py:func:`create_ddsim_simulation_state <mqt.debugger.create_ddsim_simulation_state>`.
 
 .. code-block:: python
 
     state.load_code(your_code)
 
-Before running the debugger, a quantum program must be loaded into the state. This is done by calling ``load_code`` with the quantum program as a string argument.
+Before running the debugger, a quantum program must be loaded into the state. This is done by calling :py:meth:`SimulationState.load_code <mqt.debugger.SimulationState.load_code>` with the quantum program as a string argument.
 Currently, the supported quantum program format is `QASM 2.0 <https://arxiv.org/abs/1707.03429>`_.
 
 After this setup is done, the debugging process can be started by stepping through the code one instruction at a time:

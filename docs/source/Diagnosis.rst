@@ -4,7 +4,8 @@ Diagnosis Methods
 This document describes the diagnostics methods available in MQT Debugger.
 The diagnostics methods can be used to analyze the state of the system, in particular to find potential error causes when an :doc:`assertion <Assertions>` fails.
 
-All of these methods require a ``Diagnostics`` object to be executed, which can be obtained from the ``SimulationState`` object using ``SimulationState.get_diagnostics() -> Diagnostics`` (Python) or ``Diagnostics* getDiagnostics(SimulationState*)`` (C).
+All of these methods require a :py:class:`Diagnostics <mqt.debugger.Diagnostics>` object to be executed, which can be obtained from the :py:class:`SimulationState <mqt.debugger.SimulationState>` object using
+:cpp:member:`SimulationState::getDiagnostics <SimulationStateStruct::getDiagnostics>`/:py:meth:`SimulationState.get_diagnostics <mqt.debugger.SimulationState.get_diagnostics>`.
 
 Error Cause Analysis
 #####################
@@ -21,7 +22,7 @@ This analysis method can be used to reduce the number of instructions that need 
 narrow down just a small subset of the program, the error cause can be found more quickly. Furthermore, other analysis methods use the Cone of Influence as input
 to find potential error causes more efficiently.
 
-The cone of influence can be obtained using ``Diagnostics.get_data_dependencies(int, bool) -> list[int]`` (Python) or ``Result getDataDependencies(Diagnostics*, int, bool, bool*)`` (C).
+The cone of influence can be obtained using :cpp:member:`Diagnostics::getDataDependencies <DiagnosticsStruct::getDataDependencies>`/:py:meth:`Diagnostics.get_data_dependencies <mqt.debugger.Diagnostics.get_data_dependencies>`.
 In the Python version, it requires a single instruction to be passed as an argument, and returns the indices of all instructions that influence it.
 In the C++ version, in addition to the desired instruction, a pointer to a boolean array must be passed. Each element of the array corresponds to an instruction in the program and is set to ``true`` if the instruction is part of the cone of influence.
 Finally, a boolean Flag (``includeCallers``) can be passed to also include instructions outside the current scope in the cone of influence. Otherwise, if the function is called
@@ -33,7 +34,7 @@ Interaction Analysis
 --------------------
 
 Interaction Analysis is a method to find potential error causes by analyzing the interactions between qubits in the system.
-It is automatically called when using ``Diagnostics.potential_error_causes()`` (Python) or ``potentialErrorCauses(...)`` (C++).
+It is automatically called when using :cpp:member:`Diagnostics::potentialErrorCauses <DiagnosticsStruct::potentialErrorCauses>`/:py:meth:`Diagnostics.potential_error_causes <mqt.debugger.Diagnostics.potential_error_causes>`.
 
 This analysis method can be used to find reasons for failing entanglement assertions:
 Whenever a failed entanglement assertion is encountered, the Interaction Analysis checks, whether the target qubits of the assertion interact with each other.
@@ -68,7 +69,7 @@ the controlled gate will never affect the full state, which could be a sign for 
 This analysis also similarly checks for inverse-controlled gates (i.e., controlled gates that tirgger when the control value is :math:`|1\rangle`) that always
 have the state :math:`|0\rangle` as control.
 
-It is automatically called when using ``Diagnostics.potential_error_causes()`` (Python) or ``potentialErrorCauses(...)`` (C++).
+It is automatically called when using :cpp:member:`Diagnostics::potentialErrorCauses <DiagnosticsStruct::potentialErrorCauses>`/:py:meth:`Diagnostics.potential_error_causes <mqt.debugger.Diagnostics.potential_error_causes>`.
 
 The following code shows an example situation, in which Control-Value Analysis would find a potential error cause:
 

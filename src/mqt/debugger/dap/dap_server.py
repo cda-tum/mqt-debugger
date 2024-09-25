@@ -9,7 +9,6 @@ from typing import Any, cast
 
 import mqt.debugger
 
-from ..pydebugger import ErrorCauseType, SimulationState
 from .messages import (
     ConfigurationDoneDAPMessage,
     ContinueDAPMessage,
@@ -79,7 +78,7 @@ class DAPServer:
     host: str
     port: int
 
-    simulation_state: SimulationState
+    simulation_state: mqt.debugger.SimulationState
     source_file: dict[str, Any]
     source_code: str
     can_step_back: bool
@@ -97,7 +96,7 @@ class DAPServer:
         self.host = host
         self.port = port
         self.can_step_back = False
-        self.simulation_state = SimulationState()
+        self.simulation_state = mqt.debugger.SimulationState()
         self.lines_start_at_one = True
         self.columns_start_at_one = True
 
@@ -362,9 +361,9 @@ class DAPServer:
         start_line, _ = self.code_pos_to_coordinates(start_pos)
         return (
             "The qubits never interact with each other. Are you missing a CX gate?"
-            if cause.type == ErrorCauseType.MissingInteraction
+            if cause.type == mqt.debugger.ErrorCauseType.MissingInteraction
             else f"Control qubit is always zero in line {start_line}."
-            if cause.type == ErrorCauseType.ControlAlwaysZero
+            if cause.type == mqt.debugger.ErrorCauseType.ControlAlwaysZero
             else ""
         )
 

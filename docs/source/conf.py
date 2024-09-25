@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 ROOT = Path(__file__).parent.parent.resolve()
 
+set_type_checking_flag = True
+
 
 try:
     from mqt.debugger import __version__ as version
