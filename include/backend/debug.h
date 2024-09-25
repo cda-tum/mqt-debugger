@@ -165,11 +165,11 @@ struct SimulationStateStruct {
   bool (*canStepBackward)(SimulationState* self);
 
   /**
-   * @brief Indicates whether the simulation has finished.
+   * @brief Indicates whether the execution has finished.
    *
-   * The simulation is considered finished if it has reached the end of the code
+   * The execution is considered finished if it has reached the end of the code.
    * @param self The instance to query.
-   * @return True if the simulation has finished, false otherwise.
+   * @return True if the execution has finished, false otherwise.
    */
   bool (*isFinished)(SimulationState* self);
 
@@ -234,11 +234,11 @@ struct SimulationStateStruct {
    * binary representation of the state.
    *
    * @param self The instance to query.
-   * @param qubit The index of the qubit.
+   * @param index The index of the state.
    * @param output A reference to a `Complex` instance to store the amplitude.
    * @return The result of the operation.
    */
-  Result (*getAmplitudeIndex)(SimulationState* self, size_t qubit,
+  Result (*getAmplitudeIndex)(SimulationState* self, size_t index,
                               Complex* output);
 
   /**
@@ -247,7 +247,7 @@ struct SimulationStateStruct {
    * The amplitude is selected by a bitstring representing the state.
    *
    * @param self The instance to query.
-   * @param qubit The index of the qubit as a bitstring.
+   * @param bitstring The index of the state as a bitstring.
    * @param output A reference to a `Complex` instance to store the amplitude.
    * @return The result of the operation.
    */

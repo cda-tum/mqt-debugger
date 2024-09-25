@@ -665,10 +665,10 @@ size_t ddsimGetNumQubits(SimulationState* self) {
   return ddsim->qc->getNqubits();
 }
 
-Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
+Result ddsimGetAmplitudeIndex(SimulationState* self, size_t index,
                               Complex* output) {
   auto* ddsim = toDDSimulationState(self);
-  auto result = ddsim->simulationState.getValueByIndex(qubit);
+  auto result = ddsim->simulationState.getValueByIndex(index);
   output->real = result.real();
   output->imaginary = result.imag();
   return OK;

@@ -102,7 +102,7 @@ struct DiagnosticsStruct {
    *
    * @param self The diagnostics instance to query.
    * @param instruction The instruction to extract the data dependencies for.
-   * @param includeCallers True if the data dependencies should include all
+   * @param includeCallers True, if the data dependencies should include all
    * possible callers of the containing custom gate.
    * @param instructions An array of booleans that will be set to true for each
    * instruction that is a data dependency.
