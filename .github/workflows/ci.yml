@@ -14,13 +14,13 @@ concurrency:
 jobs:
   change-detection:
     name: 🔍 Change
-    uses: cda-tum/mqt-workflows/.github/workflows/reusable-change-detection.yml@v1.3.2
+    uses: cda-tum/mqt-workflows/.github/workflows/reusable-change-detection.yml@v1.4.0
 
   cpp-tests:
     name: 🇨‌ Test
     needs: change-detection
     if: fromJSON(needs.change-detection.outputs.run-cpp-tests)
-    uses: cda-tum/mqt-workflows/.github/workflows/reusable-cpp-ci.yml@v1.3.2
+    uses: cda-tum/mqt-workflows/.github/workflows/reusable-cpp-ci.yml@v1.4.0
     permissions:
       id-token: write # Explicitly allows the `id-token: write` permission for this job
     with:
@@ -33,7 +33,7 @@ jobs:
     name: 🇨‌ Lint
     needs: change-detection
     if: fromJSON(needs.change-detection.outputs.run-cpp-linter)
-    uses: cda-tum/mqt-workflows/.github/workflows/reusable-cpp-linter.yml@v1.3.2
+    uses: cda-tum/mqt-workflows/.github/workflows/reusable-cpp-linter.yml@v1.4.0
 
   python-tests:
     name: 🐍 Test
@@ -41,7 +41,7 @@ jobs:
     permissions:
       id-token: write # Explicitly allows the `id-token: write` permission for this job
     if: fromJSON(needs.change-detection.outputs.run-python-tests)
-    uses: cda-tum/mqt-workflows/.github/workflows/reusable-python-ci.yml@v1.3.2
+    uses: cda-tum/mqt-workflows/.github/workflows/reusable-python-ci.yml@v1.4.0
     with:
       skip-testing-latest-python: true
 
@@ -49,7 +49,7 @@ jobs:
     name: 📝 CodeQL
     needs: change-detection
     if: fromJSON(needs.change-detection.outputs.run-code-ql)
-    uses: cda-tum/mqt-workflows/.github/workflows/reusable-code-ql.yml@v1.3.2
+    uses: cda-tum/mqt-workflows/.github/workflows/reusable-code-ql.yml@v1.4.0
 
   required-checks-pass: # This job does nothing and is only used for branch protection
     name: 🚦 Check
