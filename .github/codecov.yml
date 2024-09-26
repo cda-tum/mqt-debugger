@@ -2,8 +2,8 @@ ignore:
   - "extern/**/*"
   - "**/python"
   - "test/**/*"
-  - "src/mqt/debug/dap/**/*"
-  - "src/mqt/debug/dap/*"
+  - "src/mqt/debugger/dap/**/*"
+  - "src/mqt/debugger/dap/*"
   - "app/*"
   - "src/frontend/**/*"
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import mqt.debug
+import mqt.debugger
 
 from .dap_message import DAPMessage
 from .utils import get_default_capabilities
@@ -60,7 +60,7 @@ class InitializeDAPMessage(DAPMessage):
         """
         server.columns_start_at_one = self.columns_start_at1
         server.lines_start_at_one = self.lines_start_at1
-        server.simulation_state = mqt.debug.create_ddsim_simulation_state()
+        server.simulation_state = mqt.debugger.create_ddsim_simulation_state()
         return {
             "type": "response",
             "request_seq": self.sequence_number,

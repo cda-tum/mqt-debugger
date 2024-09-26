@@ -1,3 +1,8 @@
+/**
+ * @file DDSimDiagnostics.cpp
+ * @brief Implementation of the diagnostics interface for the DD simulator.
+ */
+
 #include "backend/dd/DDSimDiagnostics.hpp"
 
 #include "backend/dd/DDSimDebug.hpp"
@@ -16,12 +21,28 @@
 #include <string>
 #include <vector>
 
+/**
+ * @brief Cast a `Diagnostics` pointer to a `DDDiagnostics` pointer.
+ *
+ * This was defined as a function to avoid linting issues due to the frequent
+ * `reinterpret_cast`s.
+ * @param diagnostics The `Diagnostics` pointer to cast.
+ * @return The `DDDiagnostics` pointer.
+ */
 DDDiagnostics* toDDDiagnostics(Diagnostics* diagnostics) {
   // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
   return reinterpret_cast<DDDiagnostics*>(diagnostics);
   // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
+/**
+ * @brief Cast a `uint8_t` pointer to a `bool` pointer.
+ *
+ * This was defined as a function to avoid linting issues due to the frequent
+ * `reinterpret_cast`s.
+ * @param array The `uint8_t` pointer to cast.
+ * @return The `bool` pointer.
+ */
 bool* toBoolArray(uint8_t* array) {
   // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
   return reinterpret_cast<bool*>(array);
@@ -68,6 +89,14 @@ Result dddiagnosticsInit(Diagnostics* self) {
   return OK;
 }
 
+/**
+ * @brief Get the return instruction of the given instruction's scope.
+ *
+ * This should only be executed if we know a return instruction exists.
+ * @param state The simulation state.
+ * @param instruction The instruction to start the search from.
+ * @return The index of the return instruction.
+ */
 size_t findReturn(DDSimulationState* state, size_t instruction) {
   size_t current = instruction;
   while (state->instructionTypes[current] != RETURN) {
@@ -76,6 +105,18 @@ size_t findReturn(DDSimulationState* state, size_t instruction) {
   return current;
 }
 
+/**
+ * @brief Iterate over a function call when computing data dependencies.
+ *
+ * When a function call is added to the `toVisit` set during the search for data
+ * dependencies, this function also tries to find possible dependencies inside
+ * the called function. This can lead to recursive calls of this function.
+ * @param ddsim The simulation state.
+ * @param current The index of the call for which to find dependencies.
+ * @param qubitIndex The index of the qubit in the call's argument list.
+ * @param visited The set of already visited instructions.
+ * @param toVisit The set of instructions to visit next.
+ */
 void visitCall(DDSimulationState* ddsim, size_t current, size_t qubitIndex,
                std::set<size_t>& visited, std::set<size_t>& toVisit) {
   const auto gateStart = ddsim->successorInstructions[current];
@@ -107,6 +148,17 @@ void visitCall(DDSimulationState* ddsim, size_t current, size_t qubitIndex,
   }
 }
 
+/**
+ * @brief Get the set of custom gate definitions for which the caller is
+ * unknown.
+ *
+ * This is used when searching data dependencies with the `includeCallers` flag
+ * set to `true`.
+ * @param ddsim The simulation state.
+ * @param instruction The index of the function definition to search the callers
+ * for.
+ * @return A set of function definitions whose callers are unknown.
+ */
 std::set<size_t> getUnknownCallers(DDSimulationState* ddsim,
                                    size_t instruction) {
   std::set<size_t> unknownCallers;
@@ -261,6 +313,15 @@ size_t dddiagnosticsPotentialErrorCauses(Diagnostics* self, ErrorCause* output,
   return index;
 }
 
+/**
+ * @brief Get interactions of the given qubit at runtime.
+ *
+ * At runtime, we can store precisely what qubits are used by each instruction,
+ * so we have more specific details than at static time.
+ * @param ddd The dd diagnostics instance.
+ * @param qubit The qubit to find interactions for.
+ * @return A set of qubits that interact with the given qubit.
+ */
 std::set<size_t> getInteractionsAtRuntime(DDDiagnostics* ddd, size_t qubit) {
   auto* ddsim = ddd->simulationState;
   std::set<size_t> interactions;
@@ -381,6 +442,16 @@ size_t tryFindZeroControls(DDDiagnostics* diagnostics, size_t instruction,
   return index;
 }
 
+/**
+ * @brief Check if the given qubit is always zero in the given statevector.
+ *
+ * If the `checkOne` flag is set to `true`, the function checks if the qubit is
+ * always one instead.
+ * @param sv The statevector to check.
+ * @param qubit The qubit to check.
+ * @param checkOne If true, the function checks if the qubit is always one.
+ * @return True if the qubit is always zero (or one), false otherwise.
+ */
 bool isAlwaysZero(const Statevector& sv, size_t qubit, bool checkOne = false) {
   const auto epsilon = 1e-10;
 

@@ -1,4 +1,4 @@
-name-template: "MQT Debug $RESOLVED_VERSION Release"
+name-template: "MQT Debugger $RESOLVED_VERSION Release"
 tag-template: "v$RESOLVED_VERSION"
 categories:
   - title: "🚀 Features and Enhancements"

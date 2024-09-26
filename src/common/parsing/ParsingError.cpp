@@ -1,3 +1,8 @@
+/**
+ * @file ParsingError.cpp
+ * @brief Implementation of the ParsingError class.
+ */
+
 #include "common/parsing/ParsingError.hpp"
 
 #include <stdexcept>

@@ -1,3 +1,11 @@
+/**
+ * @file utils_test.cpp
+ * @brief Implementation of utility functions for testing.
+ *
+ * This file implements several utility functions that are used in the test
+ * files.
+ */
+
 #include "utils/utils_test.hpp"
 
 #include "common.h"

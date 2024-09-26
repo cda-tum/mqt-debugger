@@ -1,3 +1,8 @@
+/**
+ * @file DDSimDebug.cpp
+ * @brief Implementation of DDSimDebug.hpp
+ */
+
 #include "backend/dd/DDSimDebug.hpp"
 
 #include "Definitions.hpp"
@@ -34,12 +39,26 @@
 #include <utility>
 #include <vector>
 
+/**
+ * @brief Cast a `SimulationState` pointer to a `DDSimulationState` pointer.
+ *
+ * This was defined as a function to avoid linting issues due to the frequent
+ * `reinterpret_cast`s.
+ * @param state The `SimulationState` pointer to cast.
+ * @return The `DDSimulationState` pointer.
+ */
 DDSimulationState* toDDSimulationState(SimulationState* state) {
   // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
   return reinterpret_cast<DDSimulationState*>(state);
   // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
+/**
+ * @brief Generate a random number between 0 and 1.
+ *
+ * This number is used for measurements.
+ * @return A random number between 0 and 1.
+ */
 double generateRandomNumber() {
   std::random_device
       rd; // Will be used to obtain a seed for the random number engine
@@ -94,6 +113,13 @@ Result createDDSimulationState(DDSimulationState* self) {
 }
 #pragma clang diagnostic pop
 
+/**
+ * @brief Handles all actions that need to be performed when resetting the
+ * simulation state.
+ *
+ * This occurs when the reset method is called or when new code is loaded.
+ * @param ddsim The `DDSimulationState` to reset.
+ */
 void resetSimulationState(DDSimulationState* ddsim) {
   if (ddsim->simulationState.p != nullptr) {
     ddsim->dd->decRef(ddsim->simulationState);
@@ -639,10 +665,10 @@ size_t ddsimGetNumQubits(SimulationState* self) {
   return ddsim->qc->getNqubits();
 }
 
-Result ddsimGetAmplitudeIndex(SimulationState* self, size_t qubit,
+Result ddsimGetAmplitudeIndex(SimulationState* self, size_t index,
                               Complex* output) {
   auto* ddsim = toDDSimulationState(self);
-  auto result = ddsim->simulationState.getValueByIndex(qubit);
+  auto result = ddsim->simulationState.getValueByIndex(index);
   output->real = result.real();
   output->imaginary = result.imag();
   return OK;
@@ -694,6 +720,11 @@ Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
   return OK;
 }
 
+/**
+ * @brief Convert a given vector-of-vectors matrix to an Eigen3 matrix.
+ * @param matrix The vector-of-vectors matrix to convert.
+ * @return A new Eigen3 matrix.
+ */
 Eigen::MatrixXcd // NOLINT
 toEigenMatrix(const std::vector<std::vector<Complex>>& matrix) {
   Eigen::MatrixXcd mat(static_cast<int64_t>(matrix.size()),  // NOLINT
@@ -975,24 +1006,52 @@ std::pair<size_t, size_t> variableToQubitAt(DDSimulationState* ddsim,
           functionDef};
 }
 
+/**
+ * @brief Compute the magnitude of a complex number.
+ * @param c The complex number.
+ * @return The computed magnitude.
+ */
 double complexMagnitude(Complex& c) {
   return std::sqrt(c.real * c.real + c.imaginary * c.imaginary);
 }
 
+/**
+ * @brief Multiply two complex numbers.
+ * @param c1 The first complex number.
+ * @param c2 The second complex number.
+ * @return The product of the two complex numbers.
+ */
 Complex complexMultiplication(const Complex& c1, const Complex& c2) {
   const double real = c1.real * c2.real - c1.imaginary * c2.imaginary;
   const double imaginary = c1.real * c2.imaginary + c1.imaginary * c2.real;
   return {real, imaginary};
 }
 
+/**
+ * @brief Compute the complex conjugate of a complex number.
+ * @param c The complex number.
+ * @return The complex conjugate of the input complex number.
+ */
 Complex complexConjugate(const Complex& c) { return {c.real, -c.imaginary}; }
 
+/**
+ * @brief Add two complex numbers.
+ * @param c1 The first complex number.
+ * @param c2 The second complex number.
+ * @return The sum of the two complex numbers.
+ */
 Complex complexAddition(const Complex& c1, const Complex& c2) {
   const double real = c1.real + c2.real;
   const double imaginary = c1.imaginary + c2.imaginary;
   return {real, imaginary};
 }
 
+/**
+ * @brief Compute the dot product of two state vectors.
+ * @param sv1 The first state vector.
+ * @param sv2 The second state vector.
+ * @return The computed dot product.
+ */
 double dotProduct(const Statevector& sv1, const Statevector& sv2) {
   double resultReal = 0;
   double resultImag = 0;
@@ -1010,6 +1069,13 @@ double dotProduct(const Statevector& sv1, const Statevector& sv2) {
   return complexMagnitude(result);
 }
 
+/**
+ * @brief For a given value, extract the bits at the given indices of its binary
+ * representation.
+ * @param indices The indices of the bits to extract.
+ * @param value The value to extract the bits from.
+ * @return The extracted bits.
+ */
 std::vector<bool> extractBits(const std::vector<size_t>& indices,
                               size_t value) {
   std::vector<bool> result(indices.size());
@@ -1019,6 +1085,18 @@ std::vector<bool> extractBits(const std::vector<size_t>& indices,
   return result;
 }
 
+/**
+ * @brief Split a given number into two numbers partitioned by the bits at the
+ * given indices.
+ *
+ * Starts by extracting the bits at the given indices of its binary
+ * representation. Then, the extracted and non-extracted parts are converted
+ * into two new numbers.
+ * @param number The number to split.
+ * @param n The number of bits in the binary representation.
+ * @param bits The indices of the bits to extract.
+ * @return The two new numbers, partitioned by the extracted bits.
+ */
 std::pair<size_t, size_t> splitBitString(size_t number, size_t n,
                                          const std::vector<size_t>& bits) {
   size_t lenFirst = 0;
@@ -1040,6 +1118,13 @@ std::pair<size_t, size_t> splitBitString(size_t number, size_t n,
   return {first, second};
 }
 
+/**
+ * @brief Compute the partial trace of a given matrix.
+ * @param matrix The matrix to compute the partial trace of.
+ * @param indicesToTraceOut The indices of the qubits to trace out.
+ * @param nQubits The total number of qubits.
+ * @return The computed partial trace.
+ */
 std::vector<std::vector<Complex>>
 getPartialTrace(const std::vector<std::vector<Complex>>& matrix,
                 const std::vector<size_t>& indicesToTraceOut, size_t nQubits) {
@@ -1060,6 +1145,11 @@ getPartialTrace(const std::vector<std::vector<Complex>>& matrix,
   return traceMatrix;
 }
 
+/**
+ * @brief Compute the entropy of a given matrix.
+ * @param matrix The matrix to compute the entropy of.
+ * @return The computed entropy.
+ */
 double getEntropy(const std::vector<std::vector<Complex>>& matrix) {
   const auto mat = toEigenMatrix(matrix);
 
@@ -1079,12 +1169,32 @@ double getEntropy(const std::vector<std::vector<Complex>>& matrix) {
   return entropy;
 }
 
+/**
+ * @brief Compute the shared information of a given 4x4 density matrix.
+ *
+ * The density matrix is assumed to represent a two-qubit system.\n
+ * The shared information is computed by adding up the entropy values of the two
+ * new matrices created by tracing out each of the qubits and subtracting the
+ * entropy of the original matrix.
+ * @param matrix The density matrix to compute the shared information of.
+ * @return The computed shared information.
+ */
 double getSharedInformation(const std::vector<std::vector<Complex>>& matrix) {
   const auto p0 = getPartialTrace(matrix, {1}, 2);
   const auto p1 = getPartialTrace(matrix, {0}, 2);
   return getEntropy(p0) + getEntropy(p1) - getEntropy(matrix);
 }
 
+/**
+ * @brief Check if two qubits are entangled in a given density matrix.
+ *
+ * This is done by tracing out all other qubits from a density matrix and then
+ * checking whether the shared information is greater than 0.
+ * @param densityMatrix The density matrix to check for entanglement.
+ * @param qubit1 The first qubit to check.
+ * @param qubit2 The second qubit to check.
+ * @return True if the qubits are entangled, false otherwise.
+ */
 bool areQubitsEntangled(std::vector<std::vector<Complex>>& densityMatrix,
                         size_t qubit1, size_t qubit2) {
   const auto numQubits = static_cast<size_t>(std::log2(densityMatrix.size()));
@@ -1125,6 +1235,14 @@ getPartialTraceFromStateVector(const Statevector& sv,
   return traceMatrix;
 }
 
+/**
+ * @brief Compute the trace of the square of a given matrix.
+ *
+ * This is done so that we don't have to compute the entire square of the
+ * matrix.
+ * @param matrix The matrix to compute the trace of the square of.
+ * @return The computed trace of the square.
+ */
 Complex getTraceOfSquare(const std::vector<std::vector<Complex>>& matrix) {
   Complex runningSum{0, 0};
   for (size_t i = 0; i < matrix.size(); i++) {
@@ -1136,6 +1254,15 @@ Complex getTraceOfSquare(const std::vector<std::vector<Complex>>& matrix) {
   return runningSum;
 }
 
+/**
+ * @brief Check if the partial trace of a given state vector is pure.
+ *
+ * This is true if and only if the trace of the square of the traced out density
+ * matrix is equal to 1.
+ * @param sv The state vector to check.
+ * @param traceOut The indices of the qubits to trace out.
+ * @return True if the partial trace is pure, false otherwise.
+ */
 bool partialTraceIsPure(const Statevector& sv,
                         const std::vector<size_t>& traceOut) {
   const auto traceMatrix = getPartialTraceFromStateVector(sv, traceOut);
@@ -1158,6 +1285,12 @@ bool isSubStateVectorLegal(const Statevector& full,
   return partialTraceIsPure(full, ignored);
 }
 
+/**
+ * Checks the given entanglement assertion on the given state.
+ * @param ddsim The simulation state.
+ * @param assertion The entanglement assertion to check.
+ * @return True if the assertion is satisfied, false otherwise.
+ */
 bool checkAssertionEntangled(
     DDSimulationState* ddsim,
     std::unique_ptr<EntanglementAssertion>& assertion) {
@@ -1195,6 +1328,12 @@ bool checkAssertionEntangled(
   return true;
 }
 
+/**
+ * Checks the given superposition assertion on the given state.
+ * @param ddsim The simulation state.
+ * @param assertion The superposition assertion to check.
+ * @return True if the assertion is satisfied, false otherwise.
+ */
 bool checkAssertionSuperposition(
     DDSimulationState* ddsim,
     std::unique_ptr<SuperpositionAssertion>& assertion) {
@@ -1226,6 +1365,12 @@ bool checkAssertionSuperposition(
   return false;
 }
 
+/**
+ * Checks the given statevector-equality assertion on the given state.
+ * @param ddsim The simulation state.
+ * @param assertion The equality assertion to check.
+ * @return True if the assertion is satisfied, false otherwise.
+ */
 bool checkAssertionEqualityStatevector(
     DDSimulationState* ddsim,
     std::unique_ptr<StatevectorEqualityAssertion>& assertion) {
@@ -1253,6 +1398,12 @@ bool checkAssertionEqualityStatevector(
   return similarity >= similarityThreshold;
 }
 
+/**
+ * Checks the given circuit-equality assertion on the given state.
+ * @param ddsim The simulation state.
+ * @param assertion The equality assertion to check.
+ * @return True if the assertion is satisfied, false otherwise.
+ */
 bool checkAssertionEqualityCircuit(
     DDSimulationState* ddsim,
     std::unique_ptr<CircuitEqualityAssertion>& assertion) {
@@ -1334,6 +1485,16 @@ bool checkAssertion(DDSimulationState* ddsim,
   throw std::runtime_error("Unknown assertion type");
 }
 
+/**
+ * @brief For an instruction that has a child block, extract the valid code from
+ * the block's body.
+ *
+ * Valid code is code that can be passed to the simulation backend. Assertions
+ * are removed.
+ * @param parent The parent instruction.
+ * @param allInstructions All instructions in the program.
+ * @return The extracted valid code.
+ */
 std::string validCodeFromChildren(const Instruction& parent,
                                   std::vector<Instruction>& allInstructions) {
   std::string code = parent.code;
@@ -1406,7 +1567,7 @@ std::string preprocessAssertionCode(const char* code,
       ddsim->instructionTypes.push_back(ASSERTION);
       ddsim->assertionInstructions.insert(
           {instruction.lineNumber, std::move(instruction.assertion)});
-    } else if (instruction.isFunctionDefition) {
+    } else if (instruction.isFunctionDefinition) {
       if (!instruction.inFunctionDefinition) {
         correctLines.push_back(
             validCodeFromChildren(instruction, instructions));

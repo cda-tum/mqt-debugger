@@ -1,7 +1,7 @@
-//
-// Created by damian on 7/2/24.
-//
-
+/**
+ * @file CliFrontEnd.cpp
+ * @brief Implementation of the command-line interface front end.
+ */
 #include "frontend/cli/CliFrontEnd.hpp"
 
 #include "backend/debug.h"
@@ -14,6 +14,11 @@
 #include <string>
 #include <vector>
 
+/**
+ * @brief ANSI escape sequence for resetting the background color.
+ *
+ * This method clears the terminal screen.
+ */
 void clearScreen() {
   // Clear the screen using an ANSI escape sequence
   std::cout << "\033[2J\033[1;1H";
@@ -105,6 +110,11 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
   }
 }
 
+/**
+ * @brief Get all possible bit strings for a given number of qubits.
+ * @param numQubits The number of qubits.
+ * @return The list of bit strings.
+ */
 std::vector<std::string> getBitStrings(size_t numQubits) {
   std::vector<std::string> bitStrings;
   for (size_t i = 0; i < (1ULL << numQubits); i++) {
@@ -117,6 +127,13 @@ std::vector<std::string> getBitStrings(size_t numQubits) {
   return bitStrings;
 }
 
+/**
+ * @brief Print the current state of the simulation.
+ * @param state The simulation state.
+ * @param inspecting The instruction that is currently inspected (or -1ULL if
+ * nothing is being inspected).
+ * @param codeOnly If true, only the code is displayed, not the state.
+ */
 void CliFrontEnd::printState(SimulationState* state, size_t inspecting,
                              bool codeOnly) {
   std::vector<size_t> highlightIntervals;

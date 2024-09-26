@@ -1,21 +1,32 @@
+/**
+ * @file testDDSimDebugger.cpp
+ * @brief A test application that runs the CLI frontend using the DD backend.
+ */
+
 #include "backend/dd/DDSimDebug.hpp"
 #include "frontend/cli/CliFrontEnd.hpp"
 
 #include <fstream>
 #include <iostream>
-#include <iterator>
+#include <sstream>
 #include <string>
 
 int main() {
-  std::ifstream file("../../app/code/test"
-                     ".qasm");
+  std::ifstream file("program.qasm");
+  if (!file.is_open()) {
+    file.open("../../app/code/test"
+              ".qasm");
+  }
   if (!file.is_open()) {
     std::cerr << "Could not open file\n";
     file.close();
     return 1;
   }
-  const std::string code((std::istreambuf_iterator<char>(file)),
-                         std::istreambuf_iterator<char>());
+
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+
+  const std::string code = buffer.str();
 
   DDSimulationState state;
   createDDSimulationState(&state);

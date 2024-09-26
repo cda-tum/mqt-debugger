@@ -1,7 +1,7 @@
 include(FetchContent)
 set(FETCH_PACKAGES "")
 
-if(BUILD_MQT_DEBUG_BINDINGS)
+if(BUILD_MQT_DEBUGGER_BINDINGS)
   if(NOT SKBUILD)
     # Manually detect the installed pybind11 package.
     execute_process(
@@ -87,7 +87,7 @@ else()
   endif()
 endif()
 
-if(BUILD_MQT_DEBUG_TESTS)
+if(BUILD_MQT_DEBUGGER_TESTS)
   set(gtest_force_shared_crt
       ON
       CACHE BOOL "" FORCE)
@@ -107,7 +107,7 @@ if(BUILD_MQT_DEBUG_TESTS)
   endif()
 endif()
 
-if(BUILD_MQT_DEBUG_BINDINGS)
+if(BUILD_MQT_DEBUGGER_BINDINGS)
   # add pybind11_json library
   if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
     FetchContent_Declare(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import mqt.debug
+import mqt.debugger
 
 from .dap_message import DAPMessage
 
@@ -37,5 +37,5 @@ class DisconnectDAPMessage(DAPMessage):
         Returns:
             dict[str, Any]: The response to the request.
         """
-        mqt.debug.destroy_ddsim_simulation_state(server.simulation_state)
+        mqt.debugger.destroy_ddsim_simulation_state(server.simulation_state)
         return super().handle(server)
