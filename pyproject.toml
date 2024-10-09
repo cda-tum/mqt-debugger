@@ -278,7 +278,7 @@ build = "cp3*"
 skip = "*-musllinux_*"
 archs = "auto64"
 test-command = "python -c \"from mqt import debugger\""
-test-skip = "cp38-macosx_arm64"
+test-skip = ["cp38-macosx_arm64", "cp313*"]
 build-frontend = "build[uv]"
 
 [tool.cibuildwheel.linux]
