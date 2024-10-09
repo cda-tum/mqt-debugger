@@ -7,13 +7,16 @@ from __future__ import annotations
 
 import locale
 from pathlib import Path
-from typing import Generator, Tuple, cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
 import mqt.debugger
 
-SimulationInstance = Tuple[mqt.debugger.SimulationState, int]
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+SimulationInstance = tuple[mqt.debugger.SimulationState, int]
 
 
 @pytest.fixture(scope="module")
@@ -69,7 +72,7 @@ def simulation_state_cleanup(
 
 def load_fixture(request: pytest.FixtureRequest, name: str) -> tuple[mqt.debugger.SimulationState, int]:
     """Loads a fixture with the given name."""
-    return cast(Tuple[mqt.debugger.SimulationState, int], request.getfixturevalue(name))
+    return cast(tuple[mqt.debugger.SimulationState, int], request.getfixturevalue(name))
 
 
 @pytest.mark.parametrize(

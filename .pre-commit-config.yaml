@@ -111,7 +111,7 @@ repos:
     rev: v2.3.0
     hooks:
       - id: codespell
-        args: ["-L", "wille,linz", "--skip", "*.ipynb"]
+        args: ["-L", "wille,linz,astroid", "--skip", "*.ipynb"]
 
   # Catch common capitalization mistakes
   - repo: local
