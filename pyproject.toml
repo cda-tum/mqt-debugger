@@ -32,7 +32,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
     "Typing :: Typed",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dynamic = ["version"]
 
 [project.optional-dependencies]
@@ -156,7 +156,7 @@ report.exclude_also = [
 [tool.mypy]
 files = ["src/mqt", "test/python"]
 mypy_path = ["$MYPY_CONFIG_FILE_DIR/src"]
-python_version = "3.8"
+python_version = "3.9"
 warn_unused_configs = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 strict = true
