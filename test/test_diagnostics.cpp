@@ -7,6 +7,7 @@
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
 #include "common.h"
+#include "common_fixtures.cpp"
 #include "utils_test.hpp"
 
 #include <array>
@@ -25,40 +26,7 @@
  * This fixture creates a DDSimulationState and allows to load code from files
  * in the `circuits` directory.
  */
-class DiagnosticsTest : public testing::Test {
-  void SetUp() override {
-    createDDSimulationState(&ddState);
-    state = &ddState.interface;
-    diagnostics = state->getDiagnostics(state);
-  }
-
-protected:
-  /**
-   * @brief The DDSimulationState to use for testing.
-   */
-  DDSimulationState ddState;
-  /**
-   * @brief A reference to the SimulationState interface for easier access.
-   */
-  SimulationState* state = nullptr;
-  /**
-   * @brief A reference to the Diagnostics interface for easier access.
-   */
-  Diagnostics* diagnostics = nullptr;
-
-  /**
-   * @brief Load the code from the file with the given name.
-   *
-   * The given file should be located in the `circuits` directory and use the
-   * `.qasm` extension.
-   * @param testName The name of the file to load (not including the `circuits`
-   * directory path and the extension).
-   */
-  void loadFromFile(const std::string& testName) {
-    const auto code = readFromCircuitsPath(testName);
-    state->loadCode(state, code.c_str());
-  }
-};
+class DiagnosticsTest : public LoadFromFileFixture {};
 
 /**
  * @test Test the correctness of the data dependencies retrieval.
