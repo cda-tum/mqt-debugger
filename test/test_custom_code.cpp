@@ -154,6 +154,18 @@ TEST_F(CustomCodeTest, ClassicControlledOperationTrue) {
 }
 
 /**
+ * @test Test the usage of classically controlled operations with multiple
+ * gates.
+ */
+TEST_F(CustomCodeTest, ClassicControlledMultiOperation) {
+  loadCode(2, 1,
+           "x q[0];"
+           "measure q[0] -> c[0];"
+           "if(c==1) { x q[0]; x q[1]; }",
+           true);
+}
+
+/**
  * @test Test the `reset` instruction.
  */
 TEST_F(CustomCodeTest, ResetGate) {

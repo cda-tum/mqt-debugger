@@ -3,6 +3,7 @@ add_library(
   backend/dd/DDSimDebug.cpp
   backend/dd/DDSimDiagnostics.cpp
   common/parsing/AssertionParsing.cpp
+  common/parsing/AssertionTools.cpp
   common/parsing/CodePreprocessing.cpp
   common/parsing/ParsingError.cpp
   common/parsing/Utils.cpp

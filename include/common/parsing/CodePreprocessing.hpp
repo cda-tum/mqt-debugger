@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -181,6 +182,24 @@ struct Instruction {
 };
 
 /**
+ * @brief Represents a classic-controlled gate in the code.
+ *
+ * Classic-controlled gates are defined using the `if` keyword with one of the
+ * following formats:\n `if (condition) operation;` or `if (condition) {
+ * operation1; operation2; ... }`
+ */
+struct ClassicControlledGate {
+  /**
+   * @brief The condition of the classic-controlled gate.
+   */
+  std::string condition;
+  /**
+   * @brief The quantum operations to perform if the condition is met.
+   */
+  std::vector<std::string> operations;
+};
+
+/**
  * @brief Represents a function definition in the code.
  */
 struct FunctionDefinition {
@@ -228,3 +247,65 @@ preprocessCode(const std::string& code, size_t startIndex,
                std::map<std::string, size_t>& definedRegisters,
                const std::vector<std::string>& shadowedRegisters,
                std::string& processedCode);
+
+/**
+ * @brief Check if a given line is a function definition.
+ *
+ * This is done by checking if it starts with `gate `.
+ * @param line The line to check.
+ * @return True if the line is a function definition, false otherwise.
+ */
+bool isFunctionDefinition(const std::string& line);
+
+/**
+ * @brief Check if a given line is a classic controlled gate.
+ *
+ * This is done by checking if it starts with `if` and contains parentheses.
+ * @param line The line to check.
+ * @return True if the line is a classic controlled gate, false otherwise.
+ */
+bool isClassicControlledGate(const std::string& line);
+
+/**
+ * @brief Parse a classic-controlled gate from a given line (or multiple lines)
+ * of code.
+ * @param code The code to parse.
+ * @return The parsed classic-controlled gate.
+ */
+ClassicControlledGate parseClassicControlledGate(const std::string& code);
+
+/**
+ * @brief Check if a given line is a variable declaration.
+ *
+ * This is done by checking if it contains `creg ` or `qreg `.
+ * @param line The line to check.
+ * @return True if the line is a variable declaration, false otherwise.
+ */
+bool isVariableDeclaration(const std::string& line);
+
+/**
+ * @brief Check if a given line is a measurement.
+ *
+ * This is done by checking if it contains the symbols `->`.
+ * @param line The line to check.
+ * @return True if the line is a measurement, false otherwise.
+ */
+bool isMeasurement(const std::string& line);
+
+/**
+ * @brief Check if a given line is a reset operation.
+ *
+ * This is done by checking if it starts with `reset `.
+ * @param line The line to check.
+ * @return True if the line is a reset operation, false otherwise.
+ */
+bool isReset(const std::string& line);
+
+/**
+ * @brief Check if a given line is a barrier operation.
+ *
+ * This is done by checking if it starts with `barrier ` or `barrier;`.
+ * @param line The line to check.
+ * @return True if the line is a barrier operation, false otherwise.
+ */
+bool isBarrier(const std::string& line);
