@@ -315,4 +315,4 @@ bool isBarrier(const std::string& line);
  * @param instruction The instruction to parse.
  * @return A vector containing the parsed parameters.
  */
-std::vector<std::string> parseParameters(const std::string& instruction)
+std::vector<std::string> parseParameters(const std::string& instruction);

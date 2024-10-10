@@ -1517,6 +1517,7 @@ std::string preprocessAssertionCode(const char* code,
                                     DDSimulationState* ddsim) {
 
   auto instructions = preprocessCode(code, ddsim->processedCode);
+  dddiagnosticsOnCodePreprocessing(&ddsim->diagnostics, instructions);
   std::vector<std::string> correctLines;
   ddsim->instructionTypes.clear();
   ddsim->functionDefinitions.clear();

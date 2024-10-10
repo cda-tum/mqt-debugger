@@ -10,6 +10,7 @@
 #include "common.h"
 #include "common/Span.hpp"
 #include "common/parsing/AssertionParsing.hpp"
+#include "common/parsing/AssertionTools.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -60,6 +61,8 @@ Result createDDDiagnostics(DDDiagnostics* self, DDSimulationState* state) {
   self->interface.getZeroControlInstructions =
       dddiagnosticsGetZeroControlInstructions;
   self->interface.potentialErrorCauses = dddiagnosticsPotentialErrorCauses;
+  self->interface.suggestAssertionMovements =
+      dddiagnosticsSuggestAssertionMovements;
 
   return self->interface.init(&self->interface);
 }
@@ -537,6 +540,57 @@ void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics,
         diagnostics->nonZeroControls[instruction] = std::set<size_t>();
       }
       diagnostics->nonZeroControls[instruction].insert(qubit);
+    }
+  }
+}
+
+size_t dddiagnosticsSuggestAssertionMovements(Diagnostics* self,
+                                              size_t* originalPositions,
+                                              size_t* suggestedPositions,
+                                              size_t count) {
+  DDDiagnostics* diagnostics = toDDDiagnostics(self);
+  const size_t max = count < diagnostics->assertionsToMove.size()
+                         ? count
+                         : diagnostics->assertionsToMove.size();
+  const Span<size_t> original(originalPositions, count);
+  const Span<size_t> suggested(suggestedPositions, count);
+  for (size_t i = 0; i < max; i++) {
+    original[i] = diagnostics->assertionsToMove[i].first;
+    suggested[i] = diagnostics->assertionsToMove[i].second;
+  }
+  return max;
+}
+
+void dddiagnosticsOnCodePreprocessing(
+    DDDiagnostics* diagnostics, const std::vector<Instruction>& instructions) {
+  for (size_t i = 0; i < instructions.size(); i++) {
+    const auto& instruction = instructions[i];
+    if (instruction.assertion == nullptr) {
+      continue;
+    }
+
+    size_t lowestSwap = i;
+
+    const auto& assertion = instruction.assertion;
+    size_t j = i - 1;
+    while (j != -1ULL) {
+      if (instructions[j].isFunctionDefinition) {
+        break;
+      }
+      if (instructions[j].code == "RETURN") {
+        while (j > 0 && !instructions[j].isFunctionDefinition) {
+          j--;
+        }
+      }
+      if (!doesCommute(assertion, instructions[j])) {
+        break;
+      }
+      lowestSwap = j;
+      j--;
+    }
+
+    if (i != lowestSwap) {
+      diagnostics->assertionsToMove.emplace_back(i, lowestSwap);
     }
   }
 }

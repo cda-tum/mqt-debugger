@@ -8,7 +8,7 @@
 #include <memory>
 #include <string>
 
-bool doesCommuteEnt(const std::unique_ptr<EntanglementAssertion>& assertion,
+bool doesCommuteEnt(const EntanglementAssertion* assertion,
                     const std::string& instruction) {
   const auto targets = parseParameters(instruction);
   return targets.size() < 2; // If the instruction does not target at least two
@@ -16,7 +16,7 @@ bool doesCommuteEnt(const std::unique_ptr<EntanglementAssertion>& assertion,
   // In theory, even more could be done here, but for now we leave it like this.
 }
 
-bool doesCommuteSup(const std::unique_ptr<SuperpositionAssertion>& assertion,
+bool doesCommuteSup(const SuperpositionAssertion* assertion,
                     const std::string& instruction) {
   const auto targets = parseParameters(instruction);
   if (targets.size() >= 2) {
@@ -40,16 +40,16 @@ bool doesCommute(const std::unique_ptr<Assertion>& assertion,
   }
 
   if (assertion->getType() == AssertionType::Entanglement) {
-    return doesCommuteEnt(
-        std::unique_ptr<EntanglementAssertion>(
-            dynamic_cast<EntanglementAssertion*>(assertion.get())),
-        instruction);
+    const auto* entAssertion =
+        dynamic_cast<EntanglementAssertion*>(assertion.get());
+    const auto result = doesCommuteEnt(entAssertion, instruction);
+    return result;
   }
   if (assertion->getType() == AssertionType::Superposition) {
-    return doesCommuteSup(
-        std::unique_ptr<SuperpositionAssertion>(
-            dynamic_cast<SuperpositionAssertion*>(assertion.get())),
-        instruction);
+    const auto* supAssertion =
+        dynamic_cast<SuperpositionAssertion*>(assertion.get());
+    const auto result = doesCommuteSup(supAssertion, instruction);
+    return result;
   }
   if (assertion->getType() == AssertionType::CircuitEquality ||
       assertion->getType() == AssertionType::StatevectorEquality) {
@@ -57,6 +57,7 @@ bool doesCommute(const std::unique_ptr<Assertion>& assertion,
     // dependent operation will (likely) change the state of the qubits.
     return false;
   }
+  return false;
 }
 
 bool doesCommute(const std::unique_ptr<Assertion>& assertion,

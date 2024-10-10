@@ -174,6 +174,20 @@ struct DiagnosticsStruct {
    */
   size_t (*potentialErrorCauses)(Diagnostics* self, ErrorCause* output,
                                  size_t count);
+
+  /**
+   * @brief Suggest movements of assertions to better positions.
+   * @param self The diagnostics instance to query.
+   * @param originalPositions An array of assertion positions to be filled.
+   * Contains the original positions of the assertions that should be moved.
+   * @param suggestedPositions An array of assertion positions to be filled.
+   * Contains the suggested positions of the assertions that should be moved.
+   * @param count The maximum number of assertions to suggest movements for.
+   * @return The number of suggested movements.
+   */
+  size_t (*suggestAssertionMovements)(Diagnostics* self,
+                                      size_t* originalPositions,
+                                      size_t* suggestedPositions, size_t count);
 };
 
 #ifdef __cplusplus

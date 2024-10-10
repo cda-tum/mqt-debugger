@@ -8,6 +8,7 @@
 #include "backend/diagnostics.h"
 #include "common.h"
 #include "common/parsing/AssertionParsing.hpp"
+#include "common/parsing/CodePreprocessing.hpp"
 
 #include <cstddef>
 #include <map>
@@ -43,6 +44,8 @@ struct DDDiagnostics {
    * @brief The actual qubits that each instruction has targeted.
    */
   std::map<size_t, std::set<std::vector<size_t>>> actualQubits;
+
+  std::vector<std::pair<size_t, size_t>> assertionsToMove;
 };
 
 /**
@@ -162,6 +165,21 @@ size_t dddiagnosticsPotentialErrorCauses(Diagnostics* self, ErrorCause* output,
                                          size_t count);
 
 /**
+ * @brief Suggest movements of assertions to better positions.
+ * @param self The diagnostics instance to query.
+ * @param originalPositions An array of assertion positions to be filled.
+ * Contains the original positions of the assertions that should be moved.
+ * @param suggestedPositions An array of assertion positions to be filled.
+ * Contains the suggested positions of the assertions that should be moved.
+ * @param count The maximum number of assertions to suggest movements for.
+ * @return The number of suggested movements.
+ */
+size_t dddiagnosticsSuggestAssertionMovements(Diagnostics* self,
+                                              size_t* originalPositions,
+                                              size_t* suggestedPositions,
+                                              size_t count);
+
+/**
  * @brief Creates a new `DDDiagnostics` instance.
  *
  * This method expects an allocated memory block for the `DDDiagnostics`
@@ -185,6 +203,14 @@ Result destroyDDDiagnostics([[maybe_unused]] DDDiagnostics* self);
  * @param instruction The instruction that was executed.
  */
 void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics, size_t instruction);
+
+/**
+ * @brief Called, whenever simulation steps forward to update the diagnostics.
+ * @param diagnostics The diagnostics instance to update.
+ * @param instruction The instruction that was executed.
+ */
+void dddiagnosticsOnCodePreprocessing(
+    DDDiagnostics* diagnostics, const std::vector<Instruction>& instructions);
 
 /**
  * @brief Tries to find potential errors caused by missing interactions at
