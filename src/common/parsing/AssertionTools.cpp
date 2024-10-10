@@ -2,6 +2,7 @@
 
 #include "common/parsing/AssertionParsing.hpp"
 #include "common/parsing/CodePreprocessing.hpp"
+#include "common/parsing/Utils.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -9,12 +10,27 @@
 
 bool doesCommuteEnt(const std::unique_ptr<EntanglementAssertion>& assertion,
                     const std::string& instruction) {
-  return false; // TODO implement
+  const auto targets = parseParameters(instruction);
+  return targets.size() < 2; // If the instruction does not target at least two
+                             // qubits, it cannot influence entanglement.
+  // In theory, even more could be done here, but for now we leave it like this.
 }
 
 bool doesCommuteSup(const std::unique_ptr<SuperpositionAssertion>& assertion,
                     const std::string& instruction) {
-  return false; // TODO implement
+  const auto targets = parseParameters(instruction);
+  if (targets.size() >= 2) {
+    return false; // For controlled gates, it's hard to say how they would
+                  // influence the superposition of the qubits.
+  }
+  const auto name = splitString(trim(instruction), ' ')[0];
+  if (name == "x" || name == "y" || name == "z" || name == "s" || name == "t" ||
+      name == "sdg" || name == "tdg") {
+    return true; // Most common Single-qubit gates commute with superposition
+                 // assertions.
+  }
+  return false; // For other gates, it's hard to say how they would influence
+                // the superposition of the qubits.
 }
 
 bool doesCommute(const std::unique_ptr<Assertion>& assertion,
@@ -68,6 +84,10 @@ bool doesCommute(const std::unique_ptr<Assertion>& assertion,
   if (isClassicControlledGate(code)) {
     // For classic-controlled gates, the classical parts do not matter, so we
     // only need to focus on the quantum parts.
+    // NOTE: This will not work, if the operation is a function call and
+    // requires
+    //       issue https://github.com/cda-tum/mqt-debugger/issues/29 to first be
+    //       resolved in that situation.
     const auto c = parseClassicControlledGate(code).operations;
     return std::all_of(c.begin(), c.end(), [&assertion](const auto& operation) {
       return doesCommute(assertion, operation);

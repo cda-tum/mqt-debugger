@@ -309,3 +309,10 @@ bool isReset(const std::string& line);
  * @return True if the line is a barrier operation, false otherwise.
  */
 bool isBarrier(const std::string& line);
+
+/**
+ * @brief Parse the parameters or arguments from a given instruction.
+ * @param instruction The instruction to parse.
+ * @return A vector containing the parsed parameters.
+ */
+std::vector<std::string> parseParameters(const std::string& instruction)

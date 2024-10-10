@@ -169,11 +169,6 @@ FunctionDefinition parseFunctionDefinition(const std::string& signature) {
   return {name, parameters};
 }
 
-/**
- * @brief Parse the parameters or arguments from a given instruction.
- * @param instruction The instruction to parse.
- * @return A vector containing the parsed parameters.
- */
 std::vector<std::string> parseParameters(const std::string& instruction) {
   if (isFunctionDefinition(instruction)) {
     const auto fd = parseFunctionDefinition(instruction);
