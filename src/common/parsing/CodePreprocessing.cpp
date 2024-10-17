@@ -113,7 +113,7 @@ bool isClassicControlledGate(const std::string& line) {
 
 ClassicControlledGate parseClassicControlledGate(const std::string& code) {
   std::stringstream condition;
-  const auto codeSanitized = replaceString(removeWhitespace(code), "if", "");
+  const auto codeSanitized = trim(replaceString(code, "if", ""));
   int openBrackets = 0;
   size_t i = 0;
   for (; i < codeSanitized.size(); i++) {
@@ -130,7 +130,7 @@ ClassicControlledGate parseClassicControlledGate(const std::string& code) {
   }
   auto rest = codeSanitized.substr(i + 1, codeSanitized.size() - i - 1);
   rest = replaceString(replaceString(rest, "}", ""), "{", "");
-  const auto operations = splitString(rest, ';');
+  const auto operations = splitString(rest, ';', false);
   return {condition.str(), operations};
 }
 

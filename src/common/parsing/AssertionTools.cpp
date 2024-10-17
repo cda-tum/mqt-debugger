@@ -70,7 +70,14 @@ bool doesCommute(const std::unique_ptr<Assertion>& assertion,
     return true; // Order of function definitions does not matter.
   }
   if (isVariableDeclaration(code)) {
-    return true; // Order of unrelated variable declarations does not matter.
+    // Order of unrelated variable declarations does not matter.
+    const auto targets = parseParameters(code);
+    const auto registerName = variableBaseName(targets[0]);
+    return std::none_of(assertion->getTargetQubits().begin(),
+                        assertion->getTargetQubits().end(),
+                        [&registerName](const auto& target) {
+                          return registerName == variableBaseName(target);
+                        });
   }
   if (isMeasurement(code)) {
     return false; // Assertions should never be moved above measurements.

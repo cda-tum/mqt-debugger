@@ -21,13 +21,15 @@ bool startsWith(const std::string& str, const std::string& prefix) {
   return str.compare(0, prefix.size(), prefix) == 0;
 }
 
-std::vector<std::string> splitString(const std::string& text, char delimiter) {
+std::vector<std::string> splitString(const std::string& text, char delimiter,
+                                     bool includeEmpty) {
   const std::vector<char> delimiters{delimiter};
-  return splitString(text, delimiters);
+  return splitString(text, delimiters, includeEmpty);
 }
 
 std::vector<std::string> splitString(const std::string& text,
-                                     const std::vector<char>& delimiters) {
+                                     const std::vector<char>& delimiters,
+                                     bool includeEmpty) {
   std::vector<std::string> result;
   size_t pos = 0;
   while (true) {
@@ -39,10 +41,14 @@ std::vector<std::string> splitString(const std::string& text,
     if (min == std::string::npos) {
       break;
     }
-    result.push_back(text.substr(pos, min - pos));
+    if (min > pos || includeEmpty) {
+      result.push_back(text.substr(pos, min - pos));
+    }
     pos = min + 1;
   }
-  result.push_back(text.substr(pos, text.length() - pos));
+  if (text.length() > pos || includeEmpty) {
+    result.push_back(text.substr(pos, text.length() - pos));
+  }
   return result;
 }
 
@@ -72,4 +78,8 @@ bool variablesEqual(const std::string& v1, const std::string& v2) {
     return variablesEqual(splitString(v2, '[')[0], v1);
   }
   return v1 == v2;
+}
+
+std::string variableBaseName(const std::string& v) {
+  return splitString(v, '[')[0];
 }
