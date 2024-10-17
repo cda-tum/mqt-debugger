@@ -27,7 +27,7 @@
  */
 class AssertionMovementTest : public CustomCodeFixture {
 public:
-  void checkMovements(std::set<std::pair<size_t, size_t>> expected) {
+  void checkMovements(const std::set<std::pair<size_t, size_t>>& expected) {
     std::vector<size_t> oldPositions(expected.size() + 1);
     std::vector<size_t> newPositions(expected.size() + 1);
     ASSERT_EQ(diagnostics->suggestAssertionMovements(
@@ -63,5 +63,6 @@ TEST_F(AssertionMovementTest, MoveOverIndependentInstructions) {
   assert-ent q[0], q[1];
   )");
 
-  checkMovements({{4, 3}});
+  const std::set<std::pair<size_t, size_t>> expected = {{4, 3}};
+  checkMovements(expected);
 }
