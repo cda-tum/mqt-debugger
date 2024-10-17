@@ -328,6 +328,7 @@ Result ddsimStepForward(SimulationState* self) {
       const auto failed = !checkAssertion(ddsim, assertion);
       if (failed && ddsim->lastFailedAssertion != currentInstruction) {
         ddsim->lastFailedAssertion = currentInstruction;
+        dddiagnosticsOnFailedAssertion(&ddsim->diagnostics, currentInstruction);
         self->stepBackward(self);
       }
       return OK;
@@ -1660,6 +1661,15 @@ std::string preprocessAssertionCode(const char* code,
 
 std::string getClassicalBitName(DDSimulationState* ddsim, size_t index) {
   for (auto& reg : ddsim->classicalRegisters) {
+    if (index >= reg.index && index < reg.index + reg.size) {
+      return reg.name + "[" + std::to_string(index - reg.index) + "]";
+    }
+  }
+  return "UNKNOWN";
+}
+
+std::string getQuantumBitName(DDSimulationState* ddsim, size_t index) {
+  for (auto& reg : ddsim->qubitRegisters) {
     if (index >= reg.index && index < reg.index + reg.size) {
       return reg.name + "[" + std::to_string(index - reg.index) + "]";
     }

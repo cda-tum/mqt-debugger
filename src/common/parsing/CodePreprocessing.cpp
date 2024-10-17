@@ -408,9 +408,24 @@ preprocessCode(const std::string& code, size_t startIndex,
       auto a = parseAssertion(line, block.code);
       unfoldAssertionTargetRegisters(*a, definedRegisters, shadowedRegisters);
       a->validate();
-      instructions.emplace_back(i, line, a, targets, trueStart, trueEnd, i + 1,
-                                isFunctionCall, calledFunction, false, false,
-                                block);
+      for (const auto& target : a->getTargetQubits()) {
+        if (std::find(shadowedRegisters.begin(), shadowedRegisters.end(),
+                      target) != shadowedRegisters.end()) {
+          continue;
+        }
+        const auto registerName = variableBaseName(target);
+        const auto registerIndex =
+            std::stoul(splitString(splitString(target, '[')[1], ']')[0]);
+
+        if (definedRegisters.find(registerName) == definedRegisters.end() ||
+            definedRegisters[registerName] <= registerIndex) {
+          throw ParsingError("Invalid target qubit " + target +
+                             " in assertion.");
+        }
+      }
+      instructions.emplace_back(i, line, a, a->getTargetQubits(), trueStart,
+                                trueEnd, i + 1, isFunctionCall, calledFunction,
+                                false, false, block);
     } else {
       std::unique_ptr<Assertion> a(nullptr);
       instructions.emplace_back(i, line, a, targets, trueStart, trueEnd, i + 1,

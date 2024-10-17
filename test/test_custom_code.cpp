@@ -267,25 +267,25 @@ TEST_F(CustomCodeTest, BarrierInstruction) {
 }
 
 /**
- * @test Test that an error is returned at runtime if an invalid register index
- * is accessed by an assertion.
+ * @test Test that an error is returned at parse-time if an invalid register
+ * index is accessed by an assertion.
  */
 TEST_F(CustomCodeTest, ErrorAssertionInvalidIndex) {
   loadCode(3, 0,
            "x q[0];"
-           "assert-sup q[3];");
-  ASSERT_EQ(state->runAll(state, nullptr), ERROR);
+           "assert-sup q[3];",
+           true);
 }
 
 /**
- * @test Test that an error is returned at runtime if an invalid register is
+ * @test Test that an error is returned at parse-time if an invalid register is
  * accessed by an assertion.
  */
 TEST_F(CustomCodeTest, ErrorAssertionInvalidQubit) {
   loadCode(3, 0,
            "x q[0];"
-           "assert-sup f[3];");
-  ASSERT_EQ(state->runAll(state, nullptr), ERROR);
+           "assert-sup f[3];",
+           true);
 }
 
 /**

@@ -188,6 +188,23 @@ struct DiagnosticsStruct {
   size_t (*suggestAssertionMovements)(Diagnostics* self,
                                       size_t* originalPositions,
                                       size_t* suggestedPositions, size_t count);
+
+  /**
+   * @brief Suggest new assertions to be added to the code.
+   *
+   * These assertions are added by first observing assertions that failed during
+   * previous iterations. Therefore, the simulation must be run at least once
+   * before calling this function.
+   *
+   * @param self The diagnostics instance to query.
+   * @param suggestedPositions An array of assertion positions to be filled.
+   * @param suggestedAssertions An array of assertion instruction strings to be
+   * filled. Each string expects a size of up to 256 characters.
+   * @param count The maximum number of assertions to suggest.
+   * @return The number of suggested assertions.
+   */
+  size_t (*suggestNewAssertions)(Diagnostics* self, size_t* suggestedPositions,
+                                 char** suggestedAssertions, size_t count);
 };
 
 #ifdef __cplusplus

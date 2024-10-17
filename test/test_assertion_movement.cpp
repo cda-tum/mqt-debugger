@@ -159,7 +159,7 @@ TEST_F(AssertionMovementTest, DontMoveThroughMeasurements) {
   loadCode(3, 3, R"(
   h q[0];
   measure q[1] -> c[1];
-  assert-ent x[0];
+  assert-ent q[0];
   )");
 
   const std::set<std::pair<size_t, size_t>> expected;
@@ -170,7 +170,7 @@ TEST_F(AssertionMovementTest, DontMoveThroughResets) {
   loadCode(3, 3, R"(
   h q[0];
   reset q[1];
-  assert-ent x[0];
+  assert-ent q[0];
   )");
 
   const std::set<std::pair<size_t, size_t>> expected;

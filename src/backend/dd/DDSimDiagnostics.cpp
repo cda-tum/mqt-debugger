@@ -63,6 +63,7 @@ Result createDDDiagnostics(DDDiagnostics* self, DDSimulationState* state) {
   self->interface.potentialErrorCauses = dddiagnosticsPotentialErrorCauses;
   self->interface.suggestAssertionMovements =
       dddiagnosticsSuggestAssertionMovements;
+  self->interface.suggestNewAssertions = dddiagnosticsSuggestNewAssertions;
 
   return self->interface.init(&self->interface);
 }
@@ -317,17 +318,19 @@ size_t dddiagnosticsPotentialErrorCauses(Diagnostics* self, ErrorCause* output,
 }
 
 /**
- * @brief Get interactions of the given qubit at runtime.
+ * @brief Get the interactions tree of the given qubit at runtime.
  *
  * At runtime, we can store precisely what qubits are used by each instruction,
  * so we have more specific details than at static time.
  * @param ddd The dd diagnostics instance.
- * @param qubit The qubit to find interactions for.
- * @return A set of qubits that interact with the given qubit.
+ * @param qubit The qubit to find the interaction tree for.
+ * @return A set of edges between qubits on the interaction tree.
  */
-std::set<size_t> getInteractionsAtRuntime(DDDiagnostics* ddd, size_t qubit) {
+std::set<std::pair<size_t, size_t>>
+getInteractionTreeAtRuntime(DDDiagnostics* ddd, size_t qubit) {
   auto* ddsim = ddd->simulationState;
   std::set<size_t> interactions;
+  std::set<std::pair<size_t, size_t>> tree;
   interactions.insert(qubit);
   bool found = true;
 
@@ -349,9 +352,22 @@ std::set<size_t> getInteractionsAtRuntime(DDDiagnostics* ddd, size_t qubit) {
                             return interactions.find(elem) !=
                                    interactions.end();
                           })) {
-          for (const auto& target : actualQubitVector) {
+          for (size_t target1 = 0; target1 < actualQubitVector.size();
+               target1++) {
+            const auto& target = actualQubitVector[target1];
             if (interactions.find(target) == interactions.end()) {
               found = true;
+            }
+            for (size_t target2 = 1; target2 < actualQubitVector.size();
+                 target2++) {
+              const auto& secondTarget = actualQubitVector[target2];
+              tree.insert({target, secondTarget});
+              tree.insert({secondTarget, target});
+
+              if (interactions.find(secondTarget) == interactions.end()) {
+                found = true;
+              }
+              interactions.insert(secondTarget);
             }
             interactions.insert(target);
           }
@@ -360,6 +376,25 @@ std::set<size_t> getInteractionsAtRuntime(DDDiagnostics* ddd, size_t qubit) {
     }
   }
 
+  return tree;
+}
+
+/**
+ * @brief Get interactions of the given qubit at runtime.
+ *
+ * At runtime, we can store precisely what qubits are used by each instruction,
+ * so we have more specific details than at static time.
+ * @param ddd The dd diagnostics instance.
+ * @param qubit The qubit to find interactions for.
+ * @return A set of qubits that interact with the given qubit.
+ */
+std::set<size_t> getInteractionsAtRuntime(DDDiagnostics* ddd, size_t qubit) {
+  const auto tree = getInteractionTreeAtRuntime(ddd, qubit);
+  std::set<size_t> interactions{qubit};
+  for (const auto& pair : tree) {
+    interactions.insert(pair.first);
+    interactions.insert(pair.second);
+  }
   return interactions;
 }
 
@@ -496,7 +531,8 @@ void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics,
 
   // Add actual qubits to tracker.
   if (ddsim->instructionTypes[instruction] == SIMULATE ||
-      ddsim->instructionTypes[instruction] == CALL) {
+      ddsim->instructionTypes[instruction] == CALL ||
+      ddsim->instructionTypes[instruction] == ASSERTION) {
     std::vector<size_t> targetQubits(targets.size());
     std::transform(targets.begin(), targets.end(), targetQubits.begin(),
                    [&ddsim](const std::string& target) {
@@ -561,6 +597,110 @@ size_t dddiagnosticsSuggestAssertionMovements(Diagnostics* self,
   return max;
 }
 
+void suggestBasedOnFailedEntanglementAssertion(
+    DDDiagnostics* self, size_t instructionIndex,
+    const EntanglementAssertion* assertion) {
+  // For larger assertions, first split it into smaller ones.
+  if (assertion->getTargetQubits().size() != 2) {
+    if (self->assertionsEntToInsert.find(instructionIndex) ==
+        self->assertionsEntToInsert.end()) {
+      self->assertionsEntToInsert.insert(
+          {instructionIndex, std::set<std::set<std::string>>()});
+    }
+    for (size_t i = 0; i < assertion->getTargetQubits().size(); i++) {
+      const auto qubit = assertion->getTargetQubits()[i];
+      for (size_t j = i + 1; j < assertion->getTargetQubits().size(); j++) {
+        const auto other = assertion->getTargetQubits()[j];
+        self->assertionsEntToInsert[instructionIndex].insert({qubit, other});
+      }
+    }
+    return;
+  }
+
+  const auto& actualQubitVector = self->actualQubits[instructionIndex];
+  std::set<std::pair<size_t, size_t>> generalInteractions;
+  bool first = true;
+  for (const auto& actualQubits : actualQubitVector) {
+    std::set<std::pair<size_t, size_t>> addingInteractions;
+    const std::set<std::pair<size_t, size_t>> interactionGraph =
+        getInteractionTreeAtRuntime(self, actualQubits[1]);
+    const auto baseQubit = actualQubits[0];
+    const auto targetQubit = actualQubits[1];
+    std::vector<size_t> baseNeighbors;
+    for (const auto& pair : interactionGraph) {
+      if (pair.first == baseQubit) {
+        baseNeighbors.push_back(pair.second);
+      }
+    }
+    if (baseNeighbors.empty()) {
+      return;
+    }
+    for (const auto& neighbor : baseNeighbors) {
+      if (neighbor == targetQubit) {
+        continue;
+      }
+      addingInteractions.insert({targetQubit, neighbor});
+    }
+
+    if (first) {
+      generalInteractions = addingInteractions;
+      first = false;
+    } else {
+      std::set<std::pair<size_t, size_t>> newInteractions;
+      std::set_intersection(
+          generalInteractions.begin(), generalInteractions.end(),
+          addingInteractions.begin(), addingInteractions.end(),
+          std::inserter(newInteractions, newInteractions.begin()));
+      generalInteractions = newInteractions;
+      if (generalInteractions.empty()) {
+        return;
+      }
+    }
+  }
+
+  if (self->assertionsEntToInsert.find(instructionIndex) ==
+      self->assertionsEntToInsert.end()) {
+    self->assertionsEntToInsert.insert(
+        {instructionIndex, std::set<std::set<std::string>>()});
+  }
+  for (const auto& pair : generalInteractions) {
+    auto* ddsim = self->simulationState;
+    self->assertionsEntToInsert[instructionIndex].insert(
+        {getQuantumBitName(ddsim, pair.first),
+         getQuantumBitName(ddsim, pair.second)});
+  }
+}
+
+size_t dddiagnosticsSuggestNewAssertions(Diagnostics* self,
+                                         size_t* suggestedPositions,
+                                         char** suggestedAssertions,
+                                         size_t count) {
+  size_t index = 0;
+  const Span<size_t> positions(suggestedPositions, count);
+  const Span<char*> assertions(suggestedAssertions, count);
+
+  auto* ddd = toDDDiagnostics(self);
+  for (const auto& entry : ddd->assertionsEntToInsert) {
+    for (const auto& assertion : entry.second) {
+      positions[index] = entry.first;
+      std::stringstream assertionString;
+      assertionString << "assert-ent ";
+      for (const auto& qubit : assertion) {
+        assertionString << qubit + ", ";
+      }
+      const auto string =
+          assertionString.str().substr(0, assertionString.str().size() - 2);
+      strcpy(assertions[index], string.c_str());
+      index++;
+      if (index == count) {
+        return index;
+      }
+    }
+  }
+
+  return index;
+}
+
 void dddiagnosticsOnCodePreprocessing(
     DDDiagnostics* diagnostics, const std::vector<Instruction>& instructions) {
   for (size_t i = 0; i < instructions.size(); i++) {
@@ -592,5 +732,17 @@ void dddiagnosticsOnCodePreprocessing(
     if (i != lowestSwap) {
       diagnostics->assertionsToMove.emplace_back(i, lowestSwap);
     }
+  }
+}
+
+void dddiagnosticsOnFailedAssertion(DDDiagnostics* diagnostics,
+                                    size_t instruction) {
+  auto* ddsim = diagnostics->simulationState;
+  const auto& assertion = ddsim->assertionInstructions[instruction];
+  if (assertion->getType() == AssertionType::Entanglement) {
+    const auto* entAssertion =
+        dynamic_cast<EntanglementAssertion*>(assertion.get());
+    suggestBasedOnFailedEntanglementAssertion(diagnostics, instruction,
+                                              entAssertion);
   }
 }

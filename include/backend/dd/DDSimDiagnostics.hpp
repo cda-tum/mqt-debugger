@@ -46,6 +46,7 @@ struct DDDiagnostics {
   std::map<size_t, std::set<std::vector<size_t>>> actualQubits;
 
   std::vector<std::pair<size_t, size_t>> assertionsToMove;
+  std::map<size_t, std::set<std::set<std::string>>> assertionsEntToInsert;
 };
 
 /**
@@ -180,6 +181,25 @@ size_t dddiagnosticsSuggestAssertionMovements(Diagnostics* self,
                                               size_t count);
 
 /**
+ * @brief Suggest new assertions to be added to the code.
+ *
+ * These assertions are added by first observing assertions that failed during
+ * previous iterations. Therefore, the simulation must be run at least once
+ * before calling this function.
+ *
+ * @param self The diagnostics instance to query.
+ * @param suggestedPositions An array of assertion positions to be filled.
+ * @param suggestedAssertions An array of assertion instruction strings to be
+ * filled. Each string expects a size of up to 256 characters.
+ * @param count The maximum number of assertions to suggest.
+ * @return The number of suggested assertions.
+ */
+size_t dddiagnosticsSuggestNewAssertions(Diagnostics* self,
+                                         size_t* suggestedPositions,
+                                         char** suggestedAssertions,
+                                         size_t count);
+
+/**
  * @brief Creates a new `DDDiagnostics` instance.
  *
  * This method expects an allocated memory block for the `DDDiagnostics`
@@ -205,12 +225,20 @@ Result destroyDDDiagnostics([[maybe_unused]] DDDiagnostics* self);
 void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics, size_t instruction);
 
 /**
- * @brief Called, whenever simulation steps forward to update the diagnostics.
+ * @brief Called during code preprocessing after parsing all instructions.
  * @param diagnostics The diagnostics instance to update.
- * @param instruction The instruction that was executed.
+ * @param instructions The parsed instructions.
  */
 void dddiagnosticsOnCodePreprocessing(
     DDDiagnostics* diagnostics, const std::vector<Instruction>& instructions);
+
+/**
+ * @brief Called, whenever an assertion fails to update the diagnostics.
+ * @param diagnostics The diagnostics instance to update.
+ * @param instruction The instruction that was executed.
+ */
+void dddiagnosticsOnFailedAssertion(DDDiagnostics* diagnostics,
+                                    size_t instruction);
 
 /**
  * @brief Tries to find potential errors caused by missing interactions at

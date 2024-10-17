@@ -620,6 +620,14 @@ bool checkAssertion(DDSimulationState* ddsim,
 std::string getClassicalBitName(DDSimulationState* ddsim, size_t index);
 
 /**
+ * @brief Gets the name of a qubit variable by its index.
+ * @param ddsim The simulation state to query.
+ * @param index The index of the qubit variable.
+ * @return The name of the qubit variable.
+ */
+std::string getQuantumBitName(DDSimulationState* ddsim, size_t index);
+
+/**
  * @brief Gets the qubit index from a variable name.
  *
  * If the variable is in the global scope, the index is based on the index of
