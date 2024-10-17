@@ -5,30 +5,60 @@
 #include "common/parsing/Utils.hpp"
 
 #include <algorithm>
+#include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
-bool doesCommuteEnt(const EntanglementAssertion* assertion, // NOLINT
+// 1-qubit gates will not remove or create entanglement
+static COMMUTATIVITY_RULE_ENT(TWO_OR_MORE_TARGETS, arguments.size() < 2);
+
+// Pauli-Instructions will not remove or create superposition
+static COMMUTATIVITY_RULE_SUP(PAULI_INVARIANT, instructionName == "x" ||
+                                                   instructionName == "y" ||
+                                                   instructionName == "z");
+// `S` and `T` gates will not remove or create superposition
+static COMMUTATIVITY_RULE_SUP(OTHER_1Q_GATE_INVARIANTS,
+                              instructionName == "s" ||
+                                  instructionName == "t" ||
+                                  instructionName == "sdg" ||
+                                  instructionName == "tdg");
+
+static const std::vector<
+    std::function<bool(const EntanglementAssertion*, const std::string&,
+                       const std::vector<std::string>&)>>
+    ENTANGLEMENT_COMMUTATIVITY_RULES = {
+        TWO_OR_MORE_TARGETS,
+};
+
+static const std::vector<
+    std::function<bool(const SuperpositionAssertion*, const std::string&,
+                       const std::vector<std::string>&)>>
+    SUPERPOSITION_COMMUTATIVITY_RULES = {
+        PAULI_INVARIANT,
+        OTHER_1Q_GATE_INVARIANTS,
+};
+
+bool doesCommuteEnt(const EntanglementAssertion* assertion,
                     const std::string& instruction) {
   const auto targets = parseParameters(instruction);
-  return targets.size() < 2; // If the instruction does not target at least two
-                             // qubits, it cannot influence entanglement.
-  // In theory, even more could be done here, but for now we leave it like this.
+  const auto instructionName = splitString(trim(instruction), ' ')[0];
+  return std::any_of(ENTANGLEMENT_COMMUTATIVITY_RULES.begin(),
+                     ENTANGLEMENT_COMMUTATIVITY_RULES.end(),
+                     [assertion, instructionName, targets](const auto& rule) {
+                       return rule(assertion, instructionName, targets);
+                     });
 }
 
-bool doesCommuteSup(const SuperpositionAssertion* assertion, // NOLINT
+bool doesCommuteSup(const SuperpositionAssertion* assertion,
                     const std::string& instruction) {
   const auto targets = parseParameters(instruction);
-  if (targets.size() >= 2) {
-    return false; // For controlled gates, it's hard to say how they would
-                  // influence the superposition of the qubits.
-  }
-  const auto name = splitString(trim(instruction), ' ')[0];
-  return (name == "x" || name == "y" || name == "z" || name == "s" ||
-          name == "t" || name == "sdg" || name == "tdg");
-  // Most common Single-qubit gates commute with superposition assertions.
-  // For other gates, it's hard to say how they would influence
-  // the superposition of the qubits.
+  const auto instructionName = splitString(trim(instruction), ' ')[0];
+  return std::any_of(SUPERPOSITION_COMMUTATIVITY_RULES.begin(),
+                     SUPERPOSITION_COMMUTATIVITY_RULES.end(),
+                     [assertion, instructionName, targets](const auto& rule) {
+                       return rule(assertion, instructionName, targets);
+                     });
 }
 
 bool doesCommute(const std::unique_ptr<Assertion>& assertion,
