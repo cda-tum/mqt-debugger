@@ -3,18 +3,12 @@
  * @brief Tests the correctness of the assertion movement diagnosis methods.
  */
 
-#include "backend/dd/DDSimDebug.hpp"
-#include "backend/debug.h"
 #include "backend/diagnostics.h"
-#include "common.h"
-#include "common_fixtures.cpp"
-#include "utils_test.hpp"
+#include "common_fixtures.hpp"
 
-#include <array>
 #include <cstddef>
 #include <gtest/gtest.h>
-#include <sstream>
-#include <string>
+#include <set>
 #include <utility>
 #include <vector>
 

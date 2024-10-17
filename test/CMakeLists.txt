@@ -1,7 +1,6 @@
 package_add_test(
   mqt_debugger_test
   MQT::Debugger
-  common_fixtures.cpp
   utils_test.cpp
   test_utility.cpp
   test_simulation.cpp

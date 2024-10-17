@@ -2,11 +2,9 @@
  * @file test_utility.cpp
  * @brief Test the functionality of utility functions provided by the debugger.
  */
-#include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "common.h"
-#include "common_fixtures.cpp"
-#include "utils_test.hpp"
+#include "common_fixtures.hpp"
 
 #include <cstddef>
 #include <gtest/gtest.h>

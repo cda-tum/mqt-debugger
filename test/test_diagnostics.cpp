@@ -3,12 +3,10 @@
  * @brief Test the functionality of the diagnostics module.
  */
 
-#include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
 #include "common.h"
-#include "common_fixtures.cpp"
-#include "utils_test.hpp"
+#include "common_fixtures.hpp"
 
 #include <array>
 #include <cstddef>

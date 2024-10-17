@@ -7,10 +7,13 @@
 #include "backend/dd/DDSimDiagnostics.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
+#include "common.h"
 #include "utils_test.hpp"
 
 #include <cstddef>
 #include <gtest/gtest.h>
+#include <sstream>
+#include <string>
 
 /**
  * @brief Fixture that loads custom code.

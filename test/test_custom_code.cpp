@@ -7,18 +7,15 @@
  * are not covered by the other tests.
  */
 
-#include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
 #include "common.h"
-#include "common_fixtures.cpp"
+#include "common_fixtures.hpp"
 #include "utils_test.hpp"
 
 #include <array>
 #include <cstddef>
 #include <gtest/gtest.h>
-#include <sstream>
-#include <string>
 
 /**
  * @brief Fixture for testing the correctness of the debugger on custom code.

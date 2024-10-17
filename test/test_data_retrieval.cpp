@@ -6,10 +6,9 @@
  * vector.
  */
 
-#include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "common.h"
-#include "common_fixtures.cpp"
+#include "common_fixtures.hpp"
 #include "utils_test.hpp"
 
 #include <array>

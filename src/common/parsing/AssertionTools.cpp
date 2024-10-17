@@ -8,7 +8,7 @@
 #include <memory>
 #include <string>
 
-bool doesCommuteEnt(const EntanglementAssertion* assertion,
+bool doesCommuteEnt(const EntanglementAssertion* assertion, // NOLINT
                     const std::string& instruction) {
   const auto targets = parseParameters(instruction);
   return targets.size() < 2; // If the instruction does not target at least two
@@ -16,7 +16,7 @@ bool doesCommuteEnt(const EntanglementAssertion* assertion,
   // In theory, even more could be done here, but for now we leave it like this.
 }
 
-bool doesCommuteSup(const SuperpositionAssertion* assertion,
+bool doesCommuteSup(const SuperpositionAssertion* assertion, // NOLINT
                     const std::string& instruction) {
   const auto targets = parseParameters(instruction);
   if (targets.size() >= 2) {
@@ -24,13 +24,11 @@ bool doesCommuteSup(const SuperpositionAssertion* assertion,
                   // influence the superposition of the qubits.
   }
   const auto name = splitString(trim(instruction), ' ')[0];
-  if (name == "x" || name == "y" || name == "z" || name == "s" || name == "t" ||
-      name == "sdg" || name == "tdg") {
-    return true; // Most common Single-qubit gates commute with superposition
-                 // assertions.
-  }
-  return false; // For other gates, it's hard to say how they would influence
-                // the superposition of the qubits.
+  return (name == "x" || name == "y" || name == "z" || name == "s" ||
+          name == "t" || name == "sdg" || name == "tdg");
+  // Most common Single-qubit gates commute with superposition assertions.
+  // For other gates, it's hard to say how they would influence
+  // the superposition of the qubits.
 }
 
 bool doesCommute(const std::unique_ptr<Assertion>& assertion,
