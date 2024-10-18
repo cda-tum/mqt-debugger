@@ -171,15 +171,50 @@ TEST_F(AssertionMovementTest, DontMoveThroughResets) {
   checkMovements(expected);
 }
 
-TEST_F(AssertionMovementTest, DontMoveThroughFunctionCalls) {
+TEST_F(AssertionMovementTest, MoveThroughFunctionCalls) {
+  loadCode(3, 3, R"(
+  cx q[0], q[1];
+  gate test q { h q; }
+  test q[0];
+  assert-ent q[0];
+  )");
+
+  const std::set<std::pair<size_t, size_t>> expected{{5, 1}};
+  checkMovements(expected);
+}
+
+TEST_F(AssertionMovementTest, DontMoveThroughRelatedFunctionCall) {
   loadCode(3, 3, R"(
   h q[0];
   gate test q { h q; }
-  test q;
+  test q[0];
   assert-sup q[0];
   )");
 
   const std::set<std::pair<size_t, size_t>> expected;
+  checkMovements(expected);
+}
+
+TEST_F(AssertionMovementTest, DontMoveThroughBroadcastInstructions) {
+  loadCode(3, 3, R"(
+  h q[0];
+  h q;
+  assert-sup q[0];
+  )");
+
+  const std::set<std::pair<size_t, size_t>> expected;
+  checkMovements(expected);
+}
+
+TEST_F(AssertionMovementTest, DontMoveBroadcastAssertion) {
+  loadCode(3, 3, R"(
+  h q[0];
+  x q;
+  x q[1];
+  assert-sup q;
+  )");
+
+  const std::set<std::pair<size_t, size_t>> expected{{3, 1}};
   checkMovements(expected);
 }
 
@@ -206,5 +241,31 @@ TEST_F(AssertionMovementTest, UnrelatedClassicControlledGate) {
   )");
 
   const std::set<std::pair<size_t, size_t>> expected({{4, 2}});
+  checkMovements(expected);
+}
+
+TEST_F(AssertionMovementTest, MoveInsideCustomGate) {
+  loadCode(3, 3, R"(
+  gate test q {
+    h q;
+    x q;
+    assert-sup q;
+  }
+  )");
+
+  const std::set<std::pair<size_t, size_t>> expected({{3, 2}});
+  checkMovements(expected);
+}
+
+TEST_F(AssertionMovementTest, DontMoveOutsideOfCustomGate) {
+  loadCode(3, 3, R"(
+  gate test t {
+    x t;
+    assert-sup t;
+  }
+  test q[0];
+  )");
+
+  const std::set<std::pair<size_t, size_t>> expected{{2, 1}};
   checkMovements(expected);
 }

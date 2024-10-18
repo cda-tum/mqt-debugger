@@ -167,17 +167,18 @@ bool doesCommute(const std::unique_ptr<Assertion>& assertion,
     });
   }
 
-  if (instruction.isFunctionCall) {
-    return false; // TODO this is a bit more complex
-  }
-
   const auto& assertionTargets = assertion->getTargetQubits();
   const auto& instructionTargets = instruction.targets;
   if (std::none_of(assertionTargets.begin(), assertionTargets.end(),
                    [&instructionTargets](const auto& target) {
-                     return std::find(instructionTargets.begin(),
-                                      instructionTargets.end(),
-                                      target) != instructionTargets.end();
+                     return std::any_of(
+                         instructionTargets.begin(), instructionTargets.end(),
+                         [&target](const std::string& instrTarget) {
+                           return (instrTarget.find('[') != std::string::npos &&
+                                   instrTarget == target) ||
+                                  (instrTarget.find('[') == std::string::npos &&
+                                   variableBaseName(target) == instrTarget);
+                         });
                    })) {
     return true; // If the assertion does not target any of the qubits in the
                  // instruction, the order does not matter.
