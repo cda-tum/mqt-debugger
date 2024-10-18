@@ -10,73 +10,110 @@
 #include <string>
 #include <vector>
 
+#define YES(expression)                                                        \
+  (expression) ? CommutativityResult::Commutes : CommutativityResult::Unknown;
+#define NO(expression)                                                         \
+  (expression) ? CommutativityResult::DoesNotCommute                           \
+               : CommutativityResult::Unknown;
+
+//------------------------------------------------------------------------------
+// General rules
+//------------------------------------------------------------------------------
+
+// Barrier instructions will not remove or create entanglement or superposition
+static COMMUTATIVITY_RULE_GENERAL(BARRIER, YES(instructionName == "barrier"));
+
+//------------------------------------------------------------------------------
+// Entanglement rules
+//------------------------------------------------------------------------------
+
 // 1-qubit gates will not remove or create entanglement
-static COMMUTATIVITY_RULE_ENT(TWO_OR_MORE_TARGETS, arguments.size() < 2);
+static COMMUTATIVITY_RULE_ENT(TWO_OR_MORE_TARGETS, YES(arguments.size() < 2));
+
+//------------------------------------------------------------------------------
+// Superposition rules
+//------------------------------------------------------------------------------
 
 // Pauli-Instructions will not remove or create superposition
-static COMMUTATIVITY_RULE_SUP(PAULI_INVARIANT, instructionName == "x" ||
+static COMMUTATIVITY_RULE_SUP(PAULI_INVARIANT, YES(instructionName == "x" ||
                                                    instructionName == "y" ||
-                                                   instructionName == "z");
+                                                   instructionName == "z"));
+
 // `S` and `T` gates will not remove or create superposition
 static COMMUTATIVITY_RULE_SUP(OTHER_1Q_GATE_INVARIANTS,
-                              instructionName == "s" ||
+                              YES(instructionName == "s" ||
                                   instructionName == "t" ||
                                   instructionName == "sdg" ||
-                                  instructionName == "tdg");
+                                  instructionName == "tdg"));
 
-static const std::vector<
-    std::function<bool(const EntanglementAssertion*, const std::string&,
-                       const std::vector<std::string>&)>>
+//------------------------------------------------------------------------------
+
+static const std::vector<std::function<CommutativityResult(
+    const Assertion*, const std::string&, const std::vector<std::string>&)>>
+    GENERAL_COMMUTATIVITY_RULES = {
+        BARRIER,
+};
+
+static const std::vector<std::function<CommutativityResult(
+    const EntanglementAssertion*, const std::string&,
+    const std::vector<std::string>&)>>
     ENTANGLEMENT_COMMUTATIVITY_RULES = {
         TWO_OR_MORE_TARGETS,
 };
 
-static const std::vector<
-    std::function<bool(const SuperpositionAssertion*, const std::string&,
-                       const std::vector<std::string>&)>>
+static const std::vector<std::function<CommutativityResult(
+    const SuperpositionAssertion*, const std::string&,
+    const std::vector<std::string>&)>>
     SUPERPOSITION_COMMUTATIVITY_RULES = {
         PAULI_INVARIANT,
         OTHER_1Q_GATE_INVARIANTS,
 };
 
 bool doesCommuteEnt(const EntanglementAssertion* assertion,
-                    const std::string& instruction) {
-  const auto targets = parseParameters(instruction);
-  const auto instructionName = splitString(trim(instruction), ' ')[0];
-  return std::any_of(ENTANGLEMENT_COMMUTATIVITY_RULES.begin(),
-                     ENTANGLEMENT_COMMUTATIVITY_RULES.end(),
-                     [assertion, instructionName, targets](const auto& rule) {
-                       return rule(assertion, instructionName, targets);
-                     });
+                    const std::string& instructionName,
+                    const std::vector<std::string>& targets) {
+  for (const auto& rule : ENTANGLEMENT_COMMUTATIVITY_RULES) {
+    const auto result = rule(assertion, instructionName, targets);
+    if (result != CommutativityResult::Unknown) {
+      return result == CommutativityResult::Commutes;
+    }
+  }
+  return false;
 }
 
 bool doesCommuteSup(const SuperpositionAssertion* assertion,
-                    const std::string& instruction) {
-  const auto targets = parseParameters(instruction);
-  const auto instructionName = splitString(trim(instruction), ' ')[0];
-  return std::any_of(SUPERPOSITION_COMMUTATIVITY_RULES.begin(),
-                     SUPERPOSITION_COMMUTATIVITY_RULES.end(),
-                     [assertion, instructionName, targets](const auto& rule) {
-                       return rule(assertion, instructionName, targets);
-                     });
+                    const std::string& instructionName,
+                    const std::vector<std::string>& targets) {
+  for (const auto& rule : SUPERPOSITION_COMMUTATIVITY_RULES) {
+    const auto result = rule(assertion, instructionName, targets);
+    if (result != CommutativityResult::Unknown) {
+      return result == CommutativityResult::Commutes;
+    }
+  }
+  return false;
 }
 
 bool doesCommute(const std::unique_ptr<Assertion>& assertion,
                  const std::string& instruction) {
-  if (isBarrier(instruction)) {
-    return true; // Order of barriers does not matter.
+  const auto targets = parseParameters(instruction);
+  const auto instructionName = splitString(trim(instruction), ' ')[0];
+  for (const auto& rule : GENERAL_COMMUTATIVITY_RULES) {
+    const auto result = rule(assertion.get(), instructionName, targets);
+    if (result != CommutativityResult::Unknown) {
+      return result == CommutativityResult::Commutes;
+    }
   }
 
   if (assertion->getType() == AssertionType::Entanglement) {
     const auto* entAssertion =
         dynamic_cast<EntanglementAssertion*>(assertion.get());
-    const auto result = doesCommuteEnt(entAssertion, instruction);
+    const auto result = doesCommuteEnt(entAssertion, instructionName, targets);
     return result;
   }
   if (assertion->getType() == AssertionType::Superposition) {
     const auto* supAssertion =
         dynamic_cast<SuperpositionAssertion*>(assertion.get());
-    const auto result = doesCommuteSup(supAssertion, instruction);
+    const auto result = doesCommuteSup(supAssertion, instructionName, targets);
     return result;
   }
   if (assertion->getType() == AssertionType::CircuitEquality ||
