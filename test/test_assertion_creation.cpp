@@ -66,9 +66,9 @@ TEST_F(AssertionCreationTest, CreateEntanglementAssertionFromBigAssertion) {
   )");
 
   const std::set<std::pair<size_t, std::string>> expected = {
-      {3, "assert-ent q[1], q[2]"},
-      {3, "assert-ent q[0], q[2]"},
-      {3, "assert-ent q[0], q[1]"}};
+      {3, "assert-ent q[1], q[2];\n"},
+      {3, "assert-ent q[0], q[2];\n"},
+      {3, "assert-ent q[0], q[1];\n"}};
   checkNewAssertions(expected, 1);
 }
 
@@ -81,6 +81,6 @@ TEST_F(AssertionCreationTest, CreateEntanglementAssertionFromTreeSimple) {
   )");
 
   const std::set<std::pair<size_t, std::string>> expected = {
-      {3, "assert-ent q[1], q[2]"}};
+      {3, "assert-ent q[1], q[2];\n"}};
   checkNewAssertions(expected, 1);
 }

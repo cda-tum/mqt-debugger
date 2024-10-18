@@ -11,15 +11,19 @@
 #include "common/Span.hpp"
 #include "common/parsing/AssertionParsing.hpp"
 #include "common/parsing/AssertionTools.hpp"
+#include "common/parsing/CodePreprocessing.hpp"
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <iterator>
 #include <map>
 #include <memory>
 #include <set>
+#include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 /**
@@ -689,8 +693,9 @@ size_t dddiagnosticsSuggestNewAssertions(Diagnostics* self,
         assertionString << qubit + ", ";
       }
       const auto string =
-          assertionString.str().substr(0, assertionString.str().size() - 2);
-      strcpy(assertions[index], string.c_str());
+          assertionString.str().substr(0, assertionString.str().size() - 2) +
+          ";\n";
+      strncpy(assertions[index], string.c_str(), string.length());
       index++;
       if (index == count) {
         return index;

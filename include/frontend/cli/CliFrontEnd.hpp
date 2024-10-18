@@ -41,7 +41,11 @@ private:
   std::string currentCode;
 
   /**
-   * @brief Print the current state (state vector etc.) in the command line.
+   * @brief Print the current state of the simulation.
+   * @param state The simulation state.
+   * @param inspecting The instruction that is currently inspected (or -1ULL if
+   * nothing is being inspected).
+   * @param codeOnly If true, only the code is displayed, not the state.
    */
   void printState(SimulationState* state, size_t inspecting,
                   bool codeOnly = false);
@@ -50,4 +54,6 @@ private:
    * @brief Initialize the code for running it at a later time.
    */
   void initCode(const char* code);
+
+  void suggestUpdatedAssertions(SimulationState* state);
 };
