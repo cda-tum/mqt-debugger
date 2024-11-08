@@ -2,6 +2,8 @@ add_library(
   ${PROJECT_NAME}
   backend/dd/DDSimDebug.cpp
   backend/dd/DDSimDiagnostics.cpp
+  common/ComplexMathematics.cpp
+  common/ComplexMathematics.cpp
   common/parsing/AssertionParsing.cpp
   common/parsing/AssertionTools.cpp
   common/parsing/CodePreprocessing.cpp

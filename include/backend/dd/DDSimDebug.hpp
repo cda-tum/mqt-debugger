@@ -668,17 +668,6 @@ bool isSubStateVectorLegal(const Statevector& full,
                            std::vector<size_t>& targetQubits);
 
 /**
- * @brief Gets the partial state vector by tracing out individual qubits from
- * the full state vector.
- * @param sv The full state vector.
- * @param traceOut The indices of the qubits to trace out.
- * @return The partial state vector.
- */
-std::vector<std::vector<Complex>>
-getPartialTraceFromStateVector(const Statevector& sv,
-                               const std::vector<size_t>& traceOut);
-
-/**
  * @brief Gets the target variables of an instruction.
  *
  * If the instruction targets are indexed registers, they are taken directly.
