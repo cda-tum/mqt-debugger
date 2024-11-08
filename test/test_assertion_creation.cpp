@@ -84,3 +84,36 @@ TEST_F(AssertionCreationTest, CreateEntanglementAssertionFromTreeSimple) {
       {3, "assert-ent q[1], q[2];\n"}};
   checkNewAssertions(expected, 1);
 }
+
+TEST_F(AssertionCreationTest, SplitEqualityAssertion) {
+  loadCode(3, 1, R"(
+  assert-eq q[0], q[1] { 1, 0, 0, 0 }
+  )");
+
+  const std::set<std::pair<size_t, std::string>> expected = {
+      {0, "assert-eq q[0] { 1, 0 }\n"},
+      {0, "assert-eq q[1] { 1, 0 }\n"}
+  };
+  checkNewAssertions(expected, 1);
+}
+
+TEST_F(AssertionCreationTest, SplitEqualityAssertionMultipleAmplitudes) {
+  loadCode(3, 1, R"(
+  assert-eq q[0], q[1] { 0.5, 0.5, 0.5, 0.5 }
+  )");
+
+  const std::set<std::pair<size_t, std::string>> expected = {
+      {0, "assert-eq 0.99999, q[0] { 0.70711, 0.70711 }\n"},
+      {0, "assert-eq 0.99999, q[1] { 0.70711, 0.70711 }\n"}
+  };
+  checkNewAssertions(expected, 1);
+}
+
+TEST_F(AssertionCreationTest, DontSplitEntangledEqualityAssertion) {
+  loadCode(3, 1, R"(
+  assert-eq 0.9, q[0], q[1] { 0.707, 0, 0, 0.707 }
+  )");
+
+  const std::set<std::pair<size_t, std::string>> expected = {};
+  checkNewAssertions(expected, 1);
+}
