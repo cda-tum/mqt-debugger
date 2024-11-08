@@ -91,9 +91,7 @@ TEST_F(AssertionCreationTest, SplitEqualityAssertion) {
   )");
 
   const std::set<std::pair<size_t, std::string>> expected = {
-      {0, "assert-eq q[0] { 1, 0 }\n"},
-      {0, "assert-eq q[1] { 1, 0 }\n"}
-  };
+      {0, "assert-eq q[0] { 1, 0 }\n"}, {0, "assert-eq q[1] { 1, 0 }\n"}};
   checkNewAssertions(expected, 1);
 }
 
@@ -104,8 +102,7 @@ TEST_F(AssertionCreationTest, SplitEqualityAssertionMultipleAmplitudes) {
 
   const std::set<std::pair<size_t, std::string>> expected = {
       {0, "assert-eq 0.99999, q[0] { 0.70711, 0.70711 }\n"},
-      {0, "assert-eq 0.99999, q[1] { 0.70711, 0.70711 }\n"}
-  };
+      {0, "assert-eq 0.99999, q[1] { 0.70711, 0.70711 }\n"}};
   checkNewAssertions(expected, 1);
 }
 
