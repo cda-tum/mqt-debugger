@@ -16,6 +16,39 @@
 #include <set>
 #include <vector>
 
+struct InsertEqualityAssertion {
+  size_t instructionIndex;
+  std::vector<Complex> amplitudes;
+  double similarity;
+  std::vector<std::string> targets;
+
+  // Define operator== to support equality comparisons
+  bool operator==(const InsertEqualityAssertion& other) const {
+    if (instructionIndex != other.instructionIndex ||
+        targets != other.targets) {
+      return false;
+    }
+
+    if ((similarity - other.similarity) < -1e-10 ||
+        (similarity - other.similarity) > 1e-10) {
+      return false;
+    }
+
+    for (size_t i = 0; i < amplitudes.size(); i++) {
+      if ((amplitudes[i].real - other.amplitudes[i].real) < -1e-10 ||
+          (amplitudes[i].real - other.amplitudes[i].real) > 1e-10) {
+        return false;
+      }
+      if ((amplitudes[i].imaginary - other.amplitudes[i].imaginary) < -1e-10 ||
+          (amplitudes[i].imaginary - other.amplitudes[i].imaginary) > 1e-10) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+};
+
 struct DDSimulationState;
 
 /**
@@ -47,6 +80,7 @@ struct DDDiagnostics {
 
   std::vector<std::pair<size_t, size_t>> assertionsToMove;
   std::map<size_t, std::set<std::set<std::string>>> assertionsEntToInsert;
+  std::map<size_t, std::vector<InsertEqualityAssertion>> assertionsEqToInsert;
 };
 
 /**

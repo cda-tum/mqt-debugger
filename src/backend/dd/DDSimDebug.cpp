@@ -745,42 +745,10 @@ Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
     return ERROR;
   }
 
-  std::vector<size_t> otherQubits;
-  for (size_t i = 0; i < fullState.numQubits; i++) {
-    if (std::find(targetQubits.begin(), targetQubits.end(), i) ==
-        targetQubits.end()) {
-      otherQubits.push_back(i);
-    }
-  }
+  const auto subState = getSubStateVectorAmplitudes(fullState, targetQubits);
 
-  const auto traced = getPartialTraceFromStateVector(fullState, otherQubits);
-
-  // Create Eigen3 Matrix
-  const auto mat = toEigenMatrix(traced);
-
-  const Eigen::ComplexEigenSolver<Eigen::MatrixXcd> solver(mat); // NOLINT
-
-  const auto& vectors = solver.eigenvectors();
-  const auto& values = solver.eigenvalues();
-  const auto epsilon = 0.000001;
-  int index = -1;
-  for (int i = 0; i < values.size(); i++) {
-    if (values[i].imag() < -epsilon || values[i].imag() > epsilon) {
-      continue;
-    }
-    if (values[i].real() - 1 < -epsilon || values[i].real() - 1 > epsilon) {
-      continue;
-    }
-    index = i;
-  }
-
-  if (index == -1) {
-    return ERROR;
-  }
-
-  for (size_t i = 0; i < traced.size(); i++) {
-    outAmplitudes[i] = {vectors(static_cast<int>(i), index).real(),
-                        vectors(static_cast<int>(i), index).imag()};
+  for (size_t i = 0; i < subState.size(); i++) {
+    outAmplitudes[i] = subState[i];
   }
 
   return OK;

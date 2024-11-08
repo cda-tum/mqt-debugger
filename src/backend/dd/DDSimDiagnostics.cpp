@@ -8,6 +8,7 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/diagnostics.h"
 #include "common.h"
+#include "common/ComplexMathematics.hpp"
 #include "common/Span.hpp"
 #include "common/parsing/AssertionParsing.hpp"
 #include "common/parsing/AssertionTools.hpp"
@@ -675,6 +676,95 @@ void suggestBasedOnFailedEntanglementAssertion(
   }
 }
 
+void suggestSplitEqualityAssertion(
+    DDDiagnostics* self, size_t instructionIndex,
+    const StatevectorEqualityAssertion* assertion) {
+  const auto& sv = assertion->getTargetStatevector();
+  const Span<Complex> amplitudes(sv.amplitudes, sv.numStates);
+
+  const auto densityMatrix = toDensityMatrix(sv);
+
+  std::vector<size_t> separableQubits;
+  for (size_t i = 0; i < sv.numQubits; i++) {
+    if (i == sv.numQubits - 1 && separableQubits.size() == i) {
+      // Leave at least one element in remaining.
+      break;
+    }
+    if (partialTraceIsPure(sv, {i})) {
+      separableQubits.push_back(i);
+    }
+  }
+
+  if (separableQubits.empty()) {
+    return;
+  }
+
+  std::vector<size_t> remainingQubits;
+  for (size_t i = 0; i < sv.numQubits; i++) {
+    if (std::find(separableQubits.begin(), separableQubits.end(), i) ==
+        separableQubits.end()) {
+      remainingQubits.push_back(i);
+    }
+  }
+
+  std::vector<std::vector<Complex>> extractedAmplitudes;
+  std::vector<std::vector<std::string>> targetQubits;
+  for (const size_t qb : separableQubits) {
+    extractedAmplitudes.push_back(getSubStateVectorAmplitudes(sv, {qb}));
+    targetQubits.push_back({assertion->getTargetQubits()[qb]});
+  }
+  extractedAmplitudes.push_back(
+      getSubStateVectorAmplitudes(sv, remainingQubits));
+  std::vector<std::string> remainingQubitNames;
+  std::transform(
+      remainingQubits.begin(), remainingQubits.end(),
+      std::back_inserter(remainingQubitNames),
+      [&assertion](size_t qb) { return assertion->getTargetQubits()[qb]; });
+  targetQubits.push_back(remainingQubitNames);
+
+  const auto similarity = assertion->getSimilarityThreshold();
+
+  for (size_t i = 0; i < extractedAmplitudes.size(); i++) {
+
+    const auto& amplitudeSet = extractedAmplitudes[i];
+    const auto& targetQubitSet = targetQubits[i];
+    auto toInsert = InsertEqualityAssertion{
+        instructionIndex, {}, similarity, targetQubitSet};
+
+    // Round amplitudes if necessary.
+    const auto roundingFactor = 1e8;
+    std::transform(amplitudeSet.begin(), amplitudeSet.end(),
+                   std::back_inserter(toInsert.amplitudes),
+                   [&roundingFactor](const Complex& c) {
+                     return Complex{std::round(c.real * roundingFactor) /
+                                        roundingFactor,
+                                    std::round(c.imaginary * roundingFactor) /
+                                        roundingFactor};
+                   });
+    // If an amplitude was rounded, we adapt the similarity if it is too high
+    // otherwise.
+    for (size_t j = 0; j < amplitudeSet.size(); j++) {
+      if (amplitudeSet[j].real != toInsert.amplitudes[j].real ||
+          amplitudeSet[j].imaginary != toInsert.amplitudes[j].imaginary) {
+        toInsert.similarity =
+            (toInsert.similarity > 0.99999) ? 0.99999 : toInsert.similarity;
+        break;
+      }
+    }
+
+    if (self->assertionsEqToInsert.find(instructionIndex) ==
+        self->assertionsEqToInsert.end()) {
+      self->assertionsEqToInsert.insert(
+          {instructionIndex, std::vector<InsertEqualityAssertion>{}});
+    }
+    auto& container = self->assertionsEqToInsert[instructionIndex];
+    if (std::find(container.begin(), container.end(), toInsert) ==
+        container.end()) {
+      self->assertionsEqToInsert[instructionIndex].push_back(toInsert);
+    }
+  }
+}
+
 size_t dddiagnosticsSuggestNewAssertions(Diagnostics* self,
                                          size_t* suggestedPositions,
                                          char** suggestedAssertions,
@@ -696,6 +786,42 @@ size_t dddiagnosticsSuggestNewAssertions(Diagnostics* self,
           assertionString.str().substr(0, assertionString.str().size() - 2) +
           ";\n";
       strncpy(assertions[index], string.c_str(), string.length());
+      index++;
+      if (index == count) {
+        return index;
+      }
+    }
+  }
+
+  for (const auto& entry : ddd->assertionsEqToInsert) {
+    for (const auto& assertion : entry.second) {
+      positions[index] = entry.first;
+      std::stringstream assertionString;
+      assertionString << "assert-eq ";
+      if (assertion.similarity != 1) {
+        assertionString << assertion.similarity << ", ";
+      }
+      for (const auto& qubit : assertion.targets) {
+        assertionString << qubit << ", ";
+      }
+      const auto string =
+          assertionString.str().substr(0, assertionString.str().size() - 2);
+      std::stringstream finalStringStream;
+      finalStringStream << string << " { ";
+      const auto& end = assertion.amplitudes.end();
+      std::for_each(assertion.amplitudes.begin(), assertion.amplitudes.end(),
+                    [&finalStringStream, &end](const Complex& c) {
+                      if (&c == &*std::prev(end)) {
+                        finalStringStream << complexToString(c);
+                      } else {
+                        finalStringStream << complexToString(c) << ", ";
+                      }
+                    });
+      finalStringStream << " }\n";
+      const auto finalString = finalStringStream.str();
+      std::cout << finalString;
+
+      strncpy(assertions[index], finalString.c_str(), finalString.length());
       index++;
       if (index == count) {
         return index;
@@ -749,5 +875,10 @@ void dddiagnosticsOnFailedAssertion(DDDiagnostics* diagnostics,
         dynamic_cast<EntanglementAssertion*>(assertion.get());
     suggestBasedOnFailedEntanglementAssertion(diagnostics, instruction,
                                               entAssertion);
+  }
+  if (assertion->getType() == AssertionType::StatevectorEquality) {
+    const auto* eqAssertion =
+        dynamic_cast<StatevectorEqualityAssertion*>(assertion.get());
+    suggestSplitEqualityAssertion(diagnostics, instruction, eqAssertion);
   }
 }

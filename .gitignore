@@ -180,3 +180,5 @@ wheelhouse/
 
 # test code for the CLIFrontEnd
 app/code/*.qasm
+
+.python-version
