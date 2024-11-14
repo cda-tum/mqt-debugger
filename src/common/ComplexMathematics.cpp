@@ -181,7 +181,7 @@ bool partialTraceIsPure(const Statevector& sv,
                         const std::vector<size_t>& traceOut) {
   const auto traceMatrix = getPartialTraceFromStateVector(sv, traceOut);
   const auto trace = getTraceOfSquare(traceMatrix);
-  const double epsilon = 0.00000001;
+  const double epsilon = 0.0001;
   return trace.imaginary < epsilon && trace.imaginary > -epsilon &&
          (trace.real - 1) < epsilon && (trace.real - 1) > -epsilon;
 }
@@ -245,7 +245,7 @@ getSubStateVectorAmplitudes(const Statevector& sv,
 
   const auto& vectors = solver.eigenvectors();
   const auto& values = solver.eigenvalues();
-  const auto epsilon = 0.000001;
+  const auto epsilon = 0.0001;
   int index = -1;
   for (int i = 0; i < values.size(); i++) {
     if (values[i].imag() < -epsilon || values[i].imag() > epsilon) {
