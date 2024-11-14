@@ -400,6 +400,29 @@ Args:
 Returns:
     str: The name of the variable.)")
       .def(
+          "get_quantum_variable_name",
+          [](SimulationState* self, size_t variableIndex) {
+            std::string output(255, '\0');
+            checkOrThrow(self->getQuantumVariableName(self, variableIndex,
+                                                      output.data()));
+            const std::size_t pos = output.find_first_of('\0');
+            if (pos != std::string::npos) {
+              output = output.substr(0, pos);
+            }
+            return output;
+          },
+          R"(Gets the name of a quantum variable by its index.
+
+For registers, each index is counted as a separate variable and can be
+accessed separately. This method will return the name of the specific
+index of the register.
+
+Args:
+    index (int): The index of the variable.
+
+Returns:
+    str: The name of the variable.)")
+      .def(
           "get_state_vector_full",
           [](SimulationState* self) {
             const size_t numQubits = self->getNumQubits(self);
@@ -677,6 +700,72 @@ an assertion error.
 
 Returns:
    list[ErrorCause]: A list of potential error causes encountered during execution.)")
+      .def(
+          "suggest_assertion_movements",
+          [](Diagnostics* self) {
+            const size_t count =
+                self->suggestAssertionMovements(self, nullptr, nullptr, 0);
+            std::vector<size_t> originalPositions(count);
+            std::vector<size_t> suggestedPositions(count);
+            self->suggestAssertionMovements(self, originalPositions.data(),
+                                            suggestedPositions.data(), count);
+            std::vector<std::pair<size_t, size_t>> result(count);
+            std::transform(originalPositions.begin(), originalPositions.end(),
+                           suggestedPositions.begin(), result.begin(),
+                           [](const size_t& a, const size_t& b) {
+                             return std::make_pair(a, b);
+                           });
+            return result;
+          },
+          R"(Suggest movements of assertions to better positions.
+
+Each entry of the resulting list consists of the original position of the assertion, followed by its new
+suggested position.
+
+Returns:
+  list[tuple[int, int]]: A list of moved assertions.
+)")
+      .def(
+          "suggest_new_assertions",
+          [](Diagnostics* self) {
+            size_t stringSize = 2 << 17;
+            const size_t count =
+                self->suggestNewAssertions(self, nullptr, nullptr, 0);
+            std::vector<size_t> positions(count);
+            std::vector<char*> buffers(count);
+            for (auto& b : buffers) {
+              char* buffer = reinterpret_cast<char*>(
+                  malloc(sizeof(char) * stringSize)); // NOLINT
+              for (size_t i = 0; i < stringSize; i++) {
+                buffer[i] = '\0';
+              }
+              b = buffer;
+            }
+
+            self->suggestNewAssertions(self, positions.data(), buffers.data(),
+                                       count);
+            std::vector<std::string> assertions;
+            for (auto* b : buffers) {
+              assertions.emplace_back(b);
+              free(b); // NOLINT
+            }
+            std::vector<std::pair<size_t, std::string>> result(count);
+
+            std::transform(positions.begin(), positions.end(),
+                           assertions.begin(), result.begin(),
+                           [](const size_t& a, const std::string& b) {
+                             return std::make_pair(a, b);
+                           });
+            return result;
+          },
+          R"(Suggest new assertions to be added to the program.
+
+Each entry of the resulting list consists of the suggested position for the new assertion, followed by its
+string representation.
+
+Returns:
+  list[tupke[int, str]]: A list of new assertions.
+)")
       .doc() = "Provides diagnostics capabilities such as different analysis "
                "methods for the debugger.";
 }
