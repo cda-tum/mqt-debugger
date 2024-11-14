@@ -329,13 +329,14 @@ size_t dddiagnosticsPotentialErrorCauses(Diagnostics* self, ErrorCause* output,
  * so we have more specific details than at static time.
  * @param ddd The dd diagnostics instance.
  * @param qubit The qubit to find the interaction tree for.
- * @return A set of edges between qubits on the interaction tree.
+ * @return A set of edges between qubits on the interaction tree and the
+ * instruction they were taken from.
  */
-std::set<std::pair<size_t, size_t>>
+std::set<std::tuple<size_t, size_t, size_t>>
 getInteractionTreeAtRuntime(DDDiagnostics* ddd, size_t qubit) {
   auto* ddsim = ddd->simulationState;
   std::set<size_t> interactions;
-  std::set<std::pair<size_t, size_t>> tree;
+  std::set<std::tuple<size_t, size_t, size_t>> tree;
   interactions.insert(qubit);
   bool found = true;
 
@@ -366,8 +367,8 @@ getInteractionTreeAtRuntime(DDDiagnostics* ddd, size_t qubit) {
             for (size_t target2 = 1; target2 < actualQubitVector.size();
                  target2++) {
               const auto& secondTarget = actualQubitVector[target2];
-              tree.insert({target, secondTarget});
-              tree.insert({secondTarget, target});
+              tree.insert({target, secondTarget, i});
+              tree.insert({secondTarget, target, i});
 
               if (interactions.find(secondTarget) == interactions.end()) {
                 found = true;
@@ -397,8 +398,8 @@ std::set<size_t> getInteractionsAtRuntime(DDDiagnostics* ddd, size_t qubit) {
   const auto tree = getInteractionTreeAtRuntime(ddd, qubit);
   std::set<size_t> interactions{qubit};
   for (const auto& pair : tree) {
-    interactions.insert(pair.first);
-    interactions.insert(pair.second);
+    interactions.insert(std::get<0>(pair));
+    interactions.insert(std::get<1>(pair));
   }
   return interactions;
 }
@@ -605,6 +606,74 @@ size_t dddiagnosticsSuggestAssertionMovements(Diagnostics* self,
   return max;
 }
 
+bool isPathUnique(const std::set<std::tuple<size_t, size_t, size_t>>& graph,
+                  size_t start, size_t end) {
+  std::set<size_t> visited;
+  std::vector<size_t> toVisit;
+
+  std::map<size_t, std::pair<size_t, size_t>> predecessors;
+  std::set<size_t> multiplePredecessors;
+
+  toVisit.push_back(start);
+  while (!toVisit.empty()) {
+    auto current = *toVisit.begin();
+    toVisit.erase(toVisit.begin());
+    visited.insert(current);
+    if (current == end) {
+      break;
+    }
+
+    for (const auto& edge : graph) {
+      size_t other = 0;
+      const size_t instruction = std::get<2>(edge);
+      if (std::get<0>(edge) == current) {
+        other = std::get<1>(edge);
+      } else if (std::get<1>(edge) == current) {
+        other = std::get<0>(edge);
+      } else {
+        continue;
+      }
+      if (other == current) {
+        // Fail-safe in case this ever comes up.
+        continue;
+      }
+
+      if (predecessors.find(current) != predecessors.end() &&
+          predecessors[current].first == other &&
+          predecessors[current].second == instruction) {
+        // This is the edge we came from, so we don't want to go back.
+        continue;
+      }
+
+      if (predecessors.find(other) != predecessors.end()) {
+        if (predecessors[other].second != instruction) {
+          multiplePredecessors.insert(other);
+        }
+      } else {
+        predecessors.insert({other, {current, instruction}});
+      }
+      if (visited.find(other) != visited.end()) {
+        continue;
+      }
+      if (std::find(toVisit.begin(), toVisit.end(), other) == toVisit.end()) {
+        toVisit.push_back(other);
+      }
+    }
+  }
+
+  if (predecessors.find(end) == predecessors.end()) {
+    return false;
+  }
+  size_t current = end;
+  while (current != start) {
+    if (multiplePredecessors.find(current) != multiplePredecessors.end()) {
+      return false;
+    }
+    current = predecessors[current].first;
+  }
+  return true;
+}
+
 void suggestBasedOnFailedEntanglementAssertion(
     DDDiagnostics* self, size_t instructionIndex,
     const EntanglementAssertion* assertion) {
@@ -630,14 +699,20 @@ void suggestBasedOnFailedEntanglementAssertion(
   bool first = true;
   for (const auto& actualQubits : actualQubitVector) {
     std::set<std::pair<size_t, size_t>> addingInteractions;
-    const std::set<std::pair<size_t, size_t>> interactionGraph =
+    const auto interactionGraph =
         getInteractionTreeAtRuntime(self, actualQubits[1]);
     const auto baseQubit = actualQubits[0];
     const auto targetQubit = actualQubits[1];
+
+    if (!isPathUnique(interactionGraph, actualQubits[0], actualQubits[1])) {
+      // If path is not unique, nothing can be done.
+      continue;
+    }
+
     std::vector<size_t> baseNeighbors;
     for (const auto& pair : interactionGraph) {
-      if (pair.first == baseQubit) {
-        baseNeighbors.push_back(pair.second);
+      if (std::get<0>(pair) == baseQubit) {
+        baseNeighbors.push_back(std::get<1>(pair));
       }
     }
     if (baseNeighbors.empty()) {
