@@ -606,8 +606,9 @@ size_t dddiagnosticsSuggestAssertionMovements(Diagnostics* self,
   return max;
 }
 
-bool isPathUnique(const std::set<std::tuple<size_t, size_t, size_t>>& graph,
-                  size_t start, size_t end) {
+std::vector<std::tuple<size_t, size_t, size_t>>
+findUniquePath(const std::set<std::tuple<size_t, size_t, size_t>>& graph,
+               size_t start, size_t end) {
   std::set<size_t> visited;
   std::vector<size_t> toVisit;
 
@@ -662,16 +663,19 @@ bool isPathUnique(const std::set<std::tuple<size_t, size_t, size_t>>& graph,
   }
 
   if (predecessors.find(end) == predecessors.end()) {
-    return false;
+    return {};
   }
+  std::vector<std::tuple<size_t, size_t, size_t>> path;
   size_t current = end;
   while (current != start) {
     if (multiplePredecessors.find(current) != multiplePredecessors.end()) {
-      return false;
+      return {};
     }
+    path.emplace_back(predecessors[current].first, current,
+                      predecessors[current].second);
     current = predecessors[current].first;
   }
-  return true;
+  return path;
 }
 
 void suggestBasedOnFailedEntanglementAssertion(
@@ -682,54 +686,45 @@ void suggestBasedOnFailedEntanglementAssertion(
     if (self->assertionsEntToInsert.find(instructionIndex) ==
         self->assertionsEntToInsert.end()) {
       self->assertionsEntToInsert.insert(
-          {instructionIndex, std::set<std::set<std::string>>()});
+          {instructionIndex,
+           std::set<std::pair<std::set<std::string>, size_t>>()});
     }
     for (size_t i = 0; i < assertion->getTargetQubits().size(); i++) {
       const auto qubit = assertion->getTargetQubits()[i];
       for (size_t j = i + 1; j < assertion->getTargetQubits().size(); j++) {
         const auto other = assertion->getTargetQubits()[j];
-        self->assertionsEntToInsert[instructionIndex].insert({qubit, other});
+        self->assertionsEntToInsert[instructionIndex].insert(
+            {{qubit, other}, instructionIndex});
       }
     }
     return;
   }
 
   const auto& actualQubitVector = self->actualQubits[instructionIndex];
-  std::set<std::pair<size_t, size_t>> generalInteractions;
+  std::set<std::tuple<size_t, size_t, size_t>> generalInteractions;
   bool first = true;
   for (const auto& actualQubits : actualQubitVector) {
-    std::set<std::pair<size_t, size_t>> addingInteractions;
+    std::set<std::tuple<size_t, size_t, size_t>> addingInteractions;
     const auto interactionGraph =
         getInteractionTreeAtRuntime(self, actualQubits[1]);
     const auto baseQubit = actualQubits[0];
     const auto targetQubit = actualQubits[1];
 
-    if (!isPathUnique(interactionGraph, actualQubits[0], actualQubits[1])) {
-      // If path is not unique, nothing can be done.
-      continue;
-    }
+    const auto path = findUniquePath(interactionGraph, baseQubit, targetQubit);
 
-    std::vector<size_t> baseNeighbors;
-    for (const auto& pair : interactionGraph) {
-      if (std::get<0>(pair) == baseQubit) {
-        baseNeighbors.push_back(std::get<1>(pair));
-      }
-    }
-    if (baseNeighbors.empty()) {
-      return;
-    }
-    for (const auto& neighbor : baseNeighbors) {
-      if (neighbor == targetQubit) {
-        continue;
-      }
-      addingInteractions.insert({targetQubit, neighbor});
+    for (const auto& edge : path) {
+      const auto from = std::get<0>(edge);
+      const auto to = std::get<1>(edge);
+      const auto trueFrom = from > to ? to : from;
+      const auto trueTo = from > to ? from : to;
+      addingInteractions.insert({trueFrom, trueTo, std::get<2>(edge)});
     }
 
     if (first) {
       generalInteractions = addingInteractions;
       first = false;
     } else {
-      std::set<std::pair<size_t, size_t>> newInteractions;
+      std::set<std::tuple<size_t, size_t, size_t>> newInteractions;
       std::set_intersection(
           generalInteractions.begin(), generalInteractions.end(),
           addingInteractions.begin(), addingInteractions.end(),
@@ -744,13 +739,17 @@ void suggestBasedOnFailedEntanglementAssertion(
   if (self->assertionsEntToInsert.find(instructionIndex) ==
       self->assertionsEntToInsert.end()) {
     self->assertionsEntToInsert.insert(
-        {instructionIndex, std::set<std::set<std::string>>()});
+        {instructionIndex,
+         std::set<std::pair<std::set<std::string>, size_t>>()});
   }
-  for (const auto& pair : generalInteractions) {
+  for (const auto& entry : generalInteractions) {
+    const auto q1 = std::get<0>(entry);
+    const auto q2 = std::get<1>(entry);
     auto* ddsim = self->simulationState;
     self->assertionsEntToInsert[instructionIndex].insert(
-        {getQuantumBitName(ddsim, pair.first),
-         getQuantumBitName(ddsim, pair.second)});
+        {{getQuantumBitName(ddsim, q1), getQuantumBitName(ddsim, q2)},
+         std::get<2>(entry) +
+             1}); // + 1 because the assertion lands after the instruction.
   }
 }
 
@@ -758,7 +757,6 @@ void suggestSplitEqualityAssertion(
     DDDiagnostics* self, size_t instructionIndex,
     const StatevectorEqualityAssertion* assertion) {
   const auto& sv = assertion->getTargetStatevector();
-  const Span<Complex> amplitudes(sv.amplitudes, sv.numStates);
 
   const auto densityMatrix = toDensityMatrix(sv);
 
@@ -865,15 +863,16 @@ size_t dddiagnosticsSuggestNewAssertions(Diagnostics* self,
 
   for (const auto& entry : ddd->assertionsEntToInsert) {
     for (const auto& assertion : entry.second) {
-      positions[index] = entry.first;
+      positions[index] = assertion.second;
       std::stringstream assertionString;
       assertionString << "assert-ent ";
-      for (const auto& qubit : assertion) {
+      for (const auto& qubit : assertion.first) {
         assertionString << qubit + ", ";
       }
       const auto string =
           assertionString.str().substr(0, assertionString.str().size() - 2) +
           ";\n";
+      std::cout << string;
       strncpy(assertions[index], string.c_str(), string.length());
       index++;
       if (index == count) {

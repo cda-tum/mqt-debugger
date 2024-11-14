@@ -79,7 +79,8 @@ struct DDDiagnostics {
   std::map<size_t, std::set<std::vector<size_t>>> actualQubits;
 
   std::vector<std::pair<size_t, size_t>> assertionsToMove;
-  std::map<size_t, std::set<std::set<std::string>>> assertionsEntToInsert;
+  std::map<size_t, std::set<std::pair<std::set<std::string>, size_t>>>
+      assertionsEntToInsert;
   std::map<size_t, std::vector<InsertEqualityAssertion>> assertionsEqToInsert;
 };
 
