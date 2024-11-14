@@ -112,7 +112,7 @@ TEST_F(ParsingTest, ErrorInvalidAssertion) {
 TEST_F(ParsingTest, ComplexNumberParsing) {
   // With statevector
   const auto a1 = parseAssertion("assert-eq 0.5, q[0], q[1]",
-                                 "0.5j, 0.5i, 0.5 + 0i, 0 + 0.5j");
+                                 "0.5j, 0.5i, 0.5 + 0i, 0 - 0.5j");
   ASSERT_EQ(a1->getType(), AssertionType::StatevectorEquality);
   ASSERT_EQ(a1->getTargetQubits().size(), 2);
   const auto* sv = dynamic_cast<StatevectorEqualityAssertion*>(a1.get());
@@ -120,7 +120,8 @@ TEST_F(ParsingTest, ComplexNumberParsing) {
                                  sv->getTargetStatevector().numStates);
   for (size_t i = 0; i < 4; i++) {
     ASSERT_EQ(amplitudes[i].real, i != 2 ? 0.0 : 0.5);
-    ASSERT_EQ(amplitudes[i].imaginary, i != 2 ? 0.5 : 0.0);
+    ASSERT_EQ(amplitudes[i].imaginary, i != 2 ? (i != 3 ? 0.5 : -0.5) : 0.0)
+        << i;
   }
 }
 
