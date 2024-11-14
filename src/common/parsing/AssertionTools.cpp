@@ -129,7 +129,8 @@ bool doesCommute(const std::unique_ptr<Assertion>& assertion,
                  const Instruction& instruction) {
   const auto& code = instruction.code;
   if (instruction.assertion != nullptr) {
-    return false; // The order of assertions should remain stable.
+    return true; // Allow lifting over other assertions so a stuck assertion
+                 // above will not also fixate all assertions below it.
   }
   if (instruction.isFunctionDefinition) {
     return true; // Order of function definitions does not matter.
