@@ -115,3 +115,15 @@ TEST_F(AssertionCreationTest, DontSplitEntangledEqualityAssertion) {
   const std::set<std::pair<size_t, std::string>> expected = {};
   checkNewAssertions(expected, 1);
 }
+
+TEST_F(AssertionCreationTest, SplitEqualityAssertionRounded) {
+  loadCode(3, 1, R"(
+  assert-eq 0.99999, q[0], q[1], q[2] { 0, 0, 0, 0.70711, 0, 0, -0, -0.70711 }
+  )");
+
+  const std::set<std::pair<size_t, std::string>> expected = {
+      {0, "assert-eq 0.99999, q[0] { 0, 1 }\n"},
+      {0, "assert-eq 0.99999, q[1] { 0, 1 }\n"},
+      {0, "assert-eq 0.99999, q[2] { 0.707107, -0.707107 }\n"}};
+  checkNewAssertions(expected, 1);
+}
