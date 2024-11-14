@@ -99,6 +99,7 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.getAmplitudeBitstring = ddsimGetAmplitudeBitstring;
   self->interface.getClassicalVariable = ddsimGetClassicalVariable;
   self->interface.getNumClassicalVariables = ddsimGetNumClassicalVariables;
+  self->interface.getQuantumVariableName = ddsimGetQuantumVariableName;
   self->interface.getClassicalVariableName = ddsimGetClassicalVariableName;
   self->interface.getStateVectorFull = ddsimGetStateVectorFull;
   self->interface.getStateVectorSub = ddsimGetStateVectorSub;
@@ -714,6 +715,19 @@ Result ddsimGetClassicalVariableName(SimulationState* self,
   return OK;
 }
 
+Result ddsimGetQuantumVariableName(SimulationState* self, size_t variableIndex,
+                                   char* output) {
+  auto* ddsim = toDDSimulationState(self);
+
+  const auto name = getQuantumBitName(ddsim, variableIndex);
+
+  if (name == "UNKNOWN") {
+    return ERROR;
+  }
+  name.copy(output, name.length());
+  return OK;
+}
+
 Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
   const Span<Complex> amplitudes(output->amplitudes, output->numStates);
   for (size_t i = 0; i < output->numStates; i++) {
@@ -724,13 +738,27 @@ Result ddsimGetStateVectorFull(SimulationState* self, Statevector* output) {
 
 Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
                               const size_t* qubits, Statevector* output) {
+  const Span<const size_t> qubitsSpan(qubits, subStateSize);
+
+  if (subStateSize == self->getNumQubits(self)) {
+    bool ok = true;
+    for (size_t i = 0; i < subStateSize; i++) {
+      if (qubitsSpan[i] != i) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) {
+      return self->getStateVectorFull(self, output);
+    }
+  }
+
   auto* ddsim = toDDSimulationState(self);
   Statevector fullState;
   fullState.numQubits = ddsim->qc->getNqubits();
   fullState.numStates = 1 << fullState.numQubits;
   std::vector<Complex> amplitudes(fullState.numStates);
   const Span<Complex> outAmplitudes(output->amplitudes, output->numStates);
-  const Span<const size_t> qubitsSpan(qubits, subStateSize);
 
   std::vector<size_t> targetQubits;
   for (size_t i = 0; i < subStateSize; i++) {
@@ -741,7 +769,8 @@ Result ddsimGetStateVectorSub(SimulationState* self, size_t subStateSize,
 
   self->getStateVectorFull(self, &fullState);
 
-  if (!isSubStateVectorLegal(fullState, targetQubits)) {
+  if (fullState.numQubits > targetQubits.size() &&
+      !isSubStateVectorLegal(fullState, targetQubits)) {
     return ERROR;
   }
 

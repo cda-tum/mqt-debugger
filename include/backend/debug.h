@@ -292,6 +292,20 @@ struct SimulationStateStruct {
                                      size_t variableIndex, char* output);
 
   /**
+   * @brief Gets the name of a quantum variable by its index.
+   *
+   * For registers, each index is counted as a separate variable and can be
+   * accessed separately. This method will return the name of the specific
+   * index of the register.
+   * @param self The instance to query.
+   * @param variableIndex The index of the variable.
+   * @param output A buffer to store the name of the variable.
+   * @return The result of the operation.
+   */
+  Result (*getQuantumVariableName)(SimulationState* self, size_t variableIndex,
+                                   char* output);
+
+  /**
    * @brief Gets the full state vector of the simulation at the current time.
    *
    * The state vector is expected to be initialized with the correct number of
