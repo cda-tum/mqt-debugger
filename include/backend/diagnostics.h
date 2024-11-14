@@ -176,7 +176,11 @@ struct DiagnosticsStruct {
                                  size_t count);
 
   /**
-   * @brief Suggest movements of assertions to better positions.
+   * @brief Suggest movements of assertions to better positions.\n\n
+   *
+   * Calling this function with a `count` of 0 will return the number of
+   * assertions that can be suggested.
+   *
    * @param self The diagnostics instance to query.
    * @param originalPositions An array of assertion positions to be filled.
    * Contains the original positions of the assertions that should be moved.
@@ -194,7 +198,10 @@ struct DiagnosticsStruct {
    *
    * These assertions are added by first observing assertions that failed during
    * previous iterations. Therefore, the simulation must be run at least once
-   * before calling this function.
+   * before calling this function.\n\n
+   *
+   * Calling this function with a `count` of 0 will return the number of
+   * assertions that can be suggested.
    *
    * @param self The diagnostics instance to query.
    * @param suggestedPositions An array of assertion positions to be filled.

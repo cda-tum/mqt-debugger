@@ -590,6 +590,9 @@ size_t dddiagnosticsSuggestAssertionMovements(Diagnostics* self,
                                               size_t* suggestedPositions,
                                               size_t count) {
   DDDiagnostics* diagnostics = toDDDiagnostics(self);
+  if (count == 0) {
+    return diagnostics->assertionsToMove.size();
+  }
   const size_t max = count < diagnostics->assertionsToMove.size()
                          ? count
                          : diagnostics->assertionsToMove.size();
@@ -769,11 +772,22 @@ size_t dddiagnosticsSuggestNewAssertions(Diagnostics* self,
                                          size_t* suggestedPositions,
                                          char** suggestedAssertions,
                                          size_t count) {
+  auto* ddd = toDDDiagnostics(self);
+  if (count == 0) {
+    size_t totalNumber = 0;
+    for (const auto& entry : ddd->assertionsEntToInsert) {
+      totalNumber += entry.second.size();
+    }
+    for (const auto& entry : ddd->assertionsEqToInsert) {
+      totalNumber += entry.second.size();
+    }
+    return totalNumber;
+  }
+
   size_t index = 0;
   const Span<size_t> positions(suggestedPositions, count);
   const Span<char*> assertions(suggestedAssertions, count);
 
-  auto* ddd = toDDDiagnostics(self);
   for (const auto& entry : ddd->assertionsEntToInsert) {
     for (const auto& assertion : entry.second) {
       positions[index] = entry.first;
@@ -819,7 +833,6 @@ size_t dddiagnosticsSuggestNewAssertions(Diagnostics* self,
                     });
       finalStringStream << " }\n";
       const auto finalString = finalStringStream.str();
-      std::cout << finalString;
 
       strncpy(assertions[index], finalString.c_str(), finalString.length());
       index++;
