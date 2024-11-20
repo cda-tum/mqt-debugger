@@ -16,13 +16,37 @@
 #include <set>
 #include <vector>
 
+/**
+ * @brief Represents an equality assertion that should be inserted into the
+ * program.
+ */
 struct InsertEqualityAssertion {
+
+  /**
+   * @brief The index of the instruction where the assertion should be inserted.
+   */
   size_t instructionIndex;
+
+  /**
+   * @brief The amplitudes that the assertion should check for equality.
+   */
   std::vector<Complex> amplitudes;
+
+  /**
+   * @brief The similarity threshold for the assertion.
+   */
   double similarity;
+
+  /**
+   * @brief The target qubits of the assertion.
+   */
   std::vector<std::string> targets;
 
-  // Define operator== to support equality comparisons
+  /**
+   * @brief Check whether two InsertEqualityAssertion instances are equal.
+   * @param other The other InsertEqualityAssertion instance to compare with.
+   * @return True if the instances are equal, false otherwise.
+   */
   bool operator==(const InsertEqualityAssertion& other) const {
     if (instructionIndex != other.instructionIndex ||
         targets != other.targets) {
@@ -78,9 +102,22 @@ struct DDDiagnostics {
    */
   std::map<size_t, std::set<std::vector<size_t>>> actualQubits;
 
+  /**
+   * @brief Assertions that have been identified to be moved in the program.
+   */
   std::vector<std::pair<size_t, size_t>> assertionsToMove;
+
+  /**
+   * @brief The entanglement assertions that have been identified to be added to
+   * the program.
+   */
   std::map<size_t, std::set<std::pair<std::set<std::string>, size_t>>>
       assertionsEntToInsert;
+
+  /**
+   * @brief The equality assertions that have been identified to be added to the
+   * program.
+   */
   std::map<size_t, std::vector<InsertEqualityAssertion>> assertionsEqToInsert;
 };
 

@@ -68,6 +68,13 @@ static const std::vector<std::function<CommutationResult(
         OTHER_1Q_GATE_INVARIANTS,
 };
 
+/**
+ * @brief Check if an entanglement assertion commutes with an instruction.
+ * @param assertion The assertion to check.
+ * @param instructionName The name of the instruction to check.
+ * @param targets The targets of the instruction.
+ * @return True if the assertion commutes with the instruction, false otherwise.
+ */
 bool doesCommuteEnt(const EntanglementAssertion* assertion,
                     const std::string& instructionName,
                     const std::vector<std::string>& targets) {
@@ -80,6 +87,13 @@ bool doesCommuteEnt(const EntanglementAssertion* assertion,
   return false;
 }
 
+/**
+ * @brief Check if a superposition assertion commutes with an instruction.
+ * @param assertion The assertion to check.
+ * @param instructionName The name of the instruction to check.
+ * @param targets The targets of the instruction.
+ * @return True if the assertion commutes with the instruction, false otherwise.
+ */
 bool doesCommuteSup(const SuperpositionAssertion* assertion,
                     const std::string& instructionName,
                     const std::vector<std::string>& targets) {
@@ -92,6 +106,12 @@ bool doesCommuteSup(const SuperpositionAssertion* assertion,
   return false;
 }
 
+/**
+ * @brief Check if a general assertion commutes with an instruction.
+ * @param assertion The assertion to check.
+ * @param instruction The instruction to check in string form.
+ * @return True if the assertion commutes with the instruction, false otherwise.
+ */
 bool doesCommute(const std::unique_ptr<Assertion>& assertion,
                  const std::string& instruction) {
   const auto targets = parseParameters(instruction);

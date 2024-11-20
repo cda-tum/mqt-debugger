@@ -55,5 +55,10 @@ private:
    */
   void initCode(const char* code);
 
+  /**
+   * @brief Output a new code with updated assertions based on the assertion
+   * refinement rules.
+   * @param state The simulation state.
+   */
   void suggestUpdatedAssertions(SimulationState* state);
 };

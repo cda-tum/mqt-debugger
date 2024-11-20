@@ -678,6 +678,12 @@ findUniquePath(const std::set<std::tuple<size_t, size_t, size_t>>& graph,
   return path;
 }
 
+/**
+ * @brief Suggest new assertions based on a failed entanglement assertion.
+ * @param self The diagnostics instance.
+ * @param instructionIndex The index of the assertion that failed.
+ * @param assertion The assertion that failed.
+ */
 void suggestBasedOnFailedEntanglementAssertion(
     DDDiagnostics* self, size_t instructionIndex,
     const EntanglementAssertion* assertion) {
@@ -753,6 +759,13 @@ void suggestBasedOnFailedEntanglementAssertion(
   }
 }
 
+/**
+ * @brief Suggest new assertions based on the splitting of an equality
+ * assertion.
+ * @param self The diagnostics instance.
+ * @param instructionIndex The index of the assertion to split.
+ * @param assertion The assertion to split.
+ */
 void suggestSplitEqualityAssertion(
     DDDiagnostics* self, size_t instructionIndex,
     const StatevectorEqualityAssertion* assertion) {
