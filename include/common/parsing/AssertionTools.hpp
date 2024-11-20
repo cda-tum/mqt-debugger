@@ -5,16 +5,16 @@
 
 #include <memory>
 
-#define COMMUTATIVITY_RULE_GENERAL(name, expression)                           \
-  COMMUTATIVITY_RULE_TEMPLATE(Assertion, name, expression)
+#define COMMUTATION_RULE_GENERAL(name, expression)                             \
+  COMMUTATION_RULE_TEMPLATE(Assertion, name, expression)
 
-#define COMMUTATIVITY_RULE_ENT(name, expression)                               \
-  COMMUTATIVITY_RULE_TEMPLATE(EntanglementAssertion, name, expression)
+#define COMMUTATION_RULE_ENT(name, expression)                                 \
+  COMMUTATION_RULE_TEMPLATE(EntanglementAssertion, name, expression)
 
-#define COMMUTATIVITY_RULE_SUP(name, expression)                               \
-  COMMUTATIVITY_RULE_TEMPLATE(SuperpositionAssertion, name, expression)
+#define COMMUTATION_RULE_SUP(name, expression)                                 \
+  COMMUTATION_RULE_TEMPLATE(SuperpositionAssertion, name, expression)
 
-#define COMMUTATIVITY_RULE_TEMPLATE(type, name, expression)                    \
+#define COMMUTATION_RULE_TEMPLATE(type, name, expression)                      \
   const auto name = [](const type* assertion,                                  \
                        const std::string& instructionName,                     \
                        const std::vector<std::string>& arguments) {            \
@@ -24,7 +24,7 @@
     return expression;                                                         \
   }
 
-enum class CommutativityResult {
+enum class CommutationResult {
   Commutes,
   DoesNotCommute,
   Unknown,
