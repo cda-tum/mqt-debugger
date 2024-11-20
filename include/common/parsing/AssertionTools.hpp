@@ -4,6 +4,7 @@
 #include "CodePreprocessing.hpp"
 
 #include <memory>
+#include <string>
 
 /**
  * @brief Define a general commutation rule.
@@ -54,7 +55,7 @@
  *
  * Can be either `Commutes`, `DoesNotCommute`, or `Unknown`.
  */
-enum class CommutationResult {
+enum class CommutationResult : uint8_t {
   /**
    * @brief Indicates that the instructions commute with certainty.
    */

@@ -15,6 +15,7 @@
 #include "common/parsing/CodePreprocessing.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -24,6 +25,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -606,6 +608,18 @@ size_t dddiagnosticsSuggestAssertionMovements(Diagnostics* self,
   return max;
 }
 
+/**
+ * @brief Finds a unique path between two qubits in the given graph, if it
+ * exists.
+ *
+ * If no such path exists, returns an empty vector.
+ *
+ * @param graph The graph to search in as a set of triples (start, end,
+ * instruction).
+ * @param start The starting vertex.
+ * @param end The ending vertex.
+ * @return The unique path between the two vertices, if it exists.
+ */
 std::vector<std::tuple<size_t, size_t, size_t>>
 findUniquePath(const std::set<std::tuple<size_t, size_t, size_t>>& graph,
                size_t start, size_t end) {
@@ -885,7 +899,6 @@ size_t dddiagnosticsSuggestNewAssertions(Diagnostics* self,
       const auto string =
           assertionString.str().substr(0, assertionString.str().size() - 2) +
           ";\n";
-      std::cout << string;
       strncpy(assertions[index], string.c_str(), string.length());
       index++;
       if (index == count) {
