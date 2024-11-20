@@ -103,17 +103,6 @@ TEST_F(AssertionMovementTest, MoveOverBarrier) {
   checkMovements(expected);
 }
 
-/*TEST_F(AssertionMovementTest, DontMoveMultipleAssertions) {
-  loadCode(3, 3, R"(
-  cx q[0], q[1];
-  assert-sup q[0];
-  assert-sup q[1];
-  )");
-
-  const std::set<std::pair<size_t, size_t>> expected;
-  checkMovements(expected);
-}*/
-
 TEST_F(AssertionMovementTest, MoveThroughFunctionDefinition) {
   loadCode(3, 3, R"(
   h q[0];
