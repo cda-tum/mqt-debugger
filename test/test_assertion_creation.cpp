@@ -26,6 +26,12 @@
  */
 class AssertionCreationTest : public CustomCodeFixture {
 public:
+  /**
+   * @brief Checks a set of created assertions against the expected ones.
+   *
+   * @param expected The assertions expected to be created.
+   * @param expectedErrors The expected number of errors.
+   */
   void
   checkNewAssertions(const std::set<std::pair<size_t, std::string>>& expected,
                      size_t expectedErrors) {
@@ -57,6 +63,12 @@ public:
   }
 };
 
+/**
+ * @test Tests the creation of new entanglement assertions from bigger ones.
+ *
+ * The test starts with an assertion over `q[0]`, `q[1]`, and `q[2]` and should
+ * end with three new assertions: `q[0], q[1]`; `q[0], q[2]`; and `q[1], q[2]`.
+ */
 TEST_F(AssertionCreationTest, CreateEntanglementAssertionFromBigAssertion) {
   loadCode(3, 3, R"(
   h q[0];
@@ -72,6 +84,13 @@ TEST_F(AssertionCreationTest, CreateEntanglementAssertionFromBigAssertion) {
   checkNewAssertions(expected, 1);
 }
 
+/**
+ * @test Tests the creation of new entanglement assertions from
+ * a simple interaction graph.
+ *
+ * The test starts with an assertion over `q[0]` and `q[2]` and should generate
+ * two new assertions: `q[0], q[1]`; and `q[1], q[2]`.
+ */
 TEST_F(AssertionCreationTest, CreateEntanglementAssertionFromTreeSimple) {
   loadCode(3, 3, R"(
   h q[0];
@@ -85,6 +104,13 @@ TEST_F(AssertionCreationTest, CreateEntanglementAssertionFromTreeSimple) {
   checkNewAssertions(expected, 1);
 }
 
+/**
+ * @test Tests the creation of new equality assertions by splitting a bigger
+ * one.
+ *
+ * The test starts with an assertion over `q[0]` and `q[1]` and should generate
+ * one new assertions for each qubit.
+ */
 TEST_F(AssertionCreationTest, SplitEqualityAssertion) {
   loadCode(2, 1, R"(
   x q[0];
@@ -96,6 +122,13 @@ TEST_F(AssertionCreationTest, SplitEqualityAssertion) {
   checkNewAssertions(expected, 1);
 }
 
+/**
+ * @test Tests the creation of new equality assertions by splitting a bigger
+ * one.
+ *
+ * The test starts with an assertion equally distributed over `q[0]` and `q[1]`
+ * and should generate one new assertions for each qubit.
+ */
 TEST_F(AssertionCreationTest, SplitEqualityAssertionMultipleAmplitudes) {
   loadCode(3, 1, R"(
   assert-eq q[0], q[1] { 0.5, 0.5, 0.5, 0.5 }
@@ -107,6 +140,10 @@ TEST_F(AssertionCreationTest, SplitEqualityAssertionMultipleAmplitudes) {
   checkNewAssertions(expected, 1);
 }
 
+/**
+ * @test Tests that the assertion creation does not split entangled equality
+ * assertions.
+ */
 TEST_F(AssertionCreationTest, DontSplitEntangledEqualityAssertion) {
   loadCode(3, 1, R"(
   assert-eq 0.9, q[0], q[1] { 0.707, 0, 0, 0.707 }
@@ -116,6 +153,9 @@ TEST_F(AssertionCreationTest, DontSplitEntangledEqualityAssertion) {
   checkNewAssertions(expected, 1);
 }
 
+/**
+ * @test Tests the creation of new equality assertions with rounding.
+ */
 TEST_F(AssertionCreationTest, SplitEqualityAssertionRounded) {
   loadCode(3, 1, R"(
   assert-eq 0.99999, q[0], q[1], q[2] { 0, 0, 0, 0.70711, 0, 0, -0, -0.70711 }
