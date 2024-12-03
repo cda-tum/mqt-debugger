@@ -3,6 +3,7 @@
 #include "AssertionParsing.hpp"
 #include "CodePreprocessing.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
