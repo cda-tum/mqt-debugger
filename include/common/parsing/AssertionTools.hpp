@@ -5,7 +5,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <string>
 
 /**
  * @brief Define a general commutation rule.
