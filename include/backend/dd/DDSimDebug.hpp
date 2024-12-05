@@ -491,6 +491,20 @@ Result ddsimGetClassicalVariableName(SimulationState* self,
                                      size_t variableIndex, char* output);
 
 /**
+ * @brief Gets the name of a quantum variable by its index.
+ *
+ * For registers, each index is counted as a separate variable and can be
+ * accessed separately. This method will return the name of the specific
+ * index of the register.
+ * @param self The instance to query.
+ * @param variableIndex The index of the variable.
+ * @param output A buffer to store the name of the variable.
+ * @return The result of the operation.
+ */
+Result ddsimGetQuantumVariableName(SimulationState* self, size_t variableIndex,
+                                   char* output);
+
+/**
  * @brief Gets the full state vector of the simulation at the current time.
  *
  * The state vector is expected to be initialized with the correct number of
@@ -620,6 +634,14 @@ bool checkAssertion(DDSimulationState* ddsim,
 std::string getClassicalBitName(DDSimulationState* ddsim, size_t index);
 
 /**
+ * @brief Gets the name of a qubit variable by its index.
+ * @param ddsim The simulation state to query.
+ * @param index The index of the qubit variable.
+ * @return The name of the qubit variable.
+ */
+std::string getQuantumBitName(DDSimulationState* ddsim, size_t index);
+
+/**
  * @brief Gets the qubit index from a variable name.
  *
  * If the variable is in the global scope, the index is based on the index of
@@ -658,17 +680,6 @@ std::pair<size_t, size_t> variableToQubitAt(DDSimulationState* ddsim,
  */
 bool isSubStateVectorLegal(const Statevector& full,
                            std::vector<size_t>& targetQubits);
-
-/**
- * @brief Gets the partial state vector by tracing out individual qubits from
- * the full state vector.
- * @param sv The full state vector.
- * @param traceOut The indices of the qubits to trace out.
- * @return The partial state vector.
- */
-std::vector<std::vector<Complex>>
-getPartialTraceFromStateVector(const Statevector& sv,
-                               const std::vector<size_t>& traceOut);
 
 /**
  * @brief Gets the target variables of an instruction.

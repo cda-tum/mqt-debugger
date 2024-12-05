@@ -478,6 +478,26 @@ class Diagnostics:
             list[ErrorCause]: A list of potential error causes encountered during execution.
         """
 
+    def suggest_assertion_movements(self) -> tuple[int, int]:
+        """Suggest movements of assertions to better positions.
+
+        Each entry of the resulting list consists of the original position of the assertion, followed by its new
+        suggested position.
+
+        Returns:
+            list[tuple[int, int]]: A list of moved assertions.
+        """
+
+    def suggest_new_assertions(self) -> tuple[int, str]:
+        """Suggest new assertions to be added to the program.
+
+        Each entry of the resulting list consists of the suggested position for the new assertion, followed by its
+        string representation.
+
+        Returns:
+          list[tupke[int, str]]: A list of new assertions.
+        """
+
 def create_ddsim_simulation_state() -> SimulationState:
     """Creates a new `SimulationState` instance using the DD backend for simulation and the OpenQASM language as input format.
 

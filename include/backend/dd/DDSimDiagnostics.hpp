@@ -8,12 +8,72 @@
 #include "backend/diagnostics.h"
 #include "common.h"
 #include "common/parsing/AssertionParsing.hpp"
+#include "common/parsing/CodePreprocessing.hpp"
 
 #include <cstddef>
 #include <map>
 #include <memory>
 #include <set>
+#include <string>
+#include <utility>
 #include <vector>
+
+/**
+ * @brief Represents an equality assertion that should be inserted into the
+ * program.
+ */
+struct InsertEqualityAssertion {
+
+  /**
+   * @brief The index of the instruction where the assertion should be inserted.
+   */
+  size_t instructionIndex;
+
+  /**
+   * @brief The amplitudes that the assertion should check for equality.
+   */
+  std::vector<Complex> amplitudes;
+
+  /**
+   * @brief The similarity threshold for the assertion.
+   */
+  double similarity;
+
+  /**
+   * @brief The target qubits of the assertion.
+   */
+  std::vector<std::string> targets;
+
+  /**
+   * @brief Check whether two InsertEqualityAssertion instances are equal.
+   * @param other The other InsertEqualityAssertion instance to compare with.
+   * @return True if the instances are equal, false otherwise.
+   */
+  bool operator==(const InsertEqualityAssertion& other) const {
+    if (instructionIndex != other.instructionIndex ||
+        targets != other.targets) {
+      return false;
+    }
+
+    if ((similarity - other.similarity) < -1e-10 ||
+        (similarity - other.similarity) > 1e-10) {
+      return false;
+    }
+
+    for (size_t i = 0; i < amplitudes.size(); i++) {
+      if ((amplitudes[i].real - other.amplitudes[i].real) < -1e-10 ||
+          (amplitudes[i].real - other.amplitudes[i].real) > 1e-10) {
+        return false;
+      }
+      if ((amplitudes[i].imaginary - other.amplitudes[i].imaginary) < -1e-10 ||
+          (amplitudes[i].imaginary - other.amplitudes[i].imaginary) > 1e-10) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+};
 
 struct DDSimulationState;
 
@@ -43,6 +103,24 @@ struct DDDiagnostics {
    * @brief The actual qubits that each instruction has targeted.
    */
   std::map<size_t, std::set<std::vector<size_t>>> actualQubits;
+
+  /**
+   * @brief Assertions that have been identified to be moved in the program.
+   */
+  std::vector<std::pair<size_t, size_t>> assertionsToMove;
+
+  /**
+   * @brief The entanglement assertions that have been identified to be added to
+   * the program.
+   */
+  std::map<size_t, std::set<std::pair<std::set<std::string>, size_t>>>
+      assertionsEntToInsert;
+
+  /**
+   * @brief The equality assertions that have been identified to be added to the
+   * program.
+   */
+  std::map<size_t, std::vector<InsertEqualityAssertion>> assertionsEqToInsert;
 };
 
 /**
@@ -162,6 +240,40 @@ size_t dddiagnosticsPotentialErrorCauses(Diagnostics* self, ErrorCause* output,
                                          size_t count);
 
 /**
+ * @brief Suggest movements of assertions to better positions.
+ * @param self The diagnostics instance to query.
+ * @param originalPositions An array of assertion positions to be filled.
+ * Contains the original positions of the assertions that should be moved.
+ * @param suggestedPositions An array of assertion positions to be filled.
+ * Contains the suggested positions of the assertions that should be moved.
+ * @param count The maximum number of assertions to suggest movements for.
+ * @return The number of suggested movements.
+ */
+size_t dddiagnosticsSuggestAssertionMovements(Diagnostics* self,
+                                              size_t* originalPositions,
+                                              size_t* suggestedPositions,
+                                              size_t count);
+
+/**
+ * @brief Suggest new assertions to be added to the code.
+ *
+ * These assertions are added by first observing assertions that failed during
+ * previous iterations. Therefore, the simulation must be run at least once
+ * before calling this function.
+ *
+ * @param self The diagnostics instance to query.
+ * @param suggestedPositions An array of assertion positions to be filled.
+ * @param suggestedAssertions An array of assertion instruction strings to be
+ * filled. Each string expects a size of up to 256 characters.
+ * @param count The maximum number of assertions to suggest.
+ * @return The number of suggested assertions.
+ */
+size_t dddiagnosticsSuggestNewAssertions(Diagnostics* self,
+                                         size_t* suggestedPositions,
+                                         char** suggestedAssertions,
+                                         size_t count);
+
+/**
  * @brief Creates a new `DDDiagnostics` instance.
  *
  * This method expects an allocated memory block for the `DDDiagnostics`
@@ -185,6 +297,22 @@ Result destroyDDDiagnostics([[maybe_unused]] DDDiagnostics* self);
  * @param instruction The instruction that was executed.
  */
 void dddiagnosticsOnStepForward(DDDiagnostics* diagnostics, size_t instruction);
+
+/**
+ * @brief Called during code preprocessing after parsing all instructions.
+ * @param diagnostics The diagnostics instance to update.
+ * @param instructions The parsed instructions.
+ */
+void dddiagnosticsOnCodePreprocessing(
+    DDDiagnostics* diagnostics, const std::vector<Instruction>& instructions);
+
+/**
+ * @brief Called, whenever an assertion fails to update the diagnostics.
+ * @param diagnostics The diagnostics instance to update.
+ * @param instruction The instruction that was executed.
+ */
+void dddiagnosticsOnFailedAssertion(DDDiagnostics* diagnostics,
+                                    size_t instruction);
 
 /**
  * @brief Tries to find potential errors caused by missing interactions at

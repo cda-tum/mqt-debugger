@@ -6,9 +6,9 @@
  * vector.
  */
 
-#include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "common.h"
+#include "common_fixtures.hpp"
 #include "utils_test.hpp"
 
 #include <array>
@@ -24,47 +24,10 @@
  * This fixture creates a DDSimulationState and loads the code from the file
  * `circuits/classical-storage`.
  */
-class DataRetrievalTest : public testing::Test {
+class DataRetrievalTest : public LoadFromFileFixture {
   void SetUp() override {
-    createDDSimulationState(&ddState);
-    state = &ddState.interface;
+    LoadFromFileFixture::SetUp();
     loadFromFile("classical-storage");
-  }
-
-protected:
-  /**
-   * @brief The DDSimulationState to use for testing.
-   */
-  DDSimulationState ddState;
-  /**
-   * @brief A reference to the SimulationState interface for easier access.
-   */
-  SimulationState* state = nullptr;
-
-  /**
-   * @brief Load the code from the file with the given name.
-   *
-   * The given file should be located in the `circuits` directory and use the
-   * `.qasm` extension.
-   * @param testName The name of the file to load (not including the `circuits`
-   * directory path and the extension).
-   */
-  void loadFromFile(const std::string& testName) {
-    const auto code = readFromCircuitsPath(testName);
-    state->loadCode(state, code.c_str());
-  }
-
-  /**
-   * @brief Continue execution until the given instruction is reached.
-   *
-   * @param instruction The instruction to forward to.
-   */
-  void forwardTo(size_t instruction) {
-    size_t currentInstruction = state->getCurrentInstruction(state);
-    while (currentInstruction < instruction) {
-      state->stepForward(state);
-      currentInstruction = state->getCurrentInstruction(state);
-    }
   }
 };
 

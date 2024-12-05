@@ -2,10 +2,9 @@
  * @file test_utility.cpp
  * @brief Test the functionality of utility functions provided by the debugger.
  */
-#include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "common.h"
-#include "utils_test.hpp"
+#include "common_fixtures.hpp"
 
 #include <cstddef>
 #include <gtest/gtest.h>
@@ -19,35 +18,7 @@
  * This fixture creates a DDSimulationState and allows to load code from files
  * in the `circuits` directory.
  */
-class UtilityTest : public testing::Test {
-  void SetUp() override {
-    createDDSimulationState(&ddState);
-    state = &ddState.interface;
-  }
-
-protected:
-  /**
-   * @brief The DDSimulationState to use for testing.
-   */
-  DDSimulationState ddState;
-  /**
-   * @brief A reference to the SimulationState interface for easier access.
-   */
-  SimulationState* state = nullptr;
-
-  /**
-   * @brief Load the code from the file with the given name.
-   *
-   * The given file should be located in the `circuits` directory and use the
-   * `.qasm` extension.
-   * @param testName The name of the file to load (not including the `circuits`
-   * directory path and the extension).
-   */
-  void loadFromFile(const std::string& testName) {
-    const auto code = readFromCircuitsPath(testName);
-    state->loadCode(state, code.c_str());
-  }
-};
+class UtilityTest : public LoadFromFileFixture {};
 
 /**
  * @test Test the retrieval of the number of instructions in the loaded code.

@@ -27,9 +27,11 @@ bool startsWith(const std::string& str, const std::string& prefix);
  * @brief Splits a string into a vector of strings based on a delimiter.
  * @param text The text to split.
  * @param delimiter The delimiter to split on.
+ * @param includeEmpty Whether to include empty strings in the result.
  * @return The vector of strings.
  */
-std::vector<std::string> splitString(const std::string& text, char delimiter);
+std::vector<std::string> splitString(const std::string& text, char delimiter,
+                                     bool includeEmpty = true);
 
 /**
  * @brief Splits a string into a vector of strings based on multiple delimiters.
@@ -38,10 +40,12 @@ std::vector<std::string> splitString(const std::string& text, char delimiter);
  *
  * @param text The text to split.
  * @param delimiters The delimiters to split on.
+ * @param includeEmpty Whether to include empty strings in the result.
  * @return The vector of strings.
  */
 std::vector<std::string> splitString(const std::string& text,
-                                     const std::vector<char>& delimiters);
+                                     const std::vector<char>& delimiters,
+                                     bool includeEmpty = true);
 
 /**
  * @brief Replaces all occurrences of a substring in a string with another
@@ -77,3 +81,11 @@ std::string removeWhitespace(std::string str);
  * @return True if the strings refer to the same variable, false otherwise.
  */
 bool variablesEqual(const std::string& v1, const std::string& v2);
+
+/**
+ * @brief Extracts the base name of a register.
+ *
+ * @param variable The variable to extract the base name from.
+ * @return The base name of the register.
+ */
+std::string variableBaseName(const std::string& variable);

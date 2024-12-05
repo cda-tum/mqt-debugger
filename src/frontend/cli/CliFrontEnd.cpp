@@ -8,9 +8,12 @@
 #include "backend/diagnostics.h"
 #include "common.h"
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -54,6 +57,7 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
       std::cout << "get <variable>\t";
       std::cout << "reset\t";
       std::cout << "inspect\t";
+      std::cout << "assertions\t";
       std::cout << "exit\n\n";
       wasError = false;
     }
@@ -104,6 +108,8 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
       const auto count = state->getDiagnostics(state)->potentialErrorCauses(
           state->getDiagnostics(state), problems.data(), problems.size());
       std::cout << count << " potential problems found\n";
+    } else if (command == "assertions") {
+      suggestUpdatedAssertions(state);
     } else {
       wasError = true;
     }
@@ -127,13 +133,89 @@ std::vector<std::string> getBitStrings(size_t numQubits) {
   return bitStrings;
 }
 
-/**
- * @brief Print the current state of the simulation.
- * @param state The simulation state.
- * @param inspecting The instruction that is currently inspected (or -1ULL if
- * nothing is being inspected).
- * @param codeOnly If true, only the code is displayed, not the state.
- */
+void CliFrontEnd::suggestUpdatedAssertions(SimulationState* state) {
+  auto* diagnostics = state->getDiagnostics(state);
+  std::string newCode = currentCode;
+  const size_t count = 10;
+  std::vector<std::array<char, 256>> newAssertions(count);
+  std::vector<char*> newAssertionsPointers(count);
+  std::transform(newAssertions.begin(), newAssertions.end(),
+                 newAssertionsPointers.begin(),
+                 [](std::array<char, 256>& arr) { return arr.data(); });
+  std::vector<size_t> newPositions(count);
+
+  size_t found = diagnostics->suggestNewAssertions(
+      diagnostics, newPositions.data(), newAssertionsPointers.data(), count);
+  std::set<size_t> coveredPositions;
+  for (size_t i = found - 1; i != -1ULL; i--) {
+    size_t start = 0;
+    size_t end = 0;
+    state->getInstructionPosition(state, newPositions[i], &start, &end);
+    if (coveredPositions.find(newPositions[i]) == coveredPositions.end()) {
+      coveredPositions.insert(newPositions[i]);
+      newCode.erase(start, end - start + 1);
+    }
+    newCode.insert(start, newAssertions[i].data());
+  }
+
+  state->resetSimulation(state);
+  state->loadCode(state, newCode.c_str());
+  size_t errors = 0;
+  state->runAll(state, &errors);
+
+  std::vector<size_t> beforeMove(count);
+  std::vector<size_t> afterMove(count);
+  diagnostics = state->getDiagnostics(state);
+  found = diagnostics->suggestAssertionMovements(diagnostics, beforeMove.data(),
+                                                 afterMove.data(), count);
+
+  for (size_t i = 0; i < found; i++) {
+    size_t start = 0;
+    size_t end = 0;
+    state->getInstructionPosition(state, beforeMove[i], &start, &end);
+    if (end < newCode.length() - 1 &&
+        (newCode[end + 1] == '\n' || newCode[end + 1] == ' ')) {
+      end++;
+    }
+    const std::string assertion = newCode.substr(start, end - start + 1);
+    newCode.erase(start, end - start + 1);
+    state->getInstructionPosition(state, afterMove[i], &start, &end);
+    newCode.insert(start, assertion);
+    for (size_t j = i + 1; j < found; j++) {
+      if (beforeMove[j] > beforeMove[i]) {
+        beforeMove[j]--;
+      }
+      if (beforeMove[j] > afterMove[i]) {
+        beforeMove[j]++;
+      }
+      if (afterMove[j] > afterMove[i]) {
+        afterMove[j]++;
+      }
+      if (afterMove[j] > beforeMove[i]) {
+        afterMove[j]--;
+      }
+    }
+    state->loadCode(state, newCode.c_str());
+  }
+
+  std::cout << "Code with updated assertions is:\n";
+  std::cout << "------------------------------------------------------------\n";
+  std::cout << newCode << "\n";
+  std::cout << "------------------------------------------------------------\n";
+
+  state->resetSimulation(state);
+
+  std::cout << "Accept? [y/n]: ";
+  std::string command;
+  std::getline(std::cin, command);
+
+  if (command == "y") {
+    currentCode = newCode;
+  } else {
+    state->loadCode(state, currentCode.c_str());
+  }
+}
+
 void CliFrontEnd::printState(SimulationState* state, size_t inspecting,
                              bool codeOnly) {
   std::vector<size_t> highlightIntervals;

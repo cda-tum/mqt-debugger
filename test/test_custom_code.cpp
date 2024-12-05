@@ -7,17 +7,15 @@
  * are not covered by the other tests.
  */
 
-#include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
 #include "common.h"
+#include "common_fixtures.hpp"
 #include "utils_test.hpp"
 
 #include <array>
 #include <cstddef>
 #include <gtest/gtest.h>
-#include <sstream>
-#include <string>
 
 /**
  * @brief Fixture for testing the correctness of the debugger on custom code.
@@ -25,91 +23,7 @@
  * This fixture sets up a DDSimulationState and provides the method
  * `loadCode` to load custom code into the state.
  */
-class CustomCodeTest : public testing::Test {
-  void SetUp() override {
-    createDDSimulationState(&ddState);
-    state = &ddState.interface;
-  }
-
-protected:
-  /**
-   * @brief The DDSimulationState to use for testing.
-   */
-  DDSimulationState ddState;
-  /**
-   * @brief A reference to the SimulationState interface for easier access.
-   */
-  SimulationState* state = nullptr;
-
-  /**
-   * @brief The full code to load into the state.
-   */
-  std::string fullCode;
-
-  /**
-   * @brief The code provided by the user explicitly.
-   */
-  std::string userCode;
-
-  /*
-   * @brief Load custom code into the state.
-   *
-   * Classical and Quantum registers of the given size are created automatically
-   * with the names `c` and `q`. Therefore, the first instruction in the
-   * provided code will have instruction index 2, as 0 and 1 are reserved for
-   * the registers.\n\n
-   *
-   * At least one classical and quantum bit will always be created, even if the
-   * given number is less than 1.
-   *
-   * @param numQubits The number of qubits to create.
-   * @param numClassics The number of classical bits to create.
-   * @param code The code to load into the state.
-   * @param shouldFail Asserts whether the code should fail to load (i.e., due
-   * to an expected error).
-   * @param preamble The preamble to add to the code before loading declaring
-   * the registers (e.g., library imports).
-   */
-  void loadCode(size_t numQubits, size_t numClassics, const char* code,
-                bool shouldFail = false, const char* preamble = "") {
-    if (numQubits < 1) {
-      numQubits = 1;
-    }
-    if (numClassics < 1) {
-      numClassics = 1;
-    }
-    std::ostringstream ss;
-
-    ss << preamble;
-
-    ss << "qreg q[" << numQubits << "];\n";
-    ss << "creg c[" << numClassics << "];\n";
-
-    ss << code;
-
-    userCode = code;
-    fullCode = ss.str();
-    ASSERT_EQ(state->loadCode(state, fullCode.c_str()),
-              shouldFail ? ERROR : OK);
-  }
-
-  /**
-   * @brief Continue execution until the given instruction is reached.
-   *
-   * Instruction numbers start with 0 for the first instruction defined in the
-   * user code.
-   *
-   * @param instruction The instruction to forward to.
-   */
-  void forwardTo(size_t instruction) {
-    instruction += 2; // Skip the qreg and creg declarations
-    size_t currentInstruction = state->getCurrentInstruction(state);
-    while (currentInstruction < instruction) {
-      state->stepForward(state);
-      currentInstruction = state->getCurrentInstruction(state);
-    }
-  }
-};
+class CustomCodeTest : public CustomCodeFixture {};
 
 /**
  * @test Test the usage of classically controlled operations where the condition
@@ -151,6 +65,18 @@ TEST_F(CustomCodeTest, ClassicControlledOperationTrue) {
   ASSERT_TRUE(complexEquality(amplitudes[1], 1, 0.0));
 
   ASSERT_EQ(state->stepBackward(state), OK);
+}
+
+/**
+ * @test Test the usage of classically controlled operations with multiple
+ * gates.
+ */
+TEST_F(CustomCodeTest, ClassicControlledMultiOperation) {
+  loadCode(2, 1,
+           "x q[0];"
+           "measure q[0] -> c[0];"
+           "if(c==1) { x q[0]; x q[1]; }",
+           true);
 }
 
 /**
@@ -338,25 +264,25 @@ TEST_F(CustomCodeTest, BarrierInstruction) {
 }
 
 /**
- * @test Test that an error is returned at runtime if an invalid register index
- * is accessed by an assertion.
+ * @test Test that an error is returned at parse-time if an invalid register
+ * index is accessed by an assertion.
  */
 TEST_F(CustomCodeTest, ErrorAssertionInvalidIndex) {
   loadCode(3, 0,
            "x q[0];"
-           "assert-sup q[3];");
-  ASSERT_EQ(state->runAll(state, nullptr), ERROR);
+           "assert-sup q[3];",
+           true);
 }
 
 /**
- * @test Test that an error is returned at runtime if an invalid register is
+ * @test Test that an error is returned at parse-time if an invalid register is
  * accessed by an assertion.
  */
 TEST_F(CustomCodeTest, ErrorAssertionInvalidQubit) {
   loadCode(3, 0,
            "x q[0];"
-           "assert-sup f[3];");
-  ASSERT_EQ(state->runAll(state, nullptr), ERROR);
+           "assert-sup f[3];",
+           true);
 }
 
 /**

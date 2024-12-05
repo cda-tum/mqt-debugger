@@ -109,17 +109,29 @@ std::vector<std::string> extractTargetQubits(const std::string& targetPart) {
  */
 Complex parseComplex(std::string complexString) {
   complexString = removeWhitespace(complexString);
-  auto parts = splitString(complexString, '+');
+  auto parts = splitString(complexString, '-');
+  bool negativeSplit = true;
+  if (parts[0].empty()) {
+    parts.erase(parts.begin());
+    parts[0] = "-" + parts[0];
+  }
+  if (parts.size() == 1) {
+    negativeSplit = false;
+    parts = splitString(complexString, '+');
+  }
   double real = 0;
   double imaginary = 0;
+  bool first = true;
   for (auto& part : parts) {
     if (part.find('i') != std::string::npos ||
         part.find('j') != std::string::npos) {
       imaginary +=
-          std::stod(replaceString(replaceString(part, "i", ""), "j", ""));
+          std::stod(replaceString(replaceString(part, "i", ""), "j", "")) *
+          (negativeSplit && !first ? -1 : 1);
     } else {
-      real += std::stod(part);
+      real += std::stod(part) * (negativeSplit && !first ? -1 : 1);
     }
+    first = false;
   }
   return {real, imaginary};
 }

@@ -14,6 +14,8 @@
 #include <iterator>
 #include <map>
 #include <memory>
+#include <set>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -90,37 +92,52 @@ std::string removeComments(const std::string& code) {
   return result;
 }
 
-/**
- * @brief Check if a given line is a function definition.
- *
- * This is done by checking if it starts with `gate `.
- * @param line The line to check.
- * @return True if the line is a function definition, false otherwise.
- */
 bool isFunctionDefinition(const std::string& line) {
   return startsWith(trim(line), "gate ");
 }
 
-/**
- * @brief Check if a given line is a classic controlled gate.
- *
- * This is done by checking if it starts with `if` and contains parentheses.
- * @param line The line to check.
- * @return True if the line is a classic controlled gate, false otherwise.
- */
+bool isReset(const std::string& line) {
+  return startsWith(trim(line), "reset ");
+}
+
+bool isBarrier(const std::string& line) {
+  return startsWith(trim(line), "barrier ") ||
+         startsWith(trim(line), "barrier;");
+}
+
 bool isClassicControlledGate(const std::string& line) {
   return startsWith(trim(line), "if") &&
          (line.find('(') != std::string::npos) &&
          (line.find(')') != std::string::npos);
 }
 
-/**
- * @brief Check if a given line is a variable declaration.
- *
- * This is done by checking if it contains `creg ` or `qreg `.
- * @param line The line to check.
- * @return True if the line is a variable declaration, false otherwise.
- */
+ClassicControlledGate parseClassicControlledGate(const std::string& code) {
+  std::stringstream condition;
+  const auto codeSanitized = trim(replaceString(code, "if", ""));
+  int openBrackets = 0;
+  size_t i = 0;
+  for (; i < codeSanitized.size(); i++) {
+    const auto c = codeSanitized[i];
+    if (c == '(') {
+      openBrackets++;
+    } else if (c == ')') {
+      openBrackets--;
+    }
+    if (openBrackets == 0) {
+      break;
+    }
+    condition << c;
+  }
+  auto rest = codeSanitized.substr(i + 1, codeSanitized.size() - i - 1);
+  rest = replaceString(replaceString(rest, "}", ""), "{", "");
+  const auto operations = splitString(rest, ';', false);
+  return {condition.str(), operations};
+}
+
+bool isMeasurement(const std::string& line) {
+  return line.find("->") != std::string::npos;
+}
+
 bool isVariableDeclaration(const std::string& line) {
   return startsWith(trim(line), "creg ") || startsWith(trim(line), "qreg ");
 }
@@ -152,18 +169,13 @@ FunctionDefinition parseFunctionDefinition(const std::string& signature) {
   return {name, parameters};
 }
 
-/**
- * @brief Parse the parameters or arguments from a given instruction.
- * @param instruction The instruction to parse.
- * @return A vector containing the parsed parameters.
- */
 std::vector<std::string> parseParameters(const std::string& instruction) {
   if (isFunctionDefinition(instruction)) {
     const auto fd = parseFunctionDefinition(instruction);
     return fd.parameters;
   }
 
-  if (instruction.find("->") != std::string::npos) {
+  if (isMeasurement(instruction)) {
     // We only add the quantum variable to the measurement's targets.
     return parseParameters(splitString(instruction, '-')[0]);
   }
@@ -376,6 +388,14 @@ preprocessCode(const std::string& code, size_t startIndex,
       continue;
     }
 
+    if (isClassicControlledGate(line)) {
+      if (block.valid) {
+        throw ParsingError(
+            "Classic-controlled gates with body blocks are not supported. Use "
+            "individual `if` statements for each operation.");
+      }
+    }
+
     bool isFunctionCall = false;
     std::string calledFunction;
     if (!tokens.empty() && std::find(functionNames.begin(), functionNames.end(),
@@ -388,9 +408,24 @@ preprocessCode(const std::string& code, size_t startIndex,
       auto a = parseAssertion(line, block.code);
       unfoldAssertionTargetRegisters(*a, definedRegisters, shadowedRegisters);
       a->validate();
-      instructions.emplace_back(i, line, a, targets, trueStart, trueEnd, i + 1,
-                                isFunctionCall, calledFunction, false, false,
-                                block);
+      for (const auto& target : a->getTargetQubits()) {
+        if (std::find(shadowedRegisters.begin(), shadowedRegisters.end(),
+                      target) != shadowedRegisters.end()) {
+          continue;
+        }
+        const auto registerName = variableBaseName(target);
+        const auto registerIndex =
+            std::stoul(splitString(splitString(target, '[')[1], ']')[0]);
+
+        if (definedRegisters.find(registerName) == definedRegisters.end() ||
+            definedRegisters[registerName] <= registerIndex) {
+          throw ParsingError("Invalid target qubit " + target +
+                             " in assertion.");
+        }
+      }
+      instructions.emplace_back(i, line, a, a->getTargetQubits(), trueStart,
+                                trueEnd, i + 1, isFunctionCall, calledFunction,
+                                false, false, block);
     } else {
       std::unique_ptr<Assertion> a(nullptr);
       instructions.emplace_back(i, line, a, targets, trueStart, trueEnd, i + 1,
