@@ -24,6 +24,7 @@ jobs:
     uses: cda-tum/mqt-workflows/.github/workflows/reusable-cpp-ci.yml@v1.5.0
     permissions:
       id-token: write # Explicitly allows the `id-token: write` permission for this job
+      contents: read
     with:
       cmake-args: ""
       cmake-args-ubuntu: -G Ninja
