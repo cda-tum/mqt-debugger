@@ -59,7 +59,8 @@ docs = [
     "qiskit[visualization]",
     "mqt.debugger[evaluation]",
     "sphinx-hoverxref",
-    "nbsphinx"
+    "nbsphinx",
+    "sphinx_autodoc_typehints"
 ]
 qiskit = [
     "qiskit[qasm3-import]>=1.0.0",
