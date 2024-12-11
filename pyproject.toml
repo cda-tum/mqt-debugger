@@ -60,7 +60,8 @@ docs = [
     "mqt.debugger[evaluation]",
     "sphinx-hoverxref",
     "nbsphinx",
-    "sphinx_autodoc_typehints"
+    "sphinx_autodoc_typehints",
+    "breathe"
 ]
 qiskit = [
     "qiskit[qasm3-import]>=1.0.0",
