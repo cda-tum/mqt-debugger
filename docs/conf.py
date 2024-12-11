@@ -67,7 +67,7 @@ extensions = [
     "breathe",
 ]
 
-breathe_projects = {"mqt-debugger": str(ROOT / "doxygen/xml")}
+breathe_projects = {"mqt-debugger": "doxygen/xml"}
 breathe_default_project = "MQT Debugger"
 
 pygments_style = "colorful"
