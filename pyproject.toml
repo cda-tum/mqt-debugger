@@ -301,3 +301,4 @@ tag_format = "v$version"
 version_scheme = "pep440"
 version_provider = "pep621"
 update_changelog_on_bump = true
+skip_questions = ["breaking"]
