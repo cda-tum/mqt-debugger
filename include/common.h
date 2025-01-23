@@ -136,6 +136,10 @@ typedef struct {
    * the implementation, but typically 0 means no optimization.
    */
   uint8_t opt;
+  /**
+   * @brief The index of the slice that should be compiled.
+   */
+  size_t sliceIndex;
 } CompilationSettings;
 
 #ifdef __cplusplus

@@ -10,6 +10,7 @@
 #include "common.h"
 #include "utils_test.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <gtest/gtest.h>
 #include <sstream>
@@ -52,13 +53,40 @@ protected:
    */
   std::string userCode;
 
+  /**
+   * @brief Add boilerplate code to the given code.
+   *
+   * This method adds the necessary qreg and creg declarations to the code.
+   * @param numQubits The number of qubits to declare.
+   * @param numClassics The number of classical bits to declare.
+   * @param code The code to add the boilerplate to.
+   * @param preamble The preamble to add to the code before loading declaring
+   * the registers (e.g., library imports).
+   * @return The code with the boilerplate added.
+   */
+  virtual std::string addBoilerplate(size_t numQubits, size_t numClassics,
+                                     const char* code, const char* preamble) {
+    numQubits = std::max<size_t>(numQubits, 1);
+    numClassics = std::max<size_t>(numClassics, 1);
+    std::ostringstream ss;
+
+    ss << preamble;
+
+    ss << "qreg q[" << numQubits << "];\n";
+    ss << "creg c[" << numClassics << "];\n";
+
+    ss << code;
+
+    return ss.str();
+  }
+
   /*
    * @brief Load custom code into the state.
    *
-   * Classical and Quantum registers of the given size are created automatically
-   * with the names `c` and `q`. Therefore, the first instruction in the
-   * provided code will have instruction index 2, as 0 and 1 are reserved for
-   * the registers.\n\n
+   * By default, classical and Quantum registers of the given size are created
+   * automatically with the names `c` and `q`. Therefore, the first instruction
+   * in the provided code will have instruction index 2, as 0 and 1 are reserved
+   * for the registers.\n\n
    *
    * At least one classical and quantum bit will always be created, even if the
    * given number is less than 1.
@@ -73,23 +101,8 @@ protected:
    */
   void loadCode(size_t numQubits, size_t numClassics, const char* code,
                 bool shouldFail = false, const char* preamble = "") {
-    if (numQubits < 1) {
-      numQubits = 1;
-    }
-    if (numClassics < 1) {
-      numClassics = 1;
-    }
-    std::ostringstream ss;
-
-    ss << preamble;
-
-    ss << "qreg q[" << numQubits << "];\n";
-    ss << "creg c[" << numClassics << "];\n";
-
-    ss << code;
-
     userCode = code;
-    fullCode = ss.str();
+    fullCode = addBoilerplate(numQubits, numClassics, code, preamble);
     ASSERT_EQ(state->loadCode(state, fullCode.c_str()),
               shouldFail ? ERROR : OK);
   }
