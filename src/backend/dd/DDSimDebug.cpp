@@ -108,6 +108,7 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.clearBreakpoints = ddsimClearBreakpoints;
   self->interface.getStackDepth = ddsimGetStackDepth;
   self->interface.getStackTrace = ddsimGetStackTrace;
+  self->interface.compile = ddsimCompile;
 
   // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
   return self->interface.init(reinterpret_cast<SimulationState*>(self));
@@ -860,6 +861,19 @@ Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
   return OK;
 }
 
+size_t ddsimCompile(SimulationState* self, const char* buffer,
+                    CompilationSettings settings) {
+  auto* ddsim = toDDSimulationState(self);
+  switch (settings.mode) {
+  case CompilationMode::STATISTICAL_SLICES:
+    return compileStatisticalSlice(ddsim, buffer, settings);
+  case CompilationMode::PROJECTIVE_MEASUREMENT:
+  case CompilationMode::ANCILLA_MEASUREMENT:
+    std::cerr << "Compilation mode not supported by the DD simulator\n";
+    return 0;
+  }
+}
+
 Result destroyDDSimulationState(DDSimulationState* self) {
   self->ready = false;
   destroyDDDiagnostics(&self->diagnostics);
@@ -1428,4 +1442,11 @@ std::string getQuantumBitName(DDSimulationState* ddsim, size_t index) {
     }
   }
   return "UNKNOWN";
+}
+
+//-----------------------------------------------------------------------------
+
+size_t compileStatisticalSlice(DDSimulationState* ddsim, const char* buffer,
+                               CompilationSettings settings) {
+  return 0;
 }

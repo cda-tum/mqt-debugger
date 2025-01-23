@@ -593,6 +593,18 @@ Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
 Diagnostics* ddsimGetDiagnostics(SimulationState* self);
 
 /**
+ * @brief Compiles the given code into a quantum circuit without assertions.
+ * @param self The SimulationState instance from which the original assertion
+ * code should be taken.
+ * @param buffer The buffer that should be filled with the compiled code, or
+ * NULL to compute the required buffer size.
+ * @param settings The settings to use for the compilation.
+ * @return The size of the compiled code.
+ */
+size_t ddsimCompile(SimulationState* self, const char* buffer,
+                    CompilationSettings settings);
+
+/**
  * @brief Creates a new `DDSimulationState` instance.
  *
  * This function expects an allocated memory block for the `DDSimulationState`
@@ -693,3 +705,16 @@ bool isSubStateVectorLegal(const Statevector& full,
  */
 std::vector<std::string> getTargetVariables(DDSimulationState* ddsim,
                                             size_t instruction);
+
+/**
+ * @brief Compiles the given code into a quantum circuit without assertions
+ * using statistical slices.
+ * @param ddsim The DDSimulationState instance from which the original assertion
+ * code should be taken.
+ * @param buffer The buffer that should be filled with the compiled code, or
+ * NULL to compute the required buffer size.
+ * @param settings The settings to use for the compilation.
+ * @return The size of the compiled code.
+ */
+size_t compileStatisticalSlice(DDSimulationState* ddsim, const char* buffer,
+                               CompilationSettings settings);

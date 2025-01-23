@@ -16,7 +16,7 @@
 class CompilationTest : public CustomCodeFixture {
 
 public:
-  void checkCompilation() {
+  void checkCompilation(std::string expected) {
     ASSERT_EQ(true, true); // TODO
   }
 };

@@ -12,6 +12,7 @@
 #ifndef __cplusplus
 #else
 #include <cstddef>
+#include <cstdint>
 extern "C" {
 #endif
 
@@ -102,6 +103,40 @@ typedef struct {
    */
   Complex* amplitudes;
 } Statevector;
+
+/**
+ * @biref The mode in which an assertion program should be compiled.
+ */
+typedef enum {
+  /**
+   * @brief Compiles the program into slices based on the given assertions to be
+   * tested statistically.
+   */
+  STATISTICAL_SLICES,
+  /**
+   * @brief Compiles assertions into projective measurements.
+   */
+  PROJECTIVE_MEASUREMENT,
+  /**
+   * @brief Translates assertions into measurements on new ancilla qubits.
+   */
+  ANCILLA_MEASUREMENT,
+} CompilationMode;
+
+/**
+ * @brief The settings that should be used to compile an assertion program.
+ */
+typedef struct {
+  /**
+   * @brief The mode in which the program should be compiled.
+   */
+  CompilationMode mode;
+  /**
+   * @brief The optimization level that should be used. Exact meaning depends on
+   * the implementation, but typically 0 means no optimization.
+   */
+  uint8_t opt;
+} CompilationSettings;
 
 #ifdef __cplusplus
 }
