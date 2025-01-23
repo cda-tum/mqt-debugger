@@ -294,3 +294,10 @@ environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
 [tool.cibuildwheel.windows]
 before-build = "uv pip install delvewheel>=1.4.0"
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel} --namespace-pkg mqt"
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_scheme = "pep440"
+version_provider = "pep621"
+update_changelog_on_bump = true
