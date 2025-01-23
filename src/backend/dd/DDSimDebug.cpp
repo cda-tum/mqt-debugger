@@ -861,7 +861,7 @@ Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
   return OK;
 }
 
-size_t ddsimCompile(SimulationState* self, const char* buffer,
+size_t ddsimCompile(SimulationState* self, char* buffer,
                     CompilationSettings settings) {
   auto* ddsim = toDDSimulationState(self);
   switch (settings.mode) {
@@ -1446,7 +1446,11 @@ std::string getQuantumBitName(DDSimulationState* ddsim, size_t index) {
 
 //-----------------------------------------------------------------------------
 
-size_t compileStatisticalSlice(DDSimulationState* ddsim, const char* buffer,
+size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
                                CompilationSettings settings) {
-  return 0;
+  if (buffer == nullptr) {
+    return ddsim->code.length();
+  }
+  std::strcpy(buffer, ddsim->code.c_str());
+  return ddsim->code.length();
 }

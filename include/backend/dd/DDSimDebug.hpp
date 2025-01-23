@@ -601,7 +601,7 @@ Diagnostics* ddsimGetDiagnostics(SimulationState* self);
  * @param settings The settings to use for the compilation.
  * @return The size of the compiled code.
  */
-size_t ddsimCompile(SimulationState* self, const char* buffer,
+size_t ddsimCompile(SimulationState* self, char* buffer,
                     CompilationSettings settings);
 
 /**
@@ -716,5 +716,5 @@ std::vector<std::string> getTargetVariables(DDSimulationState* ddsim,
  * @param settings The settings to use for the compilation.
  * @return The size of the compiled code.
  */
-size_t compileStatisticalSlice(DDSimulationState* ddsim, const char* buffer,
+size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
                                CompilationSettings settings);

@@ -406,7 +406,7 @@ struct SimulationStateStruct {
    * @param settings The settings to use for the compilation.
    * @return The size of the compiled code.
    */
-  size_t (*compile)(SimulationState* self, const char* buffer,
+  size_t (*compile)(SimulationState* self, char* buffer,
                     CompilationSettings settings);
 };
 
