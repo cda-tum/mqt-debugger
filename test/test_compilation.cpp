@@ -5,10 +5,13 @@
  */
 
 #include "common.h"
+#include "common/parsing/Utils.hpp"
 #include "common_fixtures.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <gtest/gtest.h>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -66,8 +69,60 @@ protected:
     return ss.str();
   }
 
+  /**
+   * @brief Load the given code into the state.
+   *
+   * Convenience overload for base method that automatically sets unneeded
+   * parameters to 0.
+   *
+   * @param code The code to load.
+   */
   void loadCode(const char* code) {
     CustomCodeFixture::loadCode(0, 0, code, false, "");
+  }
+
+  /**
+   * @brief Display the expected and actual compiled codes side by side.
+   * @param expected The expected compiled code.
+   * @param actual The actual compiled code.
+   */
+  void prettyPrintComparison(const std::string& expected,
+                             const std::string& actual) {
+    auto expectedLines = splitString(expected, '\n');
+    auto actualLines = splitString(actual, '\n');
+    expectedLines.insert(expectedLines.begin(), "");
+    actualLines.insert(actualLines.begin(), "");
+    expectedLines.insert(expectedLines.begin(), "EXPECTED:");
+    actualLines.insert(actualLines.begin(), "ACTUAL:");
+    const auto maxLenExpected =
+        std::max_element(expectedLines.begin(), expectedLines.end(),
+                         [](const std::string& a, const std::string& b) {
+                           return a.size() < b.size();
+                         })
+            ->size();
+    const auto maxLenActual =
+        std::max_element(actualLines.begin(), actualLines.end(),
+                         [](const std::string& a, const std::string& b) {
+                           return a.size() < b.size();
+                         })
+            ->size();
+    const auto lineCount = std::max(expectedLines.size(), actualLines.size());
+    std::cout << "\n";
+    for (size_t i = 0; i < lineCount; i++) {
+      if (i == 1) {
+        std::cout << std::setfill('-');
+      } else {
+        std::cout << std::setfill(' ');
+      }
+      const auto expectedLine =
+          i < expectedLines.size() ? expectedLines[i] : "";
+      const auto actualLine = i < actualLines.size() ? actualLines[i] : "";
+      std::cout << std::left << std::setw(static_cast<int>(maxLenExpected + 3))
+                << expectedLine << " | "
+                << std::setw(static_cast<int>(maxLenActual + 3)) << actualLine
+                << "\n";
+    }
+    std::cout << "\n";
   }
 
 public:
@@ -86,8 +141,9 @@ public:
     const size_t newSize = state->compile(state, buffer.data(), settings);
     ASSERT_EQ(size, newSize) << "Compilation resulted in unexpected size";
     const auto expectedCode = addPreamble(expected, expectedPreamble);
-    std::cout << expectedCode;
-    ASSERT_EQ(std::string(buffer.data()), expectedCode)
+    const auto receivedCode = std::string(buffer.data());
+    prettyPrintComparison(expectedCode, receivedCode);
+    ASSERT_EQ(expectedCode, receivedCode)
         << "Compilation resulted in unexpected code";
   }
 
@@ -124,7 +180,7 @@ TEST_F(CompilationTest, StatisticalSingleEqualityCertainNoOpt) {
   checkCompilation(settings,
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
-                   "h q[0];\n"
+                   "x q[0];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
