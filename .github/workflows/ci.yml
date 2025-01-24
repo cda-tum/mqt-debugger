@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - assertion-tools
+      - assertion-compilation
   pull_request:
   merge_group:
   workflow_dispatch:
