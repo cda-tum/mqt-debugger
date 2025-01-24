@@ -1449,8 +1449,8 @@ std::string getQuantumBitName(DDSimulationState* ddsim, size_t index) {
 size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
                                CompilationSettings settings) {
   if (buffer == nullptr) {
-    return ddsim->code.length();
+    return ddsim->code.length() + 1;
   }
   std::strcpy(buffer, ddsim->code.c_str());
-  return ddsim->code.length();
+  return ddsim->code.length() + 1;
 }
