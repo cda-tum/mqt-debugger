@@ -31,9 +31,11 @@
 #include <exception>
 #include <iostream>
 #include <iterator>
+#include <map>
 #include <memory>
 #include <numeric>
 #include <random>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -1446,11 +1448,107 @@ std::string getQuantumBitName(DDSimulationState* ddsim, size_t index) {
 
 //-----------------------------------------------------------------------------
 
+static std::string getStatisticalSliceEqualityPreamble(
+    std::unique_ptr<StatevectorEqualityAssertion>& assertion,
+    std::map<std::string, std::string>& targetNames) {
+  std::stringstream ss;
+  const auto sv = Span<Complex>(assertion->getTargetStatevector().amplitudes,
+                                assertion->getTargetStatevector().numStates);
+
+  // First target is rather straightforward.
+  ss << "// ASSERT: (";
+  for (size_t i = 0; i < assertion->getTargetQubits().size(); i++) {
+    ss << targetNames[assertion->getTargetQubits()[i]];
+    if (i != assertion->getTargetQubits().size() - 1) {
+      ss << ",";
+    }
+  }
+  ss << ") " << assertion->getSimilarityThreshold() << " {";
+  for (size_t i = 0; i < assertion->getTargetStatevector().numStates; i++) {
+    ss << (sv[i].real * sv[i].real) + (sv[i].imaginary * sv[i].imaginary);
+    if (i != assertion->getTargetStatevector().numStates - 1) {
+      ss << ",";
+    }
+  }
+  ss << "}\n";
+  return ss.str();
+}
+
 size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
                                CompilationSettings settings) {
-  if (buffer == nullptr) {
-    return ddsim->code.length() + 1;
+  std::vector<size_t> assertionsToSkip;
+  auto sliceIndex = settings.sliceIndex;
+  size_t foundIndex = 0;
+  for (size_t i = 0; i < ddsim->instructionTypes.size(); i++) {
+    if (ddsim->instructionTypes[i] != ASSERTION) {
+      continue;
+    }
+    assertionsToSkip.push_back(i);
+    if (sliceIndex == 0) {
+      foundIndex = i;
+      break;
+    }
+    sliceIndex--;
   }
-  std::strcpy(buffer, ddsim->code.c_str());
-  return ddsim->code.length() + 1;
+  if (foundIndex == 0) {
+    return 0;
+  }
+
+  std::stringstream ss;
+
+  // Determine the measurement targets required for the assertion.
+  std::map<std::string, std::string> assertionTargets;
+  std::set<std::string> assertionTargetsSet;
+  for (const auto& target :
+       ddsim->assertionInstructions[foundIndex]->getTargetQubits()) {
+    std::string targetName =
+        "test_" + replaceString(replaceString(target, "]", ""), "[", "");
+    while (assertionTargetsSet.find(targetName) != assertionTargetsSet.end()) {
+      targetName += "_";
+    }
+    assertionTargets[target] = targetName;
+    assertionTargetsSet.insert(targetName);
+  }
+
+  // Add the preamble.
+  auto& assertion = ddsim->assertionInstructions[foundIndex];
+  if (assertion->getType() == AssertionType::StatevectorEquality) {
+    std::unique_ptr<StatevectorEqualityAssertion> svEqualityAssertion(
+        dynamic_cast<StatevectorEqualityAssertion*>(assertion.release()));
+    ss << getStatisticalSliceEqualityPreamble(svEqualityAssertion,
+                                              assertionTargets);
+    assertion = std::move(svEqualityAssertion);
+  }
+
+  // Add the required classical registers.
+  for (const auto& [_, cbit] : assertionTargets) {
+    ss << "creg " << cbit << "[1];\n";
+  }
+
+  // Add the remaining code.
+  size_t last = 0;
+  for (const auto toSkip : assertionsToSkip) {
+    size_t start = 0;
+    size_t end = 0;
+    ddsim->interface.getInstructionPosition(&ddsim->interface, toSkip, &start,
+                                            &end);
+    const auto before = ddsim->code.substr(last, start - last);
+    ss << before;
+    last = end + 1;
+    if (ddsim->code[last] == '\n') {
+      last++;
+    }
+  }
+
+  // Add the measurement operations to the compiled code.
+  for (const auto& [qbit, cbit] : assertionTargets) {
+    ss << "measure " << qbit << " -> " << cbit << "[0];\n";
+  }
+
+  const auto compiledCode = ss.str();
+  if (buffer == nullptr) {
+    return compiledCode.length() + 1;
+  }
+  std::strcpy(buffer, compiledCode.c_str());
+  return compiledCode.length() + 1;
 }

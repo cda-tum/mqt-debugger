@@ -7,6 +7,7 @@
 #include "common.h"
 #include "common/parsing/Utils.hpp"
 #include "common_fixtures.hpp"
+#include "utils_test.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -15,6 +16,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 /**
@@ -24,17 +26,33 @@ struct PreambleEntry {
   /**
    * @brief The name of the variable the preamble entry is for.
    */
-  std::string name;
+  std::vector<std::string> names{};
   /**
    * @brief The expected ratio of |1> results for the variable's measurement or
    * another variable it is related to.
    */
-  std::string oneRate;
+  std::vector<Complex> distribution{};
   /**
    * @brief The required fidelity for the variable's measurement outcomes.
    */
-  double fidelity;
+  double fidelity{};
 };
+
+/**
+ * @brief Create a preamble entry consisting of only real values.
+ * @param names The name of the variable the preamble entry is for.
+ * @param distribution
+ * @param fidelity
+ * @return
+ */
+PreambleEntry realPreamble(std::vector<std::string> names,
+                           std::vector<double> distribution, double fidelity) {
+  std::vector<Complex> complexDistribution(distribution.size());
+  std::transform(distribution.begin(), distribution.end(),
+                 complexDistribution.begin(),
+                 [](double value) { return Complex{value, 0.0}; });
+  return {std::move(names), complexDistribution, fidelity};
+}
 
 /**
  * @brief Fixture for testing the correctness of the compilation process.
@@ -62,8 +80,21 @@ protected:
                                  const std::vector<PreambleEntry>& preamble) {
     std::stringstream ss;
     for (const auto& entry : preamble) {
-      ss << "// ASSERT: " << entry.name << "," << entry.oneRate << ","
-         << entry.fidelity << "\n";
+      ss << "// ASSERT: (";
+      for (size_t i = 0; i < entry.names.size(); i++) {
+        ss << entry.names[i];
+        if (i < entry.names.size() - 1) {
+          ss << ",";
+        }
+      }
+      ss << ") " << entry.fidelity << " {";
+      for (size_t i = 0; i < entry.distribution.size(); i++) {
+        ss << complexToStringTest(entry.distribution[i]);
+        if (i < entry.distribution.size() - 1) {
+          ss << ",";
+        }
+      }
+      ss << "}\n";
     }
     ss << code;
     return ss.str();
@@ -174,8 +205,7 @@ TEST_F(CompilationTest, StatisticalSingleEqualityCertainNoOpt) {
   };
 
   const std::vector<PreambleEntry> preamble = {
-      {"test_q0", "1.0", 1.0},
-  };
+      realPreamble({"test_q0"}, {0.0, 1.0}, 1.0)};
 
   checkCompilation(settings,
                    "creg test_q0[1];\n"
@@ -208,8 +238,7 @@ TEST_F(CompilationTest, StatisticalSingleEqualityUncertainNoOpt) {
   };
 
   const std::vector<PreambleEntry> preamble = {
-      {"test_q0", "0.499849", 0.9},
-  };
+      realPreamble({"test_q0"}, {0.499849, 0.499849}, 0.9)};
 
   checkCompilation(settings,
                    "creg test_q0[1];\n"
@@ -235,11 +264,8 @@ TEST_F(CompilationTest, StatisticalTwoQubitEqualityNoOpt) {
       /*opt=*/0,
       /*sliceIndex=*/0,
   };
-
   const std::vector<PreambleEntry> preamble = {
-      {"test_q0", "0.499849", 0.9},
-      {"test_q1", "test_q0", 0.9},
-  };
+      realPreamble({"test_q0", "test_q1"}, {0.499849, 0, 0, 0.499849}, 0.9)};
 
   checkCompilation(settings,
                    "creg test_q0[1];\n"
@@ -268,30 +294,26 @@ TEST_F(CompilationTest, StatisticalConsecutiveMultiSliceEqualityNoOpt) {
       /*opt=*/0,
       /*sliceIndex=*/0,
   };
-  const std::vector<PreambleEntry> preamble1 = {
-      {"test_q0", "0.499849", 0.9},
-  };
+  const std::vector<PreambleEntry> preamble = {
+      realPreamble({"test_q0"}, {0.499849, 0.499849}, 0.9)};
   checkCompilation(settings1,
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "h q[0];\n"
                    "measure q[0] -> test_q0[0];\n",
-                   preamble1);
+                   preamble);
 
   const CompilationSettings settings2 = {
       /*mode=*/CompilationMode::STATISTICAL_SLICES,
       /*opt=*/0,
       /*sliceIndex=*/1,
   };
-  const std::vector<PreambleEntry> preamble2 = {
-      {"test_q0", "0.499849", 0.9},
-  };
   checkCompilation(settings2,
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "h q[0];\n"
                    "measure q[0] -> test_q0[0];\n",
-                   preamble2);
+                   preamble);
 
   const CompilationSettings settings3 = {
       /*mode=*/CompilationMode::STATISTICAL_SLICES,
@@ -317,9 +339,9 @@ TEST_F(CompilationTest, StatisticalNonConsecutiveMultiSliceEqualityNoOpt) {
       /*opt=*/0,
       /*sliceIndex=*/0,
   };
+
   const std::vector<PreambleEntry> preamble1 = {
-      {"test_q0", "1.0", 1.0},
-  };
+      realPreamble({"test_q0"}, {0, 1}, 1.0)};
   checkCompilation(settings1,
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -333,8 +355,7 @@ TEST_F(CompilationTest, StatisticalNonConsecutiveMultiSliceEqualityNoOpt) {
       /*sliceIndex=*/1,
   };
   const std::vector<PreambleEntry> preamble2 = {
-      {"test_q0", "0.0", 1.0},
-  };
+      realPreamble({"test_q0"}, {1, 0}, 1.0)};
   checkCompilation(settings2,
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -370,15 +391,14 @@ TEST_F(CompilationTest, StatisticalConsecutiveMultiSliceEqualityWithOpt) {
       /*opt=*/1,
       /*sliceIndex=*/0,
   };
-  const std::vector<PreambleEntry> preamble1 = {
-      {"test_q0", "1.0", 1.0},
-  };
+  const std::vector<PreambleEntry> preamble = {
+      realPreamble({"test_q0"}, {0, 1}, 1.0)};
   checkCompilation(settings1,
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "x q[0];\n"
                    "measure q[0] -> test_q0[0];\n",
-                   preamble1);
+                   preamble);
 
   const CompilationSettings settings2 = {
       /*mode=*/CompilationMode::STATISTICAL_SLICES,

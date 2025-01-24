@@ -39,3 +39,10 @@ bool classicalEquals(const Variable& v, bool value);
  * @return The content of the file as a string.
  */
 std::string readFromCircuitsPath(const std::string& testName);
+
+/**
+ * @brief Generate a string representation of a complex number.
+ * @param c The complex number.
+ * @return The string representation of the complex number.
+ */
+std::string complexToStringTest(const Complex& c);
