@@ -86,8 +86,8 @@ protected:
    * @param expected The expected compiled code.
    * @param actual The actual compiled code.
    */
-  void prettyPrintComparison(const std::string& expected,
-                             const std::string& actual) {
+  static void prettyPrintComparison(const std::string& expected,
+                                    const std::string& actual) {
     auto expectedLines = splitString(expected, '\n');
     auto actualLines = splitString(actual, '\n');
     expectedLines.insert(expectedLines.begin(), "");
