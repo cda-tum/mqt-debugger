@@ -247,6 +247,11 @@ struct DDSimulationState {
    * @brief The diagnostics instance used for analysis.
    */
   DDDiagnostics diagnostics;
+
+  /**
+   * @brief Object representations of all parsed instructions.
+   */
+  std::vector<Instruction> instructionObjects;
 };
 
 /**

@@ -14,6 +14,7 @@
 #include "common/ComplexMathematics.hpp"
 #include "common/Span.hpp"
 #include "common/parsing/AssertionParsing.hpp"
+#include "common/parsing/AssertionTools.hpp"
 #include "common/parsing/CodePreprocessing.hpp"
 #include "common/parsing/Utils.hpp"
 #include "dd/DDDefinitions.hpp"
@@ -1300,6 +1301,7 @@ std::string preprocessAssertionCode(const char* code,
   ddsim->dataDependencies.clear();
   ddsim->functionCallers.clear();
   ddsim->targetQubits.clear();
+  ddsim->instructionObjects.clear();
 
   for (auto& instruction : instructions) {
     ddsim->targetQubits.push_back(instruction.targets);
@@ -1425,6 +1427,8 @@ std::string preprocessAssertionCode(const char* code,
       correctLines.begin(), correctLines.end(), std::string(),
       [](const std::string& a, const std::string& b) { return a + b; });
 
+  std::move(instructions.begin(), instructions.end(),
+            std::back_inserter(ddsim->instructionObjects));
   return result;
 }
 
@@ -1448,6 +1452,12 @@ std::string getQuantumBitName(DDSimulationState* ddsim, size_t index) {
 
 //-----------------------------------------------------------------------------
 
+/**
+ * @brief Construct the preamble for a statistical slice equality assertion.
+ * @param assertion The assertion to construct the preamble for.
+ * @param targetNames The names of the target qubits.
+ * @return The constructed preamble.
+ */
 static std::string getStatisticalSliceEqualityPreamble(
     std::unique_ptr<StatevectorEqualityAssertion>& assertion,
     std::map<std::string, std::string>& targetNames) {
@@ -1474,6 +1484,73 @@ static std::string getStatisticalSliceEqualityPreamble(
   return ss.str();
 }
 
+/**
+ * @brief Check if an assertion is fully contained in another assertion.
+ *
+ * This means that the second assertion does not need to be checked if the
+ * first assertion is already satisfied.
+ * @param container The previous assertion that is known to be satisfied.
+ * @param subAssertions The new assertion to check.
+ * @return True if the new assertion is fully contained in the previous
+ * assertion.
+ */
+static bool assertionContains(const std::unique_ptr<Assertion>& container,
+                              const std::unique_ptr<Assertion>& subAssertions) {
+  if (container->getType() != subAssertions->getType()) {
+    // For now, we assume assertions must have the same type. In reality, this
+    // is not required: EntanglementAssertions can contain
+    // SuperpositionAssertions, EqualityAssertions can contain any other
+    // assertions, etc.
+    return false;
+  }
+  if (container->getType() == AssertionType::StatevectorEquality) {
+    auto& containerSV = dynamic_cast<StatevectorEqualityAssertion&>(*container);
+    auto& subSV = dynamic_cast<StatevectorEqualityAssertion&>(*subAssertions);
+    if (containerSV.getSimilarityThreshold() < subSV.getSimilarityThreshold()) {
+      return false;
+    }
+    const auto containerQubits =
+        std::unordered_multiset(containerSV.getTargetQubits().begin(),
+                                containerSV.getTargetQubits().end());
+    const auto subQubits = std::unordered_multiset(
+        subSV.getTargetQubits().begin(), subSV.getTargetQubits().end());
+    if (!std::includes(containerQubits.begin(), containerQubits.end(),
+                       subQubits.begin(), subQubits.end())) {
+      return false;
+    }
+
+    const auto svSimilarity = dotProduct(containerSV.getTargetStatevector(),
+                                         subSV.getTargetStatevector());
+    return svSimilarity * containerSV.getSimilarityThreshold() >=
+           subSV.getSimilarityThreshold();
+  }
+  return false;
+}
+
+/**
+ * @brief Attempt to cancel an assertion based on all previously encountered
+ * assertions.
+ * @param ddsim The simulation state.
+ * @param newAssertion The index of the new assertion to check.
+ * @return True if the assertion can be cancelled, false otherwise.
+ */
+static bool tryCancelAssertion(DDSimulationState* ddsim, size_t newAssertion) {
+  const auto& assertion = ddsim->assertionInstructions[newAssertion];
+  for (size_t i = newAssertion - 1; i != -1ULL; i--) {
+    if (ddsim->instructionTypes[i] != ASSERTION) {
+      if (!doesCommute(assertion, ddsim->instructionObjects[i])) {
+        return false;
+      }
+      continue;
+    }
+    const auto& potentialParent = ddsim->assertionInstructions[i];
+    if (assertionContains(potentialParent, assertion)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
                                CompilationSettings settings) {
   std::vector<size_t> assertionsToSkip;
@@ -1484,6 +1561,9 @@ size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
       continue;
     }
     assertionsToSkip.push_back(i);
+    if (settings.opt >= 1 && tryCancelAssertion(ddsim, i)) {
+      continue;
+    }
     if (sliceIndex == 0) {
       foundIndex = i;
       break;
