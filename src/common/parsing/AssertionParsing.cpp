@@ -41,7 +41,23 @@ EntanglementAssertion::EntanglementAssertion(
     : Assertion(std::move(inputTargetQubits), AssertionType::Entanglement) {}
 
 bool EntanglementAssertion::implies(const Assertion& other) const {
-  return false; // TODO
+  if (other.getType() == AssertionType::Entanglement) {
+    const auto containerQubits =
+        std::set(getTargetQubits().begin(), getTargetQubits().end());
+    const auto subQubits = std::set(other.getTargetQubits().begin(),
+                                    other.getTargetQubits().end());
+    return std::includes(containerQubits.begin(), containerQubits.end(),
+                         subQubits.begin(), subQubits.end());
+  }
+  if (other.getType() == AssertionType::Superposition) {
+    return std::any_of(
+        other.getTargetQubits().begin(), other.getTargetQubits().end(),
+        [this](const std::string& qubit) {
+          return std::find(getTargetQubits().begin(), getTargetQubits().end(),
+                           qubit) != getTargetQubits().end();
+        });
+  }
+  return false;
 }
 
 SuperpositionAssertion::SuperpositionAssertion(
@@ -166,14 +182,70 @@ bool StatevectorEqualityAssertion::implies(
   return false;
 }
 
+bool StatevectorEqualityAssertion::implies(
+    const EntanglementAssertion& other) const {
+  if (getSimilarityThreshold() < 0.99999) {
+    // We only accept implications if similarity is high enough.
+    return false;
+  }
+  const auto containerQubits =
+      std::set(getTargetQubits().begin(), getTargetQubits().end());
+  const auto subQubits =
+      std::set(other.getTargetQubits().begin(), other.getTargetQubits().end());
+  if (!std::includes(containerQubits.begin(), containerQubits.end(),
+                     subQubits.begin(), subQubits.end())) {
+    // Only equality assertions that contain all qubits of the entanglement
+    // assertion can imply it.
+    return false;
+  }
+
+  std::vector<size_t> indexList(other.getTargetQubits().size());
+  std::transform(other.getTargetQubits().begin(), other.getTargetQubits().end(),
+                 indexList.begin(), [this](const std::string& target) {
+                   return std::distance(getTargetQubits().begin(),
+                                        std::find(getTargetQubits().begin(),
+                                                  getTargetQubits().end(),
+                                                  target));
+                 });
+
+  const Span<Complex> sv(getTargetStatevector().amplitudes,
+                         getTargetStatevector().numStates);
+
+  std::vector<std::vector<Complex>> densityMatrix(
+      sv.size(), std::vector<Complex>(sv.size(), {0, 0}));
+  for (size_t i = 0; i < sv.size(); i++) {
+    for (size_t j = 0; j < sv.size(); j++) {
+      densityMatrix[i][j] =
+          complexMultiplication(sv[i], complexConjugate(sv[j]));
+    }
+  }
+
+  for (const auto i : indexList) {
+    for (const auto j : indexList) {
+      if (i == j) {
+        continue;
+      }
+      if (!areQubitsEntangled(densityMatrix, i, j)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 bool StatevectorEqualityAssertion::implies(const Assertion& other) const {
   if (other.getType() == AssertionType::StatevectorEquality) {
     const auto& svEq = dynamic_cast<const StatevectorEqualityAssertion&>(other);
     return implies(svEq);
   }
   if (other.getType() == AssertionType::Superposition) {
-    const auto sup = dynamic_cast<const SuperpositionAssertion&>(other);
+    const auto& sup = dynamic_cast<const SuperpositionAssertion&>(other);
     return implies(sup);
+  }
+  if (other.getType() == AssertionType::Entanglement) {
+    const auto& ent = dynamic_cast<const EntanglementAssertion&>(other);
+    return implies(ent);
   }
   return false;
 }
@@ -188,7 +260,7 @@ const std::string& CircuitEqualityAssertion::getCircuitCode() const {
   return circuitCode;
 }
 
-bool CircuitEqualityAssertion::implies(const Assertion& other) const {
+bool CircuitEqualityAssertion::implies(const Assertion& /*other*/) const {
   throw std::runtime_error(
       "`implies` method not supported for CircuitEqualityAssertion");
 }

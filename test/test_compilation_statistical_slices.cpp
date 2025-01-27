@@ -70,14 +70,14 @@ public:
         ss << ",";
       }
     }
-    ss << ") " << fidelity << " {";
+    ss << ") {";
     for (size_t i = 0; i < distribution.size(); i++) {
       ss << complexToStringTest(distribution[i]);
       if (i < distribution.size() - 1) {
         ss << ",";
       }
     }
-    ss << "}\n";
+    ss << "} " << fidelity << "\n";
 
     return ss.str();
   }
@@ -778,4 +778,35 @@ TEST_F(StatisticalSlicesCompilationTest,
                    preamble2);
 
   checkNoCompilation(makeSettings(1, 2));
+}
+
+/**
+ * @brief Tests the compilation of an equality assertion followed by an
+ * entanglement assertions when the second assertion can be canceled out by the
+ * first one.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalEntanglementOptIncludedInEq) {
+  loadCode(
+      "qreg q[2];\n"
+      "h q[0];\n"
+      "cx q[0], q[1];\n"
+      "assert-eq 0.99999, q[0], q[1] { 0.7071067812, 0, 0, 0.7071067812 }\n"
+      "x q[0];\n"
+      "assert-ent q[0], q[1];\n");
+
+  const std::vector<StatEqPreambleEntry> preamble = {
+      StatEqPreambleEntry({"test_q0", "test_q1"}, {0.5, 0, 0, 0.5}, 0.99999)};
+
+  checkCompilation(makeSettings(1, 0),
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
+                   "qreg q[2];\n"
+                   "h q[0];\n"
+                   "cx q[0], q[1];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[1] -> test_q1[0];\n",
+                   preamble);
+
+  checkNoCompilation(makeSettings(1, 1));
 }

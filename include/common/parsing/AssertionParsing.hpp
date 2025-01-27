@@ -206,6 +206,15 @@ class StatevectorEqualityAssertion : public EqualityAssertion {
    */
   [[nodiscard]] bool implies(const SuperpositionAssertion& other) const;
 
+  /**
+   * @brief Checks whether this assertion also implies another given
+   * EntanglementAssertion.
+   * @param other The other assertion to check.
+   * @return True if this assertion implies the other assertion, false
+   * otherwise.
+   */
+  [[nodiscard]] bool implies(const EntanglementAssertion& other) const;
+
 public:
   /**
    * @brief Constructs a new StatevectorEqualityAssertion with the given target
@@ -285,7 +294,7 @@ public:
    * @return True if this assertion implies the other assertion, false
    * otherwise.
    */
-  [[nodiscard]] bool implies(const Assertion& other) const override;
+  [[noreturn]] bool implies(const Assertion& other) const override;
 };
 
 /**

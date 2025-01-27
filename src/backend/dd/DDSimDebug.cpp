@@ -40,7 +40,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -1368,7 +1367,7 @@ std::string preprocessAssertionCode(const char* code,
       declaration = replaceString(declaration, "\t", "");
       declaration = replaceString(declaration, ";", "");
       auto parts = splitString(declaration, '[');
-      auto name = parts[0];
+      auto& name = parts[0];
       const size_t size = std::stoul(parts[1].substr(0, parts[1].size() - 1));
 
       const size_t index = ddsim->classicalRegisters.empty()
@@ -1453,14 +1452,14 @@ static std::string getStatisticalSliceEqualityPreamble(
       ss << ",";
     }
   }
-  ss << ") " << assertion->getSimilarityThreshold() << " {";
+  ss << ") {";
   for (size_t i = 0; i < assertion->getTargetStatevector().numStates; i++) {
     ss << (sv[i].real * sv[i].real) + (sv[i].imaginary * sv[i].imaginary);
     if (i != assertion->getTargetStatevector().numStates - 1) {
       ss << ",";
     }
   }
-  ss << "}\n";
+  ss << "} " << assertion->getSimilarityThreshold() << "\n";
   return ss.str();
 }
 
