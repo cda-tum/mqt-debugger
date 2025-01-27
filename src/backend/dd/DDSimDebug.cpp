@@ -40,6 +40,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -1509,18 +1510,36 @@ static bool assertionContains(const std::unique_ptr<Assertion>& container,
     if (containerSV.getSimilarityThreshold() < subSV.getSimilarityThreshold()) {
       return false;
     }
-    const auto containerQubits =
-        std::unordered_multiset(containerSV.getTargetQubits().begin(),
-                                containerSV.getTargetQubits().end());
-    const auto subQubits = std::unordered_multiset(
-        subSV.getTargetQubits().begin(), subSV.getTargetQubits().end());
+    const auto containerQubits = std::set(containerSV.getTargetQubits().begin(),
+                                          containerSV.getTargetQubits().end());
+    const auto subQubits = std::set(subSV.getTargetQubits().begin(),
+                                    subSV.getTargetQubits().end());
     if (!std::includes(containerQubits.begin(), containerQubits.end(),
                        subQubits.begin(), subQubits.end())) {
       return false;
     }
+    Statevector targetStatevector;
 
-    const auto svSimilarity = dotProduct(containerSV.getTargetStatevector(),
-                                         subSV.getTargetStatevector());
+    if (containerQubits.size() != subQubits.size()) {
+      std::vector<size_t> indexList(subSV.getTargetQubits().size());
+      std::transform(
+          subSV.getTargetQubits().begin(), subSV.getTargetQubits().end(),
+          indexList.begin(), [&containerSV](const std::string& target) {
+            return std::distance(
+                containerSV.getTargetQubits().begin(),
+                std::find(containerSV.getTargetQubits().begin(),
+                          containerSV.getTargetQubits().end(), target));
+          });
+      auto newAmplitudes = getSubStateVectorAmplitudes(
+          containerSV.getTargetStatevector(), indexList);
+      targetStatevector = {indexList.size(), newAmplitudes.size(),
+                           newAmplitudes.data()};
+    } else {
+      targetStatevector = containerSV.getTargetStatevector();
+    }
+
+    const auto svSimilarity =
+        dotProduct(targetStatevector, subSV.getTargetStatevector());
     return svSimilarity * containerSV.getSimilarityThreshold() >=
            subSV.getSimilarityThreshold();
   }
