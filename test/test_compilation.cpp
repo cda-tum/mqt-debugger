@@ -373,9 +373,9 @@ TEST_F(CompilationTest, StatisticalNonConsecutiveMultiSliceEqualityNoOpt) {
 }
 
 /**
- * @brief Tests the compilation of a two directly consecutive equality
- * assertions using statistical slices, with optimization, with an uncertain
- * outcome.
+ * @brief Tests the compilation of two directly consecutive equality
+ * assertions using statistical slices, with optimization when assertions are
+ * equal.
  *
  * The second assertion should not be included in the compiled code as it is
  * removed.
@@ -406,4 +406,105 @@ TEST_F(CompilationTest, StatisticalConsecutiveMultiSliceEqualityWithOpt) {
       /*sliceIndex=*/1,
   };
   checkNoCompilation(settings2);
+}
+
+/**
+ * @brief Tests the compilation of two directly consecutive equality
+ * assertions using statistical slices, with optimization when the second
+ * assertion is a subset of the first.
+ *
+ * The second assertion should not be included in the compiled code as it is
+ * removed.
+ */
+TEST_F(CompilationTest,
+       StatisticalConsecutiveMultiSliceEqualitySmallerScopeOpt) {
+  loadCode("qreg q[2];\n"
+           "x q[0];\n"
+           "assert-eq q[0], q[1] { 0, 1, 0, 0 }\n"
+           "assert-eq q[0] { 0, 1 }\n");
+
+  const CompilationSettings settings = {
+      /*mode=*/CompilationMode::STATISTICAL_SLICES,
+      /*opt=*/1,
+      /*sliceIndex=*/1,
+  };
+  checkNoCompilation(settings);
+}
+
+/**
+ * @brief Tests the compilation of two directly consecutive equality
+ * assertions using statistical slices, with optimization when the assertions
+ * are not exactly equal but similarity thresholds are still met.
+ *
+ * The second assertion should not be included in the compiled code as it is
+ * removed.
+ */
+TEST_F(CompilationTest, StatisticalConsecutiveMultiSliceEqualityUnpreciseOpt) {
+  loadCode("qreg q[1];\n"
+           "x q[0];\n"
+           "assert-eq 0.9, q[0] { 0, 0.9 }\n"
+           "assert-eq 0.8, q[0] { 0, 1 }\n");
+
+  const CompilationSettings settings = {
+      /*mode=*/CompilationMode::STATISTICAL_SLICES,
+      /*opt=*/1,
+      /*sliceIndex=*/1,
+  };
+  checkNoCompilation(settings);
+}
+
+/**
+ * @brief Tests the compilation of two directly consecutive equality
+ * assertions using statistical slices, with optimization when similarity
+ * thresholds do not allow for the second assertion to be removed.
+ */
+TEST_F(CompilationTest,
+       StatisticalConsecutiveMultiSliceEqualityWithOptDifferentSimilarity) {
+  loadCode("qreg q[1];\n"
+           "x q[0];\n"
+           "assert-eq 0.9, q[0] { 0, 1 }\n"
+           "assert-eq 0.99, q[0] { 0, 1 }\n");
+
+  const CompilationSettings settings = {
+      /*mode=*/CompilationMode::STATISTICAL_SLICES,
+      /*opt=*/1,
+      /*sliceIndex=*/1,
+  };
+  const std::vector<PreambleEntry> preamble = {
+      realPreamble({"test_q0"}, {0, 1}, 0.99)};
+  checkCompilation(settings,
+                   "creg test_q0[1];\n"
+                   "qreg q[1];\n"
+                   "x q[0];\n"
+                   "measure q[0] -> test_q0[0];\n",
+                   preamble);
+}
+
+/**
+ * @brief Tests the compilation of two directly consecutive equality
+ * assertions using statistical slices, with optimization when different target
+ * qubits do not allow for the second assertion to be removed.
+ */
+TEST_F(CompilationTest,
+       StatisticalConsecutiveMultiSliceEqualityWithOptDifferentTargets) {
+  loadCode("qreg q[2];\n"
+           "x q[0];\n"
+           "assert-eq q[0] { 0, 1 }\n"
+           "assert-eq q[0], q[1] { 0, 0, 1, 0 }\n");
+
+  const CompilationSettings settings = {
+      /*mode=*/CompilationMode::STATISTICAL_SLICES,
+      /*opt=*/1,
+      /*sliceIndex=*/1,
+  };
+  const std::vector<PreambleEntry> preamble = {
+      realPreamble({"test_q0", "test_q1"}, {0, 0, 1, 0}, 1.0)};
+  checkCompilation(settings,
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
+                   "qreg q[2];\n"
+                   "x q[0];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[1] -> test_q1[0];\n",
+                   preamble);
 }
