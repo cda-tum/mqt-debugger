@@ -297,3 +297,20 @@ std::string complexToString(const Complex& c) {
   }
   return doubleToString(c.real) + " + " + doubleToString(c.imaginary) + "i";
 }
+
+double dotProduct(const Statevector& sv1, const Statevector& sv2) {
+  double resultReal = 0;
+  double resultImag = 0;
+
+  const Span<Complex> amplitudes1(sv1.amplitudes, sv1.numStates);
+  const Span<Complex> amplitudes2(sv2.amplitudes, sv2.numStates);
+
+  for (size_t i = 0; i < sv1.numStates; i++) {
+    resultReal += amplitudes1[i].real * amplitudes2[i].real -
+                  amplitudes1[i].imaginary * amplitudes2[i].imaginary;
+    resultImag += amplitudes1[i].real * amplitudes2[i].imaginary +
+                  amplitudes1[i].imaginary * amplitudes2[i].real;
+  }
+  Complex result{resultReal, resultImag};
+  return complexMagnitude(result);
+}

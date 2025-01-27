@@ -876,6 +876,8 @@ size_t ddsimCompile(SimulationState* self, char* buffer,
     std::cerr << "Compilation mode not supported by the DD simulator\n";
     return 0;
   }
+
+  return 0;
 }
 
 Result destroyDDSimulationState(DDSimulationState* self) {
@@ -1003,29 +1005,6 @@ std::pair<size_t, size_t> variableToQubitAt(DDSimulationState* ddsim,
 
   return {static_cast<size_t>(std::distance(targets.begin(), found)),
           functionDef};
-}
-
-/**
- * @brief Compute the dot product of two state vectors.
- * @param sv1 The first state vector.
- * @param sv2 The second state vector.
- * @return The computed dot product.
- */
-double dotProduct(const Statevector& sv1, const Statevector& sv2) {
-  double resultReal = 0;
-  double resultImag = 0;
-
-  const Span<Complex> amplitudes1(sv1.amplitudes, sv1.numStates);
-  const Span<Complex> amplitudes2(sv2.amplitudes, sv2.numStates);
-
-  for (size_t i = 0; i < sv1.numStates; i++) {
-    resultReal += amplitudes1[i].real * amplitudes2[i].real -
-                  amplitudes1[i].imaginary * amplitudes2[i].imaginary;
-    resultImag += amplitudes1[i].real * amplitudes2[i].imaginary +
-                  amplitudes1[i].imaginary * amplitudes2[i].real;
-  }
-  Complex result{resultReal, resultImag};
-  return complexMagnitude(result);
 }
 
 /**
@@ -1486,64 +1465,26 @@ static std::string getStatisticalSliceEqualityPreamble(
 }
 
 /**
- * @brief Check if an assertion is fully contained in another assertion.
- *
- * This means that the second assertion does not need to be checked if the
- * first assertion is already satisfied.
- * @param container The previous assertion that is known to be satisfied.
- * @param subAssertions The new assertion to check.
- * @return True if the new assertion is fully contained in the previous
+ * @brief Construct the preamble for a statistical slice superposition
  * assertion.
+ * @param assertion The assertion to construct the preamble for.
+ * @param targetNames The names of the target qubits.
+ * @return The constructed preamble.
  */
-static bool assertionContains(const std::unique_ptr<Assertion>& container,
-                              const std::unique_ptr<Assertion>& subAssertions) {
-  if (container->getType() != subAssertions->getType()) {
-    // For now, we assume assertions must have the same type. In reality, this
-    // is not required: EntanglementAssertions can contain
-    // SuperpositionAssertions, EqualityAssertions can contain any other
-    // assertions, etc.
-    return false;
+static std::string getStatisticalSliceSuperpositionPreamble(
+    std::unique_ptr<SuperpositionAssertion>& assertion,
+    std::map<std::string, std::string>& targetNames) {
+  std::stringstream ss;
+  // First target is rather straightforward.
+  ss << "// ASSERT: (";
+  for (size_t i = 0; i < assertion->getTargetQubits().size(); i++) {
+    ss << targetNames[assertion->getTargetQubits()[i]];
+    if (i != assertion->getTargetQubits().size() - 1) {
+      ss << ",";
+    }
   }
-  if (container->getType() == AssertionType::StatevectorEquality) {
-    auto& containerSV = dynamic_cast<StatevectorEqualityAssertion&>(*container);
-    auto& subSV = dynamic_cast<StatevectorEqualityAssertion&>(*subAssertions);
-    if (containerSV.getSimilarityThreshold() < subSV.getSimilarityThreshold()) {
-      return false;
-    }
-    const auto containerQubits = std::set(containerSV.getTargetQubits().begin(),
-                                          containerSV.getTargetQubits().end());
-    const auto subQubits = std::set(subSV.getTargetQubits().begin(),
-                                    subSV.getTargetQubits().end());
-    if (!std::includes(containerQubits.begin(), containerQubits.end(),
-                       subQubits.begin(), subQubits.end())) {
-      return false;
-    }
-    Statevector targetStatevector;
-
-    if (containerQubits.size() != subQubits.size()) {
-      std::vector<size_t> indexList(subSV.getTargetQubits().size());
-      std::transform(
-          subSV.getTargetQubits().begin(), subSV.getTargetQubits().end(),
-          indexList.begin(), [&containerSV](const std::string& target) {
-            return std::distance(
-                containerSV.getTargetQubits().begin(),
-                std::find(containerSV.getTargetQubits().begin(),
-                          containerSV.getTargetQubits().end(), target));
-          });
-      auto newAmplitudes = getSubStateVectorAmplitudes(
-          containerSV.getTargetStatevector(), indexList);
-      targetStatevector = {indexList.size(), newAmplitudes.size(),
-                           newAmplitudes.data()};
-    } else {
-      targetStatevector = containerSV.getTargetStatevector();
-    }
-
-    const auto svSimilarity =
-        dotProduct(targetStatevector, subSV.getTargetStatevector());
-    return svSimilarity * containerSV.getSimilarityThreshold() >=
-           subSV.getSimilarityThreshold();
-  }
-  return false;
+  ss << ") {superposition}\n";
+  return ss.str();
 }
 
 /**
@@ -1563,7 +1504,7 @@ static bool tryCancelAssertion(DDSimulationState* ddsim, size_t newAssertion) {
       continue;
     }
     const auto& potentialParent = ddsim->assertionInstructions[i];
-    if (assertionContains(potentialParent, assertion)) {
+    if (potentialParent->implies(*assertion)) {
       return true;
     }
   }
@@ -1617,6 +1558,12 @@ size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
     ss << getStatisticalSliceEqualityPreamble(svEqualityAssertion,
                                               assertionTargets);
     assertion = std::move(svEqualityAssertion);
+  } else if (assertion->getType() == AssertionType::Superposition) {
+    std::unique_ptr<SuperpositionAssertion> superpositionAssertion(
+        dynamic_cast<SuperpositionAssertion*>(assertion.release()));
+    ss << getStatisticalSliceSuperpositionPreamble(superpositionAssertion,
+                                                   assertionTargets);
+    assertion = std::move(superpositionAssertion);
   }
 
   // Add the required classical registers.

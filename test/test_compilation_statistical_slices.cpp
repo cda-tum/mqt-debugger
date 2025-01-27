@@ -83,6 +83,33 @@ public:
   }
 };
 
+class StatSupPreambleEntry : public PreambleEntry {
+  /**
+   * @brief The name of the variable the preamble entry is for.
+   */
+  std::vector<std::string> names;
+
+public:
+  /**
+   * @brief Constructs a new StatSupPreambleEntry with the given names
+   * @param n The names of the variables the preamble entry is for.
+   */
+  StatSupPreambleEntry(std::vector<std::string> n) : names(std::move(n)) {}
+
+  [[nodiscard]] std::string toString() const override {
+    std::stringstream ss;
+    ss << "// ASSERT: (";
+    for (size_t i = 0; i < names.size(); i++) {
+      ss << names[i];
+      if (i < names.size() - 1) {
+        ss << ",";
+      }
+    }
+    ss << ") {superposition}\n";
+    return ss.str();
+  }
+};
+
 class StatisticalSlicesCompilationTest : public CompilationTest {
 public:
   /**
@@ -103,6 +130,8 @@ public:
    * @brief Check the compilation of the loaded code with the given settings.
    * @param settings The settings to use for the compilation.
    * @param expected The expected compiled code.
+   * @param expectedPreamble The expected preamble entries for equality
+   * assertions.
    */
   void
   checkCompilation(const CompilationSettings& settings,
@@ -113,6 +142,25 @@ public:
     std::transform(expectedPreamble.begin(), expectedPreamble.end(),
                    pointerVector.begin(),
                    [](const StatEqPreambleEntry& entry) { return &entry; });
+    CompilationTest::checkCompilation(settings, expected, pointerVector);
+  }
+
+  /**
+   * @brief Check the compilation of the loaded code with the given settings.
+   * @param settings The settings to use for the compilation.
+   * @param expected The expected compiled code.
+   * @param expectedPreamble The expected preamble entries for entanglement
+   * assertions.
+   */
+  void
+  checkCompilation(const CompilationSettings& settings,
+                   const std::string& expected,
+                   const std::vector<StatSupPreambleEntry>& expectedPreamble) {
+    auto pointerVector =
+        std::vector<const PreambleEntry*>(expectedPreamble.size());
+    std::transform(expectedPreamble.begin(), expectedPreamble.end(),
+                   pointerVector.begin(),
+                   [](const StatSupPreambleEntry& entry) { return &entry; });
     CompilationTest::checkCompilation(settings, expected, pointerVector);
   }
 };
@@ -130,14 +178,14 @@ TEST_F(StatisticalSlicesCompilationTest,
   const std::vector<StatEqPreambleEntry> preamble = {
       StatEqPreambleEntry({"test_q0"}, {0.0, 1.0}, 1.0)};
 
-  checkCompilation(makeSettings(0, 0),
+  checkCompilation(makeSettings(/*opt=*/0, /*slice=*/0),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "x q[0];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
-  checkNoCompilation(makeSettings(0, 1));
+  checkNoCompilation(makeSettings(/*opt=*/0, /*slice=*/1));
 }
 
 /**
@@ -364,21 +412,370 @@ TEST_F(StatisticalSlicesCompilationTest,
  * @brief Tests the compilation of a simple superposition assertion using
  * statistical slices and no optimization.
  */
-/*TEST_F(StatisticalSlicesCompilationTest,
-       StatisticalSingleSuperpositionNoOpt) {
+TEST_F(StatisticalSlicesCompilationTest, StatisticalSingleSuperpositionNoOpt) {
   loadCode("qreg q[1];\n"
            "h q[0];\n"
-           "assert-sup q[0]\n");
+           "assert-sup q[0];\n");
 
-  const std::vector<PreambleEntry> preamble = {
-      realPreamble({"test_q0"}, {0.0, 1.0}, 1.0)};
+  const std::vector<StatSupPreambleEntry> preamble = {
+      StatSupPreambleEntry({"test_q0"})};
 
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
-                   "x q[0];\n"
+                   "h q[0];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
   checkNoCompilation(makeSettings(0, 1));
-}*/
+}
+
+/**
+ * @brief Tests the compilation of a 2-qubit superposition assertion using
+ * statistical slices and no optimization.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalMultiQubitSuperpositionNoOpt) {
+  loadCode("qreg q[2];\n"
+           "h q[0];\n"
+           "assert-sup q[0], q[1];\n");
+
+  const std::vector<StatSupPreambleEntry> preamble = {
+      StatSupPreambleEntry({"test_q0", "test_q1"})};
+
+  checkCompilation(makeSettings(0, 0),
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
+                   "qreg q[2];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[1] -> test_q1[0];\n",
+                   preamble);
+
+  checkNoCompilation(makeSettings(0, 1));
+}
+
+/**
+ * @brief Tests the compilation of two consecutive superposition assertions
+ * using statistical slices and no optimization.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalMultipleSuperpositionNoOpt) {
+  loadCode("qreg q[2];\n"
+           "h q[0];\n"
+           "h q[1];\n"
+           "assert-sup q[0];\n"
+           "assert-sup q[1];\n");
+
+  const std::vector<StatSupPreambleEntry> preamble1 = {
+      StatSupPreambleEntry({"test_q0"})};
+
+  checkCompilation(makeSettings(0, 0),
+                   "creg test_q0[1];\n"
+                   "qreg q[2];\n"
+                   "h q[0];\n"
+                   "h q[1];\n"
+                   "measure q[0] -> test_q0[0];\n",
+                   preamble1);
+
+  const std::vector<StatSupPreambleEntry> preamble2 = {
+      StatSupPreambleEntry({"test_q1"})};
+  checkCompilation(makeSettings(0, 1),
+                   "creg test_q1[1];\n"
+                   "qreg q[2];\n"
+                   "h q[0];\n"
+                   "h q[1];\n"
+                   "measure q[1] -> test_q1[0];\n",
+                   preamble2);
+
+  checkNoCompilation(makeSettings(0, 2));
+}
+
+/**
+ * @brief Tests the compilation of two consecutive superposition assertions when
+ * the second assertion can be trivially canceled out by the first one.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalSuperpositionOptIncludedInSup) {
+  loadCode("qreg q[1];\n"
+           "h q[0];\n"
+           "assert-sup q[0];\n"
+           "assert-sup q[0];\n");
+
+  const std::vector<StatSupPreambleEntry> preamble = {
+      StatSupPreambleEntry({"test_q0"})};
+
+  checkCompilation(makeSettings(1, 0),
+                   "creg test_q0[1];\n"
+                   "qreg q[1];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n",
+                   preamble);
+
+  checkNoCompilation(makeSettings(1, 1));
+}
+
+/**
+ * @brief Tests the compilation of two superposition assertions when the second
+ * assertion can be canceled out by the first one after applying commutation
+ * rules.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalSuperpositionOptIncludedInSupWithCommutation) {
+  loadCode("qreg q[1];\n"
+           "h q[0];\n"
+           "assert-sup q[0];\n"
+           "x q[0];\n"
+           "assert-sup q[0];\n");
+
+  const std::vector<StatSupPreambleEntry> preamble = {
+      StatSupPreambleEntry({"test_q0"})};
+
+  checkCompilation(makeSettings(1, 0),
+                   "creg test_q0[1];\n"
+                   "qreg q[1];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n",
+                   preamble);
+
+  checkNoCompilation(makeSettings(1, 1));
+}
+
+/**
+ * @brief Tests the compilation of two superposition assertions when the second
+ * assertion can be canceled out by the first one as its target qubits
+ * are a superset of the first assertion's target qubits.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalSuperpositionOptIncludedInSupSuperset) {
+  loadCode("qreg q[2];\n"
+           "h q[0];\n"
+           "assert-sup q[0];\n"
+           "x q[0];\n"
+           "assert-sup q[0], q[1];\n");
+
+  const std::vector<StatSupPreambleEntry> preamble = {
+      StatSupPreambleEntry({"test_q0"})};
+
+  checkCompilation(makeSettings(1, 0),
+                   "creg test_q0[1];\n"
+                   "qreg q[2];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n",
+                   preamble);
+
+  checkNoCompilation(makeSettings(1, 1));
+}
+
+/**
+ * @brief Tests the compilation of two superposition assertions when the second
+ * assertion cannot be canceled out by the first one as its target qubits
+ * are not a full superset of the first assertion's target qubits.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalSuperpositionOptNotFullyIncludedInSupSuperset) {
+  loadCode("qreg q[3];\n"
+           "h q[0];\n"
+           "assert-sup q[0], q[2];\n"
+           "assert-sup q[0], q[1];\n");
+
+  const std::vector<StatSupPreambleEntry> preamble1 = {
+      StatSupPreambleEntry({"test_q0", "test_q2"})};
+
+  checkCompilation(makeSettings(1, 0),
+                   "creg test_q0[1];\n"
+                   "creg test_q2[1];\n"
+                   "qreg q[3];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[2] -> test_q2[0];\n",
+                   preamble1);
+
+  const std::vector<StatSupPreambleEntry> preamble2 = {
+      StatSupPreambleEntry({"test_q0", "test_q1"})};
+
+  checkCompilation(makeSettings(1, 1),
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
+                   "qreg q[3];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[1] -> test_q1[0];\n",
+                   preamble2);
+}
+
+/**
+ * @brief Tests the compilation of two superposition assertions when the second
+ * assertion cannot be canceled out by the first one because there is a
+ * non-commuting gate between them.
+ */
+TEST_F(
+    StatisticalSlicesCompilationTest,
+    StatisticalSuperpositionOptIncludedInSupSupersetButCommutationNotPossible) {
+  loadCode("qreg q[2];\n"
+           "h q[0];\n"
+           "assert-sup q[0];\n"
+           "h q[0];\n"
+           "assert-sup q[0], q[1];\n");
+
+  const std::vector<StatSupPreambleEntry> preamble1 = {
+      StatSupPreambleEntry({"test_q0"})};
+
+  checkCompilation(makeSettings(1, 0),
+                   "creg test_q0[1];\n"
+                   "qreg q[2];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n",
+                   preamble1);
+
+  const std::vector<StatSupPreambleEntry> preamble2 = {
+      StatSupPreambleEntry({"test_q0", "test_q1"})};
+
+  checkCompilation(makeSettings(1, 1),
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
+                   "qreg q[2];\n"
+                   "h q[0];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[1] -> test_q1[0];\n",
+                   preamble2);
+
+  checkNoCompilation(makeSettings(1, 2));
+}
+
+/**
+ * @brief Tests the compilation of two superposition assertions when the second
+ * assertion cannot be canceled out by the first one because there is a
+ * non-commuting gate between them, even though it is unrelated.
+ */
+TEST_F(
+    StatisticalSlicesCompilationTest,
+    StatisticalSuperpositionOptIncludedInSupSupersetButCommutationNotPossibleButUnrelated) {
+  loadCode("qreg q[2];\n"
+           "h q[0];\n"
+           "assert-sup q[0];\n"
+           "h q[1];\n"
+           "assert-sup q[0], q[1];\n");
+
+  const std::vector<StatSupPreambleEntry> preamble1 = {
+      StatSupPreambleEntry({"test_q0"})};
+
+  checkCompilation(makeSettings(1, 0),
+                   "creg test_q0[1];\n"
+                   "qreg q[2];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n",
+                   preamble1);
+
+  const std::vector<StatSupPreambleEntry> preamble2 = {
+      StatSupPreambleEntry({"test_q0", "test_q1"})};
+
+  checkCompilation(makeSettings(1, 1),
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
+                   "qreg q[2];\n"
+                   "h q[0];\n"
+                   "h q[1];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[1] -> test_q1[0];\n",
+                   preamble2);
+
+  checkNoCompilation(makeSettings(1, 2));
+}
+
+/**
+ * @brief Tests the compilation of an equality assertion followed by a
+ * superposition assertions when the second assertion can be canceled out by the
+ * first one.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalSuperpositionOptIncludedInEq) {
+  loadCode("qreg q[1];\n"
+           "h q[0];\n"
+           "assert-eq 0.9, q[0] { 0.707, 0.707 }\n"
+           "x q[0];\n"
+           "assert-sup q[0];\n");
+
+  const std::vector<StatEqPreambleEntry> preamble = {
+      StatEqPreambleEntry({"test_q0"}, {0.499849, 0.499849}, 0.9)};
+
+  checkCompilation(makeSettings(1, 0),
+                   "creg test_q0[1];\n"
+                   "qreg q[1];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n",
+                   preamble);
+
+  checkNoCompilation(makeSettings(1, 1));
+}
+
+/**
+ * @brief Tests the compilation of an equality assertion followed by a
+ * superposition assertions when the second assertion can be canceled out by the
+ * first one as a subset of it was in a superposition in the first assertion.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalSuperpositionOptSubIncludedInEq) {
+  loadCode("qreg q[3];\n"
+           "h q[0];\n"
+           "assert-eq 0.9, q[0], q[1] { 0.707, 0.707, 0, 0 }\n"
+           "x q[0];\n"
+           "assert-sup q[0], q[2];\n");
+
+  const std::vector<StatEqPreambleEntry> preamble = {StatEqPreambleEntry(
+      {"test_q0", "test_q1"}, {0.499849, 0.499849, 0, 0}, 0.9)};
+
+  checkCompilation(makeSettings(1, 0),
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
+                   "qreg q[3];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[1] -> test_q1[0];\n",
+                   preamble);
+
+  checkNoCompilation(makeSettings(1, 1));
+}
+
+/**
+ * @brief Tests the compilation of an equality assertion followed by a
+ * superposition assertions when the second assertion cannot be canceled out by
+ * the first one as their intersection is was not in a superposition in the
+ * first assertion.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalSuperpositionOptSubNotEntangledInEq) {
+  loadCode("qreg q[3];\n"
+           "h q[1];\n"
+           "assert-eq 0.9, q[0], q[1] { 0.707, 0, 0.707, 0 }\n"
+           "x q[0];\n"
+           "assert-sup q[0], q[2];\n");
+
+  const std::vector<StatEqPreambleEntry> preamble1 = {StatEqPreambleEntry(
+      {"test_q0", "test_q1"}, {0.499849, 0, 0.499849, 0}, 0.9)};
+
+  checkCompilation(makeSettings(1, 0),
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
+                   "qreg q[3];\n"
+                   "h q[1];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[1] -> test_q1[0];\n",
+                   preamble1);
+
+  const std::vector<StatSupPreambleEntry> preamble2 = {
+      StatSupPreambleEntry({"test_q0", "test_q2"})};
+
+  checkCompilation(makeSettings(1, 1),
+                   "creg test_q0[1];\n"
+                   "creg test_q2[1];\n"
+                   "qreg q[3];\n"
+                   "h q[1];\n"
+                   "x q[0];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[2] -> test_q2[0];\n",
+                   preamble2);
+
+  checkNoCompilation(makeSettings(1, 2));
+}

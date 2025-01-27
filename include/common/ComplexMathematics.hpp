@@ -110,3 +110,11 @@ getSubStateVectorAmplitudes(const Statevector& sv,
  * @return The string representation of the complex number.
  */
 std::string complexToString(const Complex& c);
+
+/**
+ * @brief Compute the dot product of two state vectors.
+ * @param sv1 The first state vector.
+ * @param sv2 The second state vector.
+ * @return The computed dot product.
+ */
+double dotProduct(const Statevector& sv1, const Statevector& sv2);

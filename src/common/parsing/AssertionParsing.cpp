@@ -6,13 +6,17 @@
 #include "common/parsing/AssertionParsing.hpp"
 
 #include "common.h"
+#include "common/ComplexMathematics.hpp"
+#include "common/Span.hpp"
 #include "common/parsing/ParsingError.hpp"
 #include "common/parsing/Utils.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <iterator>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -36,9 +40,26 @@ EntanglementAssertion::EntanglementAssertion(
     std::vector<std::string> inputTargetQubits)
     : Assertion(std::move(inputTargetQubits), AssertionType::Entanglement) {}
 
+bool EntanglementAssertion::implies(const Assertion& other) const {
+  return false; // TODO
+}
+
 SuperpositionAssertion::SuperpositionAssertion(
     std::vector<std::string> inputTargetQubits)
     : Assertion(std::move(inputTargetQubits), AssertionType::Superposition) {}
+
+bool SuperpositionAssertion::implies(const Assertion& other) const {
+  if (other.getType() != AssertionType::Superposition) {
+    // Superposition assertions can only contain other superposition assertions.
+    return false;
+  }
+  const auto containerQubits =
+      std::set(getTargetQubits().begin(), getTargetQubits().end());
+  const auto subQubits =
+      std::set(other.getTargetQubits().begin(), other.getTargetQubits().end());
+  return std::includes(subQubits.begin(), subQubits.end(),
+                       containerQubits.begin(), containerQubits.end());
+}
 
 EqualityAssertion::EqualityAssertion(double inputSimilarityThreshold,
                                      std::vector<std::string> inputTargetQubits,
@@ -79,6 +100,84 @@ StatevectorEqualityAssertion::~StatevectorEqualityAssertion() {
   delete[] targetStatevector.amplitudes;
 }
 
+bool StatevectorEqualityAssertion::implies(
+    const StatevectorEqualityAssertion& other) const {
+  if (getSimilarityThreshold() < other.getSimilarityThreshold()) {
+    return false;
+  }
+  const auto containerQubits =
+      std::set(getTargetQubits().begin(), getTargetQubits().end());
+  const auto subQubits =
+      std::set(other.getTargetQubits().begin(), other.getTargetQubits().end());
+  if (!std::includes(containerQubits.begin(), containerQubits.end(),
+                     subQubits.begin(), subQubits.end())) {
+    return false;
+  }
+  Statevector targetSV;
+
+  if (containerQubits.size() != subQubits.size()) {
+    std::vector<size_t> indexList(other.getTargetQubits().size());
+    std::transform(
+        other.getTargetQubits().begin(), other.getTargetQubits().end(),
+        indexList.begin(), [this](const std::string& target) {
+          return std::distance(getTargetQubits().begin(),
+                               std::find(getTargetQubits().begin(),
+                                         getTargetQubits().end(), target));
+        });
+    auto newAmplitudes =
+        getSubStateVectorAmplitudes(getTargetStatevector(), indexList);
+    targetSV = {indexList.size(), newAmplitudes.size(), newAmplitudes.data()};
+  } else {
+    targetSV = getTargetStatevector();
+  }
+
+  const auto svSimilarity = dotProduct(targetSV, other.getTargetStatevector());
+  return svSimilarity * getSimilarityThreshold() >=
+         other.getSimilarityThreshold();
+}
+
+static bool qubitInSuperposition(const Span<Complex> statevector,
+                                 size_t qubit) {
+  double prob = 0;
+  for (size_t i = 0; i < statevector.size(); i++) {
+    if ((i & (1ULL << qubit)) != 0) {
+      prob += complexMagnitude(statevector[i]);
+    }
+  }
+  return prob > 0.00000001 && prob < 1 - 0.00000001;
+}
+
+bool StatevectorEqualityAssertion::implies(
+    const SuperpositionAssertion& other) const {
+  const auto& targetSV = getTargetStatevector();
+  const auto svSpan = Span<Complex>(targetSV.amplitudes, targetSV.numStates);
+  for (const auto& qubit : other.getTargetQubits()) {
+    const auto found =
+        std::find(getTargetQubits().begin(), getTargetQubits().end(), qubit);
+    if (found == getTargetQubits().end()) {
+      continue;
+    }
+    if (!qubitInSuperposition(svSpan, static_cast<size_t>(std::distance(
+                                          getTargetQubits().begin(), found)))) {
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+
+bool StatevectorEqualityAssertion::implies(const Assertion& other) const {
+  if (other.getType() == AssertionType::StatevectorEquality) {
+    const auto& svEq = dynamic_cast<const StatevectorEqualityAssertion&>(other);
+    return implies(svEq);
+  }
+  if (other.getType() == AssertionType::Superposition) {
+    const auto sup = dynamic_cast<const SuperpositionAssertion&>(other);
+    return implies(sup);
+  }
+  return false;
+}
+
 CircuitEqualityAssertion::CircuitEqualityAssertion(
     std::string inputCircuitCode, double inputSimilarityThreshold,
     std::vector<std::string> inputTargetQubits)
@@ -87,6 +186,10 @@ CircuitEqualityAssertion::CircuitEqualityAssertion(
       circuitCode(std::move(inputCircuitCode)) {}
 const std::string& CircuitEqualityAssertion::getCircuitCode() const {
   return circuitCode;
+}
+
+bool CircuitEqualityAssertion::implies(const Assertion& other) const {
+  return false; // TODO
 }
 
 /**

@@ -86,6 +86,14 @@ public:
    * @brief Validates the assertion and throws an exception, if it is invalid.
    */
   virtual void validate() {};
+
+  /**
+   * @brief Checks whether this assertion also implies another given assertion.
+   * @param other The other assertion to check.
+   * @return True if this assertion implies the other assertion, false
+   * otherwise.
+   */
+  [[nodiscard]] virtual bool implies(const Assertion& other) const = 0;
 };
 
 /**
@@ -98,6 +106,14 @@ public:
    * @param targetQubits The target qubits of the assertion.
    */
   explicit EntanglementAssertion(std::vector<std::string> targetQubits);
+
+  /**
+   * @brief Checks whether this assertion also implies another given assertion.
+   * @param other The other assertion to check.
+   * @return True if this assertion implies the other assertion, false
+   * otherwise.
+   */
+  [[nodiscard]] bool implies(const Assertion& other) const override;
 };
 
 /**
@@ -111,6 +127,14 @@ public:
    * @param targetQubits The target qubits of the assertion.
    */
   explicit SuperpositionAssertion(std::vector<std::string> targetQubits);
+
+  /**
+   * @brief Checks whether this assertion also implies another given assertion.
+   * @param other The other assertion to check.
+   * @return True if this assertion implies the other assertion, false
+   * otherwise.
+   */
+  [[nodiscard]] bool implies(const Assertion& other) const override;
 };
 
 /**
@@ -164,6 +188,24 @@ class StatevectorEqualityAssertion : public EqualityAssertion {
    */
   Statevector targetStatevector;
 
+  /**
+   * @brief Checks whether this assertion also implies another given
+   * StatevectorEqualityAssertion.
+   * @param other The other assertion to check.
+   * @return True if this assertion implies the other assertion, false
+   * otherwise.
+   */
+  [[nodiscard]] bool implies(const StatevectorEqualityAssertion& other) const;
+
+  /**
+   * @brief Checks whether this assertion also implies another given
+   * SuperpositionAssertion.
+   * @param other The other assertion to check.
+   * @return True if this assertion implies the other assertion, false
+   * otherwise.
+   */
+  [[nodiscard]] bool implies(const SuperpositionAssertion& other) const;
+
 public:
   /**
    * @brief Constructs a new StatevectorEqualityAssertion with the given target
@@ -197,6 +239,14 @@ public:
    * Checks, whether the target statevector is valid.
    */
   void validate() override;
+
+  /**
+   * @brief Checks whether this assertion also implies another given assertion.
+   * @param other The other assertion to check.
+   * @return True if this assertion implies the other assertion, false
+   * otherwise.
+   */
+  [[nodiscard]] bool implies(const Assertion& other) const override;
 };
 
 /**
@@ -228,6 +278,14 @@ public:
    * @return The code of the circuit that the target qubits are compared to.
    */
   [[nodiscard]] const std::string& getCircuitCode() const;
+
+  /**
+   * @brief Checks whether this assertion also implies another given assertion.
+   * @param other The other assertion to check.
+   * @return True if this assertion implies the other assertion, false
+   * otherwise.
+   */
+  [[nodiscard]] bool implies(const Assertion& other) const override;
 };
 
 /**
