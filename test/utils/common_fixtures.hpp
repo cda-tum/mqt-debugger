@@ -16,8 +16,11 @@
 #include <algorithm>
 #include <cstddef>
 #include <gtest/gtest.h>
+#include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 /**
  * @brief Fixture that loads custom code.
@@ -203,25 +206,12 @@ protected:
    * @param preamble The preamble to add to the code.
    * @return The code with the preamble added.
    */
-  static std::string addPreamble(const std::string& code,
-                                 const std::vector<PreambleEntry>& preamble) {
+  static std::string
+  addPreamble(const std::string& code,
+              const std::vector<const PreambleEntry*>& preamble) {
     std::stringstream ss;
     for (const auto& entry : preamble) {
-      ss << "// ASSERT: (";
-      for (size_t i = 0; i < entry.names.size(); i++) {
-        ss << entry.names[i];
-        if (i < entry.names.size() - 1) {
-          ss << ",";
-        }
-      }
-      ss << ") " << entry.fidelity << " {";
-      for (size_t i = 0; i < entry.distribution.size(); i++) {
-        ss << complexToStringTest(entry.distribution[i]);
-        if (i < entry.distribution.size() - 1) {
-          ss << ",";
-        }
-      }
-      ss << "}\n";
+      ss << entry->toString();
     }
     ss << code;
     return ss.str();
@@ -289,9 +279,10 @@ public:
    * @param settings The settings to use for the compilation.
    * @param expected The expected compiled code.
    */
-  void checkCompilation(const CompilationSettings& settings,
-                        const std::string& expected,
-                        const std::vector<PreambleEntry>& expectedPreamble) {
+  void
+  checkCompilation(const CompilationSettings& settings,
+                   const std::string& expected,
+                   const std::vector<const PreambleEntry*>& expectedPreamble) {
     // Compile the code
     const size_t size = state->compile(state, nullptr, settings);
     ASSERT_NE(size, 0) << "Compilation failed";

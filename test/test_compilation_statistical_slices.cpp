@@ -8,10 +8,80 @@
 #include "common_fixtures.hpp"
 #include "utils_test.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <gtest/gtest.h>
+#include <iterator>
+#include <sstream>
+#include <string>
+#include <utility>
 #include <vector>
+
+class StatEqPreambleEntry : public PreambleEntry {
+  /**
+   * @brief The name of the variable the preamble entry is for.
+   */
+  std::vector<std::string> names;
+  /**
+   * @brief The expected ratio of |1> results for the variable's measurement or
+   * another variable it is related to.
+   */
+  std::vector<Complex> distribution;
+  /**
+   * @brief The required fidelity for the variable's measurement outcomes.
+   */
+  double fidelity;
+
+public:
+  /**
+   * @brief Constructs a new StatEqPreambleEntry with the given names,
+   * distribution, and fidelity.
+   * @param n The names of the variables the preamble entry is for.
+   * @param dist The expected distribution of the preamble entry as complex
+   * numbers.
+   * @param fid The required fidelity for the preamble entry.
+   */
+  StatEqPreambleEntry(std::vector<std::string> n, std::vector<Complex> dist,
+                      double fid)
+      : names(std::move(n)), distribution(std::move(dist)), fidelity(fid) {}
+
+  /**
+   * @brief Constructs a new StatEqPreambleEntry with the given names,
+   * distribution, and fidelity.
+   * @param n The names of the variables the preamble entry is for.
+   * @param dist The expected distribution of the preamble entry as real
+   * numbers.
+   * @param fid The required fidelity for the preamble entry.
+   */
+  StatEqPreambleEntry(std::vector<std::string> n, std::vector<double> dist,
+                      double fid)
+      : names(std::move(n)), distribution(dist.size()), fidelity(fid) {
+    std::transform(dist.begin(), dist.end(), this->distribution.begin(),
+                   [](double value) { return Complex{value, 0.0}; });
+  }
+
+  [[nodiscard]] std::string toString() const override {
+    std::stringstream ss;
+    ss << "// ASSERT: (";
+    for (size_t i = 0; i < names.size(); i++) {
+      ss << names[i];
+      if (i < names.size() - 1) {
+        ss << ",";
+      }
+    }
+    ss << ") " << fidelity << " {";
+    for (size_t i = 0; i < distribution.size(); i++) {
+      ss << complexToStringTest(distribution[i]);
+      if (i < distribution.size() - 1) {
+        ss << ",";
+      }
+    }
+    ss << "}\n";
+
+    return ss.str();
+  }
+};
 
 class StatisticalSlicesCompilationTest : public CompilationTest {
 public:
@@ -28,6 +98,23 @@ public:
         /*sliceIndex=*/slice,
     };
   }
+
+  /**
+   * @brief Check the compilation of the loaded code with the given settings.
+   * @param settings The settings to use for the compilation.
+   * @param expected The expected compiled code.
+   */
+  void
+  checkCompilation(const CompilationSettings& settings,
+                   const std::string& expected,
+                   const std::vector<StatEqPreambleEntry>& expectedPreamble) {
+    auto pointerVector =
+        std::vector<const PreambleEntry*>(expectedPreamble.size());
+    std::transform(expectedPreamble.begin(), expectedPreamble.end(),
+                   pointerVector.begin(),
+                   [](const StatEqPreambleEntry& entry) { return &entry; });
+    CompilationTest::checkCompilation(settings, expected, pointerVector);
+  }
 };
 
 /**
@@ -40,8 +127,8 @@ TEST_F(StatisticalSlicesCompilationTest,
            "x q[0];\n"
            "assert-eq q[0] { 0, 1 }\n");
 
-  const std::vector<PreambleEntry> preamble = {
-      realPreamble({"test_q0"}, {0.0, 1.0}, 1.0)};
+  const std::vector<StatEqPreambleEntry> preamble = {
+      StatEqPreambleEntry({"test_q0"}, {0.0, 1.0}, 1.0)};
 
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
@@ -63,8 +150,8 @@ TEST_F(StatisticalSlicesCompilationTest,
            "h q[0];\n"
            "assert-eq 0.9, q[0] { 0.707, 0.707 }\n");
 
-  const std::vector<PreambleEntry> preamble = {
-      realPreamble({"test_q0"}, {0.499849, 0.499849}, 0.9)};
+  const std::vector<StatEqPreambleEntry> preamble = {
+      StatEqPreambleEntry({"test_q0"}, {0.499849, 0.499849}, 0.9)};
 
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
@@ -85,8 +172,8 @@ TEST_F(StatisticalSlicesCompilationTest, StatisticalTwoQubitEqualityNoOpt) {
            "cx q[0], q[1];\n"
            "assert-eq 0.9, q[0], q[1] { 0.707, 0, 0, 0.707 }\n");
 
-  const std::vector<PreambleEntry> preamble = {
-      realPreamble({"test_q0", "test_q1"}, {0.499849, 0, 0, 0.499849}, 0.9)};
+  const std::vector<StatEqPreambleEntry> preamble = {StatEqPreambleEntry(
+      {"test_q0", "test_q1"}, {0.499849, 0, 0, 0.499849}, 0.9)};
 
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
@@ -111,8 +198,8 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-eq 0.9, q[0] { 0.707, 0.707 }\n"
            "assert-eq 0.9, q[0] { 0.707, 0.707 }\n");
 
-  const std::vector<PreambleEntry> preamble = {
-      realPreamble({"test_q0"}, {0.499849, 0.499849}, 0.9)};
+  const std::vector<StatEqPreambleEntry> preamble = {
+      StatEqPreambleEntry({"test_q0"}, {0.499849, 0.499849}, 0.9)};
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -142,8 +229,8 @@ TEST_F(StatisticalSlicesCompilationTest,
            "x q[0];\n"
            "assert-eq q[0] { 1, 0 }\n");
 
-  const std::vector<PreambleEntry> preamble1 = {
-      realPreamble({"test_q0"}, {0, 1}, 1.0)};
+  const std::vector<StatEqPreambleEntry> preamble1 = {
+      StatEqPreambleEntry({"test_q0"}, {0, 1}, 1.0)};
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -151,8 +238,8 @@ TEST_F(StatisticalSlicesCompilationTest,
                    "measure q[0] -> test_q0[0];\n",
                    preamble1);
 
-  const std::vector<PreambleEntry> preamble2 = {
-      realPreamble({"test_q0"}, {1, 0}, 1.0)};
+  const std::vector<StatEqPreambleEntry> preamble2 = {
+      StatEqPreambleEntry({"test_q0"}, {1, 0}, 1.0)};
   checkCompilation(makeSettings(0, 1),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -179,8 +266,8 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-eq q[0] { 0, 1 }\n"
            "assert-eq q[0] { 0, 1 }\n");
 
-  const std::vector<PreambleEntry> preamble = {
-      realPreamble({"test_q0"}, {0, 1}, 1.0)};
+  const std::vector<StatEqPreambleEntry> preamble = {
+      StatEqPreambleEntry({"test_q0"}, {0, 1}, 1.0)};
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -239,8 +326,8 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-eq 0.9, q[0] { 0, 1 }\n"
            "assert-eq 0.99, q[0] { 0, 1 }\n");
 
-  const std::vector<PreambleEntry> preamble = {
-      realPreamble({"test_q0"}, {0, 1}, 0.99)};
+  const std::vector<StatEqPreambleEntry> preamble = {
+      StatEqPreambleEntry({"test_q0"}, {0, 1}, 0.99)};
   checkCompilation(makeSettings(1, 1),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -261,8 +348,8 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-eq q[0] { 0, 1 }\n"
            "assert-eq q[0], q[1] { 0, 0, 1, 0 }\n");
 
-  const std::vector<PreambleEntry> preamble = {
-      realPreamble({"test_q0", "test_q1"}, {0, 0, 1, 0}, 1.0)};
+  const std::vector<StatEqPreambleEntry> preamble = {
+      StatEqPreambleEntry({"test_q0", "test_q1"}, {0, 0, 1, 0}, 1.0)};
   checkCompilation(makeSettings(1, 1),
                    "creg test_q0[1];\n"
                    "creg test_q1[1];\n"
@@ -272,3 +359,26 @@ TEST_F(StatisticalSlicesCompilationTest,
                    "measure q[1] -> test_q1[0];\n",
                    preamble);
 }
+
+/**
+ * @brief Tests the compilation of a simple superposition assertion using
+ * statistical slices and no optimization.
+ */
+/*TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalSingleSuperpositionNoOpt) {
+  loadCode("qreg q[1];\n"
+           "h q[0];\n"
+           "assert-sup q[0]\n");
+
+  const std::vector<PreambleEntry> preamble = {
+      realPreamble({"test_q0"}, {0.0, 1.0}, 1.0)};
+
+  checkCompilation(makeSettings(0, 0),
+                   "creg test_q0[1];\n"
+                   "qreg q[1];\n"
+                   "x q[0];\n"
+                   "measure q[0] -> test_q0[0];\n",
+                   preamble);
+
+  checkNoCompilation(makeSettings(0, 1));
+}*/

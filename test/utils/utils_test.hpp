@@ -52,28 +52,13 @@ std::string complexToStringTest(const Complex& c);
 /**
  * @brief Represents a preamble entry in the compiled code.
  */
-struct PreambleEntry {
+class PreambleEntry {
+public:
   /**
-   * @brief The name of the variable the preamble entry is for.
+   * @brief Get the string representation of the preamble entry.
+   * @return The string representation of the preamble entry.
    */
-  std::vector<std::string> names;
-  /**
-   * @brief The expected ratio of |1> results for the variable's measurement or
-   * another variable it is related to.
-   */
-  std::vector<Complex> distribution;
-  /**
-   * @brief The required fidelity for the variable's measurement outcomes.
-   */
-  double fidelity;
-};
+  [[nodiscard]] virtual std::string toString() const = 0;
 
-/**
- * @brief Create a preamble entry consisting of only real values.
- * @param names The name of the variable the preamble entry is for.
- * @param distribution
- * @param fidelity
- * @return
- */
-PreambleEntry realPreamble(std::vector<std::string> names,
-                           std::vector<double> distribution, double fidelity);
+  virtual ~PreambleEntry() = default;
+};
