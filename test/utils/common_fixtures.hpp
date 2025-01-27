@@ -3,11 +3,14 @@
  * @brief Provides common fixture base classes for other tests.
  */
 
+#pragma once
+
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/dd/DDSimDiagnostics.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
 #include "common.h"
+#include "common/parsing/Utils.hpp"
 #include "utils_test.hpp"
 
 #include <algorithm>
@@ -175,5 +178,140 @@ protected:
       state->stepForward(state);
       currentInstruction = state->getCurrentInstruction(state);
     }
+  }
+};
+
+/**
+ * @brief Fixture for testing the correctness of the compilation process.
+ *
+ * This fixture sets up a DDSimulationState and provides the method
+ * `loadCode` to load custom code into the state. The code is then
+ * compiled and the resulting program is checked for correctness.
+ */
+class CompilationTest : public CustomCodeFixture {
+
+protected:
+  std::string addBoilerplate(size_t /*numQubits*/, size_t /*numClassics*/,
+                             const char* code,
+                             const char* /*preamble*/) override {
+    return code;
+  }
+
+  /**
+   * @brief Add the testing preamble to the given code.
+   * @param code The code to add the preamble to.
+   * @param preamble The preamble to add to the code.
+   * @return The code with the preamble added.
+   */
+  static std::string addPreamble(const std::string& code,
+                                 const std::vector<PreambleEntry>& preamble) {
+    std::stringstream ss;
+    for (const auto& entry : preamble) {
+      ss << "// ASSERT: (";
+      for (size_t i = 0; i < entry.names.size(); i++) {
+        ss << entry.names[i];
+        if (i < entry.names.size() - 1) {
+          ss << ",";
+        }
+      }
+      ss << ") " << entry.fidelity << " {";
+      for (size_t i = 0; i < entry.distribution.size(); i++) {
+        ss << complexToStringTest(entry.distribution[i]);
+        if (i < entry.distribution.size() - 1) {
+          ss << ",";
+        }
+      }
+      ss << "}\n";
+    }
+    ss << code;
+    return ss.str();
+  }
+
+  /**
+   * @brief Load the given code into the state.
+   *
+   * Convenience overload for base method that automatically sets unneeded
+   * parameters to 0.
+   *
+   * @param code The code to load.
+   */
+  void loadCode(const char* code) {
+    CustomCodeFixture::loadCode(0, 0, code, false, "");
+  }
+
+  /**
+   * @brief Display the expected and actual compiled codes side by side.
+   * @param expected The expected compiled code.
+   * @param actual The actual compiled code.
+   */
+  static void prettyPrintComparison(const std::string& expected,
+                                    const std::string& actual) {
+    auto expectedLines = splitString(expected, '\n');
+    auto actualLines = splitString(actual, '\n');
+    expectedLines.insert(expectedLines.begin(), "");
+    actualLines.insert(actualLines.begin(), "");
+    expectedLines.insert(expectedLines.begin(), "EXPECTED:");
+    actualLines.insert(actualLines.begin(), "ACTUAL:");
+    const auto maxLenExpected =
+        std::max_element(expectedLines.begin(), expectedLines.end(),
+                         [](const std::string& a, const std::string& b) {
+                           return a.size() < b.size();
+                         })
+            ->size();
+    const auto maxLenActual =
+        std::max_element(actualLines.begin(), actualLines.end(),
+                         [](const std::string& a, const std::string& b) {
+                           return a.size() < b.size();
+                         })
+            ->size();
+    const auto lineCount = std::max(expectedLines.size(), actualLines.size());
+    std::cout << "\n";
+    for (size_t i = 0; i < lineCount; i++) {
+      if (i == 1) {
+        std::cout << std::setfill('-');
+      } else {
+        std::cout << std::setfill(' ');
+      }
+      const auto expectedLine =
+          i < expectedLines.size() ? expectedLines[i] : "";
+      const auto actualLine = i < actualLines.size() ? actualLines[i] : "";
+      std::cout << std::left << std::setw(static_cast<int>(maxLenExpected + 3))
+                << expectedLine << " | "
+                << std::setw(static_cast<int>(maxLenActual + 3)) << actualLine
+                << "\n";
+    }
+    std::cout << "\n";
+  }
+
+public:
+  /**
+   * @brief Check the compilation of the loaded code with the given settings.
+   * @param settings The settings to use for the compilation.
+   * @param expected The expected compiled code.
+   */
+  void checkCompilation(const CompilationSettings& settings,
+                        const std::string& expected,
+                        const std::vector<PreambleEntry>& expectedPreamble) {
+    // Compile the code
+    const size_t size = state->compile(state, nullptr, settings);
+    ASSERT_NE(size, 0) << "Compilation failed";
+    std::vector<char> buffer(size);
+    const size_t newSize = state->compile(state, buffer.data(), settings);
+    ASSERT_EQ(size, newSize) << "Compilation resulted in unexpected size";
+    const auto expectedCode = addPreamble(expected, expectedPreamble);
+    const auto receivedCode = std::string(buffer.data());
+    prettyPrintComparison(expectedCode, receivedCode);
+    ASSERT_EQ(expectedCode, receivedCode)
+        << "Compilation resulted in unexpected code";
+  }
+
+  /**
+   * @brief Check whether the compilation of the loaded code fails with the
+   * given settings.
+   * @param settings The settings to use for the compilation.
+   */
+  void checkNoCompilation(const CompilationSettings& settings) {
+    ASSERT_EQ(state->compile(state, nullptr, settings), 0)
+        << "Compilation should have failed";
   }
 };

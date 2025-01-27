@@ -6,7 +6,9 @@
 #pragma once
 #include "common.h"
 
+#include <algorithm>
 #include <string>
+#include <vector>
 
 /**
  * @brief Check if the given complex number is equal to the given real and
@@ -46,3 +48,32 @@ std::string readFromCircuitsPath(const std::string& testName);
  * @return The string representation of the complex number.
  */
 std::string complexToStringTest(const Complex& c);
+
+/**
+ * @brief Represents a preamble entry in the compiled code.
+ */
+struct PreambleEntry {
+  /**
+   * @brief The name of the variable the preamble entry is for.
+   */
+  std::vector<std::string> names;
+  /**
+   * @brief The expected ratio of |1> results for the variable's measurement or
+   * another variable it is related to.
+   */
+  std::vector<Complex> distribution;
+  /**
+   * @brief The required fidelity for the variable's measurement outcomes.
+   */
+  double fidelity;
+};
+
+/**
+ * @brief Create a preamble entry consisting of only real values.
+ * @param names The name of the variable the preamble entry is for.
+ * @param distribution
+ * @param fidelity
+ * @return
+ */
+PreambleEntry realPreamble(std::vector<std::string> names,
+                           std::vector<double> distribution, double fidelity);

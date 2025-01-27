@@ -2,7 +2,7 @@ package_add_test(
   mqt_debugger_test
   MQT::Debugger
   utils_test.cpp
-  test_compilation.cpp
+  test_compilation_statistical_slices.cpp
   test_utility.cpp
   test_simulation.cpp
   test_data_retrieval.cpp

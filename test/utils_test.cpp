@@ -10,11 +10,14 @@
 
 #include "common.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
 #include <string>
+#include <utility>
+#include <vector>
 
 bool complexEquality(const Complex& c, double real, double imaginary) {
   const double epsilon = 0.001;
@@ -78,4 +81,13 @@ std::string complexToStringTest(const Complex& c) {
   }
   return doubleToStringTest(c.real) + " + " + doubleToStringTest(c.imaginary) +
          "i";
+}
+
+PreambleEntry realPreamble(std::vector<std::string> names,
+                           std::vector<double> distribution, double fidelity) {
+  std::vector<Complex> complexDistribution(distribution.size());
+  std::transform(distribution.begin(), distribution.end(),
+                 complexDistribution.begin(),
+                 [](double value) { return Complex{value, 0.0}; });
+  return {std::move(names), complexDistribution, fidelity};
 }
