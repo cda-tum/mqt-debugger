@@ -189,7 +189,8 @@ const std::string& CircuitEqualityAssertion::getCircuitCode() const {
 }
 
 bool CircuitEqualityAssertion::implies(const Assertion& other) const {
-  return false; // TODO
+  throw std::runtime_error(
+      "`implies` method not supported for CircuitEqualityAssertion");
 }
 
 /**
