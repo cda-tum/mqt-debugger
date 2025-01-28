@@ -810,3 +810,132 @@ TEST_F(StatisticalSlicesCompilationTest,
 
   checkNoCompilation(makeSettings(1, 1));
 }
+
+/**
+ * @brief Tests the compilation of two equality assertions that can be
+ * combined into one execution at opt-level 2.
+ */
+TEST_F(StatisticalSlicesCompilationTest, StatisticalEqualityOptCombined) {
+  loadCode("qreg q[3];\n"
+           "x q[0];\n"
+           "assert-eq q[0], q[1] { 0, 1, 0, 0 }\n"
+           "assert-eq q[2] { 0, 1 }\n");
+
+  const std::vector<StatEqPreambleEntry> preamble = {
+      StatEqPreambleEntry({"test_q0", "test_q1"}, {0, 1, 0, 0}, 1),
+      StatEqPreambleEntry({"test_q2"}, {0, 1}, 1)};
+
+  checkCompilation(makeSettings(2, 0),
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
+                   "creg test_q2[1];\n"
+                   "qreg q[3];\n"
+                   "x q[0];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[1] -> test_q1[0];\n"
+                   "measure q[2] -> test_q2[0];\n",
+                   preamble);
+
+  checkNoCompilation(makeSettings(2, 1));
+}
+
+/**
+ * @brief Tests the compilation of two assertions that can be
+ * combined into one execution at opt-level 2 with an instruction between.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalOptCombinedWithOperationBetween) {
+  loadCode("qreg q[2];\n"
+           "h q[0];\n"
+           "assert-sup q[0];\n"
+           "h q[0];\n"
+           "assert-sup q[1];\n");
+
+  const std::vector<StatSupPreambleEntry> preamble = {
+      StatSupPreambleEntry({"test_q0"}), StatSupPreambleEntry({"test_q1"})};
+
+  checkCompilation(makeSettings(2, 0),
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
+                   "qreg q[2];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "h q[0];\n"
+                   "measure q[1] -> test_q1[0];\n",
+                   preamble);
+
+  checkNoCompilation(makeSettings(2, 1));
+}
+
+/**
+ * @brief Tests the compilation of two assertions that can be
+ * combined into one execution at opt-level 2 with an instruction between.
+ */
+TEST_F(StatisticalSlicesCompilationTest, StatisticalOptCombinedRemeasure) {
+  loadCode("qreg q[2];\n"
+           "h q[0];\n"
+           "h q[1];\n"
+           "assert-sup q[0], q[1];\n"
+           "assert-sup q[0];\n");
+
+  const std::vector<StatSupPreambleEntry> preamble = {
+      StatSupPreambleEntry({"test_q0", "test_q1"}),
+      StatSupPreambleEntry({"test_q0_"})};
+
+  checkCompilation(makeSettings(2, 0),
+                   "creg test_q0[1];\n"
+                   "creg test_q0_[1];\n"
+                   "creg test_q1[1];\n"
+                   "qreg q[2];\n"
+                   "h q[0];\n"
+                   "h q[1];\n"
+                   "measure q[0] -> test_q0[0];\n"
+                   "measure q[1] -> test_q1[0];\n"
+                   "measure q[0] -> test_q0_[0];\n",
+                   preamble);
+
+  checkNoCompilation(makeSettings(2, 1));
+}
+
+/**
+ * @brief Tests the compilation of three assertions, where the first two can be
+ * combined into one execution at opt-level 2 with an instruction between.
+ */
+TEST_F(StatisticalSlicesCompilationTest,
+       StatisticalMixedOptCombinedWithBlockingOperationBetween) {
+  loadCode("qreg q[2];\n"
+           "x q[0];\n"
+           "assert-eq q[0] { 0, 1 }\n"
+           "h q[0];\n"
+           "assert-sup q[1];\n"
+           "assert-sup q[0];\n");
+
+  const auto preamble1 = StatEqPreambleEntry({"test_q0"}, {0, 1}, 1.0);
+  const auto preamble2 = StatSupPreambleEntry({"test_q1"});
+  const auto preambles =
+      std::vector<const PreambleEntry*>{&preamble1, &preamble2};
+
+  CompilationTest::checkCompilation(makeSettings(2, 0),
+                                    "creg test_q0[1];\n"
+                                    "creg test_q1[1];\n"
+                                    "qreg q[2];\n"
+                                    "x q[0];\n"
+                                    "measure q[0] -> test_q0[0];\n"
+                                    "h q[0];\n"
+                                    "measure q[1] -> test_q1[0];\n",
+                                    preambles);
+
+  const std::vector<StatSupPreambleEntry> lastPreamble = {
+      StatSupPreambleEntry({"test_q0"}),
+  };
+
+  checkCompilation(makeSettings(2, 1),
+                   "creg test_q0[1];\n"
+                   "qreg q[2];\n"
+                   "x q[0];\n"
+                   "h q[0];\n"
+                   "measure q[0] -> test_q0[0];\n",
+                   lastPreamble);
+
+  checkNoCompilation(makeSettings(2, 2));
+}
