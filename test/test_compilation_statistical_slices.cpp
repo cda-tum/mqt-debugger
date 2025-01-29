@@ -1,7 +1,7 @@
 /**
- * @file test_compilation.cpp
+ * @file test_compilation_statistical_slices.cpp
  * @brief Tests the correctness of the assertion compilation process for
- * assertion programs.
+ * assertion programs using statistical slices.
  */
 
 #include "common.h"
@@ -18,6 +18,9 @@
 #include <utility>
 #include <vector>
 
+/**
+ * @brief A preamble entry for statistical equality assertions.
+ */
 class StatEqPreambleEntry : public PreambleEntry {
   /**
    * @brief The name of the variable the preamble entry is for.
@@ -83,6 +86,9 @@ public:
   }
 };
 
+/**
+ * @brief A preamble entry for statistical superposition assertions.
+ */
 class StatSupPreambleEntry : public PreambleEntry {
   /**
    * @brief The name of the variable the preamble entry is for.
@@ -110,6 +116,10 @@ public:
   }
 };
 
+/**
+ * @brief A test fixture for testing the compilation of assertion programs using
+ * statistical slices.
+ */
 class StatisticalSlicesCompilationTest : public CompilationTest {
 public:
   /**
