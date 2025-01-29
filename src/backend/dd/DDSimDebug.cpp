@@ -870,8 +870,7 @@ size_t ddsimCompile(SimulationState* self, char* buffer,
   switch (settings.mode) {
   case CompilationMode::STATISTICAL_SLICES:
     return compileStatisticalSlice(ddsim, buffer, settings);
-  case CompilationMode::PROJECTIVE_MEASUREMENT:
-  case CompilationMode::ANCILLA_MEASUREMENT:
+  case CompilationMode::PROJECTIVE_MEASUREMENTS:
     std::cerr << "Compilation mode not supported by the DD simulator\n";
     return 0;
   }

@@ -116,11 +116,7 @@ typedef enum {
   /**
    * @brief Compiles assertions into projective measurements.
    */
-  PROJECTIVE_MEASUREMENT,
-  /**
-   * @brief Translates assertions into measurements on new ancilla qubits.
-   */
-  ANCILLA_MEASUREMENT,
+  PROJECTIVE_MEASUREMENTS,
 } CompilationMode;
 
 /**
