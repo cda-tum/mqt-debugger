@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from . import dap
+from . import check, dap
 from ._version import version as __version__
 from .pydebugger import (
     Complex,
@@ -29,6 +29,9 @@ __all__ = [
     "VariableType",
     "VariableValue",
     "__version__",
+    "check",
+    "check",
+    "create_ddsim_simulation_state",
     "create_ddsim_simulation_state",
     "dap",
     "destroy_ddsim_simulation_state",

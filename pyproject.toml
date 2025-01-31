@@ -34,6 +34,9 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dynamic = ["version"]
+dependencies = [
+    "scipy>=1.13.1",
+]
 
 [project.optional-dependencies]
 test = ["pytest>=7.0", "pytest-console-scripts>=1.4", "mqt.debugger[qiskit, evaluation]"]
@@ -85,18 +88,18 @@ minimum-version = "0.8.1"
 # Set the wheel install directory
 wheel.install-dir = "mqt/debugger"
 
+# Explicitly set the package directory
+wheel.packages = ["src/mqt"]
+
 # Set required CMake and Ninja versions
 cmake.version = ">=3.19"
+
+# Only build the Python bindings target
+cmake.targets = ["pydebugger"]
 ninja.version = ">=1.10"
 
 # Setuptools-style build caching in a local directory
 build-dir = "build/{wheel_tag}"
-
-# Explicitly set the package directory
-wheel.packages = ["src/mqt"]
-
-# Only build the Python bindings target
-cmake.targets = ["pydebugger"]
 
 # Only install the Python package component
 install.components = ["mqt-debugger_Python"]
