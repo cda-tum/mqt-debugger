@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import locale
 from pathlib import Path
 
 from . import result_checker, run_preparation
+from .calibration import Calibration
 
 
 def main() -> None:
@@ -14,7 +16,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Compile assertion programs for real hardware.")
     subparsers = parser.add_subparsers(dest="mode", required=True, help="The mode to run the program in.")
     parser.add_argument(
-        "--calibration", type=Path, help="The path to a calibration file containing device information."
+        "--calibration", type=Path, help="The path to a calibration file containing device information.", default=None
     )
 
     # Add the subparser for the preparation mode.
@@ -36,9 +38,15 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    if args.calibration is not None:
+        with args.calibration.open("r") as f:
+            calibration_data = Calibration(**json.load(f))
+    else:
+        calibration_data = Calibration.example()
+
     if args.mode == "prepare":
-        run_preparation.start_compilation(args.code, args.output_dir)
+        run_preparation.start_compilation(args.code, args.output_dir, calibration_data)
     elif args.mode == "check":
         with (args.dir / f"slice_{args.slice}.qasm").open("r", encoding=locale.getpreferredencoding(False)) as f:
             compiled_code = f.read()
-        result_checker.check_result(compiled_code, args.results)
+        result_checker.check_result(compiled_code, args.results, calibration_data)
