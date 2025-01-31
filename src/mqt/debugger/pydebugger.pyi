@@ -394,6 +394,16 @@ class SimulationState:
             Diagnostics: The diagnostics instance employed by this debugger.
         """
 
+    def compile(self, settings: CompilationSettings) -> str:
+        """Compiles the program in the current state.
+
+        Args:
+        settings (CompilationSettings): The settings to use for the compilation.
+
+        Returns:
+            str: The compiled code.
+        """
+
 class ErrorCauseType(enum.Enum):
     """Represents the type of a potential error cause."""
 

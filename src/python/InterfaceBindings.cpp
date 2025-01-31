@@ -813,7 +813,7 @@ Each entry of the resulting list consists of the suggested position for the new 
 string representation.
 
 Returns:
-  list[tupke[int, str]]: A list of new assertions.
+  list[tuple[int, str]]: A list of new assertions.
 )")
       .doc() = "Provides diagnostics capabilities such as different analysis "
                "methods for the debugger.";
