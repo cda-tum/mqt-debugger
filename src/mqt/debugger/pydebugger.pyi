@@ -60,6 +60,33 @@ class Complex:
             imaginary (float, optional): The imaginary part of the complex number. Defaults to 0.0.
         """
 
+class CompilationMode(enum.Enum):
+    """The mode in which an assertion program should be compiled."""
+
+    StatisticalSlices: CompilationMode
+    """Compiles the program into slices based on the given assertions to be tested statistically."""
+    ProjectiveMeasurements: CompilationMode
+    """Compiles assertions into projective measurements."""
+
+class CompilationSettings:
+    """The settings that should be used to compile an assertion program."""
+
+    mode: CompilationMode
+    """The mode in which the program should be compiled."""
+    opt: int
+    """The optimization level that should be used. Exact meaning depends on the implementation, but typically 0 means no optimization."""
+    slice_index: int
+    """The index of the slice that should be compiled."""
+
+    def __init__(self, mode: CompilationMode, opt: int, slice_index: int = 0) -> None:
+        """Initializes a new set of compilation settings.
+
+        Args:
+            mode (CompilationMode): The mode in which the program should be compiled.
+            opt (int): The optimization level that should be used.
+            slice_index (int, optional): The index of the slice that should be compiled (defaults to 0).
+        """
+
 class Statevector:
     """Represents a state vector."""
 

@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <pybind11/detail/common.h>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -125,6 +126,35 @@ This is always equal to 2^`num_qubits`.)")
 
 Contains one element for each of the `num_states` states in the state vector.)")
       .doc() = "Represents a state vector.";
+
+  py::enum_<CompilationMode>(m, "CompilationMode")
+      .value("StatisticalSlices", STATISTICAL_SLICES,
+             "Compiles the program into slices based on the given assertions "
+             "to be tested statistically.")
+      .value("ProjectiveMeasurements", PROJECTIVE_MEASUREMENTS,
+             "Compiles assertions into projective measurements.")
+      .export_values()
+      .doc() = "The mode in which an assertion program should be compiled.";
+
+  py::class_<CompilationSettings>(m, "CompilationSettings")
+      .def(py::init<CompilationMode, int, int>(),
+           R"(Initializes a new set of compilation settings.
+
+Args:
+   mode (CompilationMode): The mode in which the program should be compiled.
+   opt (int): The optimization level that should be used.
+   slice_index (int, optional): The index of the slice that should be compiled (defaults to 0).)")
+      .def_readwrite("mode", &CompilationSettings::mode,
+                     "The mode in which the program should be compiled.")
+      .def_readwrite(
+          "opt", &CompilationSettings ::opt,
+          "The optimization level that should be used. Exact meaning depends "
+          "on "
+          "the implementation, but typically 0 means no optimization.")
+      .def_readwrite("slice_index", &CompilationSettings::sliceIndex,
+                     "The index of the slice that should be compiled.")
+      .doc() =
+      "The settings that should be used to compile an assertion program.";
 
   py::class_<SimulationState>(m, "SimulationState")
       .def(py::init<>(), "Creates a new `SimulationState` instance.")
@@ -532,6 +562,25 @@ Returns:
 
 Returns:
     Diagnostics: The diagnostics instance employed by this debugger.)")
+      .def(
+          "compile",
+          [](SimulationState* self, CompilationSettings& settings) {
+            const auto size = self->compile(self, nullptr, settings);
+            if (size == 0) {
+              return std::string();
+            }
+            std::vector<char> buffer(size);
+            self->compile(self, buffer.data(), settings);
+            std::string result(buffer.data(), size);
+            return result;
+          },
+          R"(Compiles the given code into a quantum circuit without assertions.
+
+Args:
+    settings (CompilationSettings): The settings to use for the compilation.
+
+Returns:
+  str: The compiled code.)")
       .doc() = R"(Represents the state of a quantum simulation for debugging.
 
 "This is the main class of the `mqt-debugger` library, allowing developers to step through the code and inspect the state of the simulation.)";
