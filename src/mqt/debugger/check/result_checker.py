@@ -145,13 +145,17 @@ def check_assertion(
     return check_assertion_equality(assertion, distribution, num_samples, expected_success_probability)
 
 
-def check_result(compiled_code: str, result_path: Path, calibration: Calibration) -> None:
+def check_result(compiled_code: str, result_path: Path, calibration: Calibration, silent: bool = False) -> bool:
     """Check the result of a quantum program against assertions.
 
     Args:
         compiled_code (str): The compiled code of the quantum program.
         result_path (Path): The path to the file containing the results.
-        calibration (Calibration): The calibration data for the device
+        calibration (Calibration): The calibration data for the device.
+        silent (bool, optional): If true, the output is suppressed. Defaults to False.
+
+    Returns:
+        bool: True if all assertions are satisfied, False otherwise.
     """
     lines = compiled_code.splitlines()
     distributions: list[tuple[str, ...]] = []
@@ -166,9 +170,13 @@ def check_result(compiled_code: str, result_path: Path, calibration: Calibration
 
     expected_success_probability = calibration.get_expected_success_probability(compiled_code)
 
+    ok = True
     for key, value in assertions.items():
         res = check_assertion(value, result.distribution[key], result.num_samples, expected_success_probability)
-        if not res:
-            print(f"{COLOR_RED}Assertion {key} failed.{COLOR_RESET}")  # noqa: T201
-        else:
-            print(f"{COLOR_GREEN}Assertion {key} passed.{COLOR_RESET}")  # noqa: T201
+        if not silent:
+            if not res:
+                print(f"{COLOR_RED}Assertion {key} failed.{COLOR_RESET}")  # noqa: T201
+            else:
+                print(f"{COLOR_GREEN}Assertion {key} passed.{COLOR_RESET}")  # noqa: T201
+        ok &= res
+    return ok
