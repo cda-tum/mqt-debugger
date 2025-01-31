@@ -44,7 +44,10 @@ class Result:
             for key in entry:
                 if entry[key] == 0:
                     continue
-                parent_distribution = next(x for x in distributions if key in x)
+                parent_distribution_list = [x for x in distributions if key in x]
+                if not parent_distribution_list:
+                    continue
+                parent_distribution = parent_distribution_list[0]
                 index = parent_distribution.index(key)
                 indices[parent_distribution] += 2 ** (len(parent_distribution) - index - 1)
             for key, value in indices.items():

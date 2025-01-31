@@ -47,7 +47,8 @@ struct StatevectorCPP {
 
 void bindFramework(py::module& m) {
   // Bind the VariableType enum
-  py::enum_<VariableType>(m, "VariableType")
+  py::enum_<VariableType>(m, "VariableType",
+                          "The type of a classical variable.")
       .value("VarBool", VarBool, "A boolean variable.")
       .value("VarInt", VarInt, "An integer variable.")
       .value("VarFloat", VarFloat, "A floating-point variable.")
@@ -127,17 +128,19 @@ This is always equal to 2^`num_qubits`.)")
 Contains one element for each of the `num_states` states in the state vector.)")
       .doc() = "Represents a state vector.";
 
-  py::enum_<CompilationMode>(m, "CompilationMode")
+  py::enum_<CompilationMode>(
+      m, "CompilationMode",
+      "The mode in which an assertion program should be compiled.")
       .value("StatisticalSlices", STATISTICAL_SLICES,
              "Compiles the program into slices based on the given assertions "
              "to be tested statistically.")
       .value("ProjectiveMeasurements", PROJECTIVE_MEASUREMENTS,
              "Compiles assertions into projective measurements.")
-      .export_values()
-      .doc() = "The mode in which an assertion program should be compiled.";
+      .export_values();
 
   py::class_<CompilationSettings>(m, "CompilationSettings")
-      .def(py::init<CompilationMode, int, int>(),
+      .def(py::init<CompilationMode, int, int>(), py::arg("mode"),
+           py::arg("opt"), py::arg("slice_index") = 0,
            R"(Initializes a new set of compilation settings.
 
 Args:
@@ -571,7 +574,7 @@ Returns:
             }
             std::vector<char> buffer(size);
             self->compile(self, buffer.data(), settings);
-            std::string result(buffer.data(), size);
+            std::string result(buffer.data(), size - 1);
             return result;
           },
           R"(Compiles the given code into a quantum circuit without assertions.
@@ -588,7 +591,8 @@ Returns:
 
 void bindDiagnostics(py::module& m) {
   // Bind the ErrorCauseType enum
-  py::enum_<ErrorCauseType>(m, "ErrorCauseType")
+  py::enum_<ErrorCauseType>(m, "ErrorCauseType",
+                            "The type of a potential error cause.")
       .value("Unknown", Unknown, "An unknown error cause.")
       .value("MissingInteraction", MissingInteraction,
              "Indicates that an entanglement error may be caused by a missing "

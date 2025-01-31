@@ -2,35 +2,43 @@
 
 from __future__ import annotations
 
+import argparse
+import locale
 from pathlib import Path
 
-from . import result_checker
-
-compiled_code_1 = """// ASSERT: (test_q0,test_q1) {superposition}
-creg test_q0[1];
-creg test_q1[1];
-qreg q[2];
-h q[0];
-measure q[0] -> test_q0[0];
-measure q[1] -> test_q1[0];
-"""
-
-compiled_code_2 = """// ASSERT: (test_q0,test_q1) {0.707,0,0,0.707}
-creg test_q0[1];
-creg test_q1[1];
-qreg q[2];
-h q[0];
-cx q[0], q[1];
-measure q[0] -> test_q0[0];
-measure q[1] -> test_q1[0];
-"""
+from . import result_checker, run_preparation
 
 
 def main() -> None:
     """The main function."""
-    # result_checker.check_result(compiled_code_2, Path("experiments/assertion-compilation/bell-pair.json"))
-    result_checker.check_result(compiled_code_1, Path("experiments/assertion-compilation/zeros.json"))
+    parser = argparse.ArgumentParser(description="Compile assertion programs for real hardware.")
+    subparsers = parser.add_subparsers(dest="mode", required=True, help="The mode to run the program in.")
+    parser.add_argument(
+        "--calibration", type=Path, help="The path to a calibration file containing device information."
+    )
 
+    # Add the subparser for the preparation mode.
+    sub_preparation = subparsers.add_parser(
+        "prepare", help="Prepare the assertion program for running on real hardware."
+    )
+    sub_preparation.add_argument(
+        "code", type=Path, help="The path to the assertion program in extended OpenQASM format."
+    )
+    sub_preparation.add_argument(
+        "--output-dir", "-o", type=Path, help="The directory to store the compiled slices.", default="."
+    )
 
-if __name__ == "__main__":
-    main()
+    # Add the subparser for the checking mode.
+    sub_checker = subparsers.add_parser("check", help="Check the results of the assertion program.")
+    sub_checker.add_argument("results", type=Path, help="The path to a JSON file containing all results.")
+    sub_checker.add_argument("--dir", "-d", type=Path, help="The path to the compiled program.", default=".")
+    sub_checker.add_argument("--slice", "-s", type=int, help="The slice index to check.", default=1)
+
+    args = parser.parse_args()
+
+    if args.mode == "prepare":
+        run_preparation.start_compilation(args.code, args.output_dir)
+    elif args.mode == "check":
+        with (args.dir / f"slice_{args.slice}.qasm").open("r", encoding=locale.getpreferredencoding(False)) as f:
+            compiled_code = f.read()
+        result_checker.check_result(compiled_code, args.results)

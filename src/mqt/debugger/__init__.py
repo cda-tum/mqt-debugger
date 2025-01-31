@@ -5,6 +5,8 @@ from __future__ import annotations
 from . import check, dap
 from ._version import version as __version__
 from .pydebugger import (
+    CompilationMode,
+    CompilationSettings,
     Complex,
     Diagnostics,
     ErrorCause,
@@ -19,6 +21,8 @@ from .pydebugger import (
 )
 
 __all__ = [
+    "CompilationMode",
+    "CompilationSettings",
     "Complex",
     "Diagnostics",
     "ErrorCause",
