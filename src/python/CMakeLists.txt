@@ -8,8 +8,8 @@ pybind11_add_module(
   bindings.cpp
   InterfaceBindings.cpp
   dd/DDSimDebugBindings.cpp)
-target_link_libraries(pydebugger PRIVATE MQT::Debugger MQT::CorePython pybind11_json
-                                         MQT::ProjectOptions MQT::ProjectWarnings)
+target_link_libraries(pydebugger PRIVATE MQT::Debugger pybind11_json MQT::ProjectOptions
+                                         MQT::ProjectWarnings)
 message(STATUS "CMAKE_INSTALL_PREFIX is set to ${CMAKE_INSTALL_PREFIX}")
 # Install directive for scikit-build-core
 install(

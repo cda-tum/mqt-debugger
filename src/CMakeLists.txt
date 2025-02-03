@@ -14,6 +14,7 @@ add_library(
 # set include directories
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include
                                                   ${PROJECT_BINARY_DIR}/include)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${Eigen3_Includes})
 
 # link to the MQT::Core libraries
 target_link_libraries(${PROJECT_NAME} PUBLIC MQT::CoreDD MQT::CoreIR MQT::CoreCircuitOptimizer)

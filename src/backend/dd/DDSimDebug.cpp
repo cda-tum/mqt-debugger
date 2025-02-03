@@ -27,7 +27,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <exception>
 #include <iostream>
@@ -362,7 +361,7 @@ Result ddsimStepForward(SimulationState* self) {
       auto classicalBit = classicalBits[i];
 
       auto [pZero, pOne] = ddsim->dd->determineMeasurementProbabilities(
-          ddsim->simulationState, static_cast<dd::Qubit>(qubit), true);
+          ddsim->simulationState, static_cast<dd::Qubit>(qubit));
       auto rnd = generateRandomNumber();
       auto result = rnd < pZero;
       ddsim->dd->performCollapsingMeasurement(ddsim->simulationState,
@@ -397,7 +396,7 @@ Result ddsimStepForward(SimulationState* self) {
 
     for (const auto qubit : qubitsToMeasure) {
       auto [pZero, pOne] = ddsim->dd->determineMeasurementProbabilities(
-          ddsim->simulationState, static_cast<dd::Qubit>(qubit), true);
+          ddsim->simulationState, static_cast<dd::Qubit>(qubit));
       auto rnd = generateRandomNumber();
       auto result = rnd < pZero;
       ddsim->dd->performCollapsingMeasurement(ddsim->simulationState,
@@ -405,7 +404,7 @@ Result ddsimStepForward(SimulationState* self) {
                                               result ? pZero : pOne, result);
       if (!result) {
         const auto x = qc::StandardOperation(qubit, qc::X);
-        auto tmp = ddsim->dd->multiply(dd::getDD(&x, *ddsim->dd),
+        auto tmp = ddsim->dd->multiply(dd::getDD(x, *ddsim->dd),
                                        ddsim->simulationState);
         ddsim->dd->incRef(tmp);
         ddsim->dd->decRef(ddsim->simulationState);
@@ -427,19 +426,20 @@ Result ddsimStepForward(SimulationState* self) {
     const auto& controls = op->getControlRegister();
     const auto& exp = op->getExpectedValue();
     size_t registerValue = 0;
-    for (size_t i = 0; i < controls.second; i++) {
-      const auto name = getClassicalBitName(ddsim, controls.first + i);
+    for (size_t i = 0; i < controls->getSize(); i++) {
+      const auto name =
+          getClassicalBitName(ddsim, controls->getStartIndex() + i);
       const auto& value = ddsim->variables[name].value.boolValue;
       registerValue |= (value ? 1ULL : 0ULL) << i;
     }
     if (registerValue == exp) {
-      currDD = dd::getDD(ddsim->iterator->get(), *ddsim->dd);
+      currDD = dd::getDD(**ddsim->iterator, *ddsim->dd);
     } else {
       currDD = ddsim->dd->makeIdent();
     }
   } else {
     // For all other operations, we just take the next gate to apply.
-    currDD = dd::getDD(ddsim->iterator->get(),
+    currDD = dd::getDD(**ddsim->iterator,
                        *ddsim->dd); // retrieve the "new" current operation
   }
 
@@ -502,19 +502,20 @@ Result ddsimStepBackward(SimulationState* self) {
     const auto& controls = op->getControlRegister();
     const auto& exp = op->getExpectedValue();
     size_t registerValue = 0;
-    for (size_t i = 0; i < controls.second; i++) {
-      const auto name = getClassicalBitName(ddsim, controls.first + i);
+    for (size_t i = 0; i < controls->getSize(); i++) {
+      const auto name =
+          getClassicalBitName(ddsim, controls->getStartIndex() + i);
       const auto& value = ddsim->variables[name].value.boolValue;
       registerValue |= (value ? 1ULL : 0ULL) << i;
     }
     if (registerValue == exp) {
-      currDD = dd::getInverseDD(ddsim->iterator->get(), *ddsim->dd);
+      currDD = dd::getInverseDD(**ddsim->iterator, *ddsim->dd);
     } else {
       currDD = ddsim->dd->makeIdent();
     }
   } else {
     currDD = dd::getInverseDD(
-        ddsim->iterator->get(),
+        **ddsim->iterator,
         *ddsim->dd); // get the inverse of the current operation
   }
 
