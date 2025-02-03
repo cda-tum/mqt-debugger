@@ -126,3 +126,6 @@ endif()
 
 # Make all declared dependencies available.
 FetchContent_MakeAvailable(${FETCH_PACKAGES})
+
+# Hide Eigen3 warnings
+get_target_property(Eigen3_Includes Eigen3::Eigen INTERFACE_INCLUDE_DIRECTORIES)

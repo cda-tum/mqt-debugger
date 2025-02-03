@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.26)
+cmake_policy(SET CMP0069 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+
 project(
   mqt_debugger
   LANGUAGES CXX
@@ -9,6 +12,8 @@ option(BUILD_MQT_DEBUGGER_TESTS "Also build tests for the MQT Debugger project" 
 option(BUILD_MQT_DEBUGGER_APP "Also build the CLI app for the MQT Debugger project" ON)
 
 set(CMAKE_CXX_STANDARD 17)
+
+include(CheckIPOSupported)
 
 if(BUILD_MQT_DEBUGGER_BINDINGS)
   # ensure that the BINDINGS option is set
