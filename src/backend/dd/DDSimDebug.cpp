@@ -26,7 +26,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <exception>
 #include <iostream>
@@ -430,13 +429,13 @@ Result ddsimStepForward(SimulationState* self) {
       registerValue |= (value ? 1ULL : 0ULL) << i;
     }
     if (registerValue == exp) {
-      currDD = dd::getDD(*ddsim->iterator->get(), *ddsim->dd);
+      currDD = dd::getDD(**ddsim->iterator, *ddsim->dd);
     } else {
       currDD = ddsim->dd->makeIdent();
     }
   } else {
     // For all other operations, we just take the next gate to apply.
-    currDD = dd::getDD(*ddsim->iterator->get(),
+    currDD = dd::getDD(**ddsim->iterator,
                        *ddsim->dd); // retrieve the "new" current operation
   }
 
@@ -506,13 +505,13 @@ Result ddsimStepBackward(SimulationState* self) {
       registerValue |= (value ? 1ULL : 0ULL) << i;
     }
     if (registerValue == exp) {
-      currDD = dd::getInverseDD(*ddsim->iterator->get(), *ddsim->dd);
+      currDD = dd::getInverseDD(**ddsim->iterator, *ddsim->dd);
     } else {
       currDD = ddsim->dd->makeIdent();
     }
   } else {
     currDD = dd::getInverseDD(
-        *ddsim->iterator->get(),
+        **ddsim->iterator,
         *ddsim->dd); // get the inverse of the current operation
   }
 
