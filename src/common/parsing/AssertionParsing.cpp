@@ -130,6 +130,7 @@ bool StatevectorEqualityAssertion::implies(
     return false;
   }
   Statevector targetSV;
+  std::vector<Complex> newAmplitudes;
 
   if (containerQubits.size() != subQubits.size()) {
     std::vector<size_t> indexList(other.getTargetQubits().size());
@@ -140,7 +141,7 @@ bool StatevectorEqualityAssertion::implies(
                                std::find(getTargetQubits().begin(),
                                          getTargetQubits().end(), target));
         });
-    auto newAmplitudes =
+    newAmplitudes =
         getSubStateVectorAmplitudes(getTargetStatevector(), indexList);
     targetSV = {indexList.size(), newAmplitudes.size(), newAmplitudes.data()};
   } else {
