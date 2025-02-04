@@ -76,7 +76,7 @@ def distrbituion_equal_under_noise(
     expected_counts = [x * num_samples for x in expected_with_noise]
     result: tuple[float, float] = chisquare(distribution, expected_counts)
     (_chi2, p) = result
-    return p > 0.05
+    return float(p) > 0.05
 
 
 def check_assertion_superposition(
