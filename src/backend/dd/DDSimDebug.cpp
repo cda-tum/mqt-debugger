@@ -1437,7 +1437,7 @@ std::string getQuantumBitName(DDSimulationState* ddsim, size_t index) {
  * @param targetNames The names of the target qubits.
  * @return The constructed preamble.
  */
-static std::string getStatisticalSliceEqualityPreamble(
+std::string getStatisticalSliceEqualityPreamble(
     std::unique_ptr<StatevectorEqualityAssertion>& assertion,
     std::map<std::string, std::string>& targetNames) {
   std::stringstream ss;
@@ -1470,7 +1470,7 @@ static std::string getStatisticalSliceEqualityPreamble(
  * @param targetNames The names of the target qubits.
  * @return The constructed preamble.
  */
-static std::string getStatisticalSliceSuperpositionPreamble(
+std::string getStatisticalSliceSuperpositionPreamble(
     std::unique_ptr<SuperpositionAssertion>& assertion,
     std::map<std::string, std::string>& targetNames) {
   std::stringstream ss;
@@ -1493,7 +1493,7 @@ static std::string getStatisticalSliceSuperpositionPreamble(
  * @param newAssertion The index of the new assertion to check.
  * @return True if the assertion can be cancelled, false otherwise.
  */
-static bool tryCancelAssertion(DDSimulationState* ddsim, size_t newAssertion) {
+bool tryCancelAssertion(DDSimulationState* ddsim, size_t newAssertion) {
   const auto& assertion = ddsim->assertionInstructions[newAssertion];
   for (size_t i = newAssertion - 1; i > 0; i--) {
     if (ddsim->instructionTypes[i] != ASSERTION) {
@@ -1641,6 +1641,10 @@ size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
   if (buffer == nullptr) {
     return compiledCode.length() + 1;
   }
-  std::strcpy(buffer, compiledCode.c_str());
+  const Span<char> bufferSpan(buffer, compiledCode.length() + 1);
+  for (size_t i = 0; i < compiledCode.length(); i++) {
+    bufferSpan[i] = compiledCode[i];
+  }
+  bufferSpan[compiledCode.length()] = '\0';
   return compiledCode.length() + 1;
 }
