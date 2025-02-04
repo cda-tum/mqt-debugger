@@ -31,7 +31,7 @@ We appreciate any feedback and contributions to the project. If you want to cont
     Debugging
     Assertions
     Diagnosis
-    Assertion Refinement
+    AssertionRefinement
     Publications
 
  .. toctree::
