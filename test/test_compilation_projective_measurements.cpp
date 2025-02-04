@@ -114,6 +114,10 @@ TEST_F(ProjectiveMeasurementsCompilationTest, ProjectiveSingleOperation) {
                    preamble);
 }
 
+/**
+ * @brief Tests the compilation of a equality assertion consisting of multiple
+ * instructions using projective measurements and no optimization.
+ */
 TEST_F(ProjectiveMeasurementsCompilationTest,
        ProjectiveSingleQubitMultipleOperations) {
   loadCode("qreg q[1];\n"
@@ -140,6 +144,10 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
                    preamble);
 }
 
+/**
+ * @brief Tests the compilation of a two-qubit equality assertion using
+ * projective measurements and no optimization.
+ */
 TEST_F(ProjectiveMeasurementsCompilationTest,
        ProjectiveMultiQubitMultipleOperations) {
   loadCode("qreg q[2];\n"
@@ -170,8 +178,8 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
 }
 
 /**
- * @brief Tests the compilation of a simple equality assertion using
- * projective measurements and no optimization.
+ * @brief Tests the compilation of an equality assertion followed by some
+ * additional instructions, using projective measurements and no optimization.
  */
 TEST_F(ProjectiveMeasurementsCompilationTest,
        ProjectiveOperationsAfterAssertion) {
@@ -200,8 +208,9 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
 }
 
 /**
- * @brief Tests the compilation of a simple equality assertion using
- * projective measurements and no optimization.
+ * @brief Tests the compilation of an equality assertion that considers only a
+ * substate of the full state vector, using projective measurements and no
+ * optimization.
  */
 TEST_F(ProjectiveMeasurementsCompilationTest, ProjectiveSubstateAssertion) {
   loadCode("qreg q[2];\n"
@@ -233,7 +242,7 @@ TEST_F(ProjectiveMeasurementsCompilationTest, ProjectiveSubstateAssertion) {
 }
 
 /**
- * @brief Tests the compilation of a simple equality assertion using
+ * @brief Tests the compilation of multiple equality assertions using
  * projective measurements and no optimization.
  */
 TEST_F(ProjectiveMeasurementsCompilationTest,
@@ -273,8 +282,8 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
 }
 
 /**
- * @brief Tests the compilation of a simple equality assertion using
- * projective measurements and no optimization.
+ * @brief Tests the compilation of multiple equality assertions with other
+ * instructions between them, using projective measurements and no optimization.
  */
 TEST_F(ProjectiveMeasurementsCompilationTest,
        ProjectiveMultiAssertionOperationsBetween) {
