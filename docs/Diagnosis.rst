@@ -12,7 +12,7 @@ Error Cause Analysis
 
 When an assertion fails, several methods can be used to find potential error clauses.
 
-.. For further information, please refer to :cite:labelpar:`rovara2025debugging`.
+For further information, please refer to :cite:labelpar:`rovara2024debugging`.
 
 Cone of Influence Analysis
 --------------------------
