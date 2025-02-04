@@ -165,7 +165,7 @@ def check_result(compiled_code: str, result_path: Path, calibration: Calibration
             break
         var_list = tuple(line.split("(")[1].split(")")[0].split(","))
         distributions.append(var_list)
-        assertions[var_list] = f"{{{line.split("{")[1]}"
+        assertions[var_list] = f"{{{line.split('{')[1]}"
     result = Result.load(result_path, distributions)
 
     expected_success_probability = calibration.get_expected_success_probability(compiled_code)
