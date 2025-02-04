@@ -1495,7 +1495,7 @@ static std::string getStatisticalSliceSuperpositionPreamble(
  */
 static bool tryCancelAssertion(DDSimulationState* ddsim, size_t newAssertion) {
   const auto& assertion = ddsim->assertionInstructions[newAssertion];
-  for (size_t i = newAssertion - 1; i != -1ULL; i--) {
+  for (size_t i = newAssertion - 1; i > 0; i--) {
     if (ddsim->instructionTypes[i] != ASSERTION) {
       if (!doesCommute(assertion, ddsim->instructionObjects[i])) {
         return false;
@@ -1512,7 +1512,6 @@ static bool tryCancelAssertion(DDSimulationState* ddsim, size_t newAssertion) {
 
 bool areAssertionsIndependent(DDSimulationState* ddsim,
                               size_t previousAssertion, size_t newAssertion) {
-  const auto& previous = ddsim->assertionInstructions[previousAssertion];
   const auto& next = ddsim->assertionInstructions[newAssertion];
 
   const auto nextQubits =
