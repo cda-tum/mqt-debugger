@@ -126,6 +126,29 @@ def check_assertion_equality(
     )
 
 
+def check_assertion_zero(distribution: list[int], num_samples: int, expected_success_probability: float) -> bool:
+    """Check a zero assertion based on the distribution.
+
+    Args:
+        distribution (list[int]): The observed distribution to check.
+        num_samples (int): The number of samples.
+        expected_success_probability (float): The expected success probability for the program.
+
+    Returns:
+        bool: True if the assertion is satisfied, False otherwise.
+    """
+    expected_statevector = [0.0 for _ in distribution]
+    expected_statevector[0] = 1.0
+    magnitude = sum(abs(x) ** 2 for x in expected_statevector) ** 0.5
+    expected_statevector = [x / magnitude for x in expected_statevector]
+
+    expected_distribution = [(x * x.conjugate()).real for x in expected_statevector]
+
+    return distrbituion_equal_under_noise(
+        distribution, expected_distribution, num_samples, expected_success_probability
+    )
+
+
 def check_assertion(
     assertion: str, distribution: list[int], num_samples: int, expected_success_probability: float
 ) -> bool:
@@ -142,6 +165,8 @@ def check_assertion(
     """
     if assertion.startswith("{superposition}"):
         return check_assertion_superposition(distribution, num_samples, expected_success_probability)
+    if assertion.startswith("{zero}"):
+        return check_assertion_zero(distribution, num_samples, expected_success_probability)
     return check_assertion_equality(assertion, distribution, num_samples, expected_success_probability)
 
 
