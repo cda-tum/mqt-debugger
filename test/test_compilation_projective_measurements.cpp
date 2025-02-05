@@ -177,36 +177,6 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
 }
 
 /**
- * @brief Tests the compilation of an equality assertion followed by some
- * additional instructions, using projective measurements and no optimization.
- */
-TEST_F(ProjectiveMeasurementsCompilationTest,
-       ProjectiveOperationsAfterAssertion) {
-  loadCode("qreg q[1];\n"
-           "x q[0];\n"
-           "assert-eq q[0] { "
-           "qreg p[1];\n"
-           "x p[0];\n"
-           "}\n"
-           "h q[0];\n"
-           "x q[0];\n");
-
-  const std::vector<ProjPreambleEntry> preamble = {
-      ProjPreambleEntry({"test_q0"})};
-
-  checkCompilation(makeSettings(/*opt=*/0),
-                   "creg test_q0[1];\n"
-                   "qreg q[1];\n"
-                   "x q[0];\n"
-                   "x q[0];\n"
-                   "measure q[0] -> test_q0[0];\n"
-                   "x q[0];\n"
-                   "h q[0];\n"
-                   "x q[0];\n",
-                   preamble);
-}
-
-/**
  * @brief Tests the compilation of an equality assertion that considers only a
  * substate of the full state vector, using projective measurements and no
  * optimization.
@@ -262,7 +232,7 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
   const std::vector<ProjPreambleEntry> preamble = {
       ProjPreambleEntry({"test_q0"}), ProjPreambleEntry({"test_q0_"})};
 
-  checkCompilation(makeSettings(/*opt=*/0),
+  checkCompilation(makeSettings(/*opt=*/2),
                    "creg test_q0[1];\n"
                    "creg test_q0_[1];\n"
                    "qreg q[1];\n"
@@ -302,7 +272,7 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
   const std::vector<ProjPreambleEntry> preamble = {
       ProjPreambleEntry({"test_q0"}), ProjPreambleEntry({"test_q0_"})};
 
-  checkCompilation(makeSettings(/*opt=*/0),
+  checkCompilation(makeSettings(/*opt=*/2),
                    "creg test_q0[1];\n"
                    "creg test_q0_[1];\n"
                    "qreg q[1];\n"

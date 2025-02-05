@@ -294,7 +294,7 @@ public:
    * @return True if this assertion implies the other assertion, false
    * otherwise.
    */
-  [[noreturn]] bool implies(const Assertion& other) const override;
+  [[nodiscard]] bool implies(const Assertion& other) const override;
 };
 
 /**

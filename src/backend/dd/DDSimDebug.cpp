@@ -20,6 +20,7 @@
 #include "dd/DDDefinitions.hpp"
 #include "dd/Operations.hpp"
 #include "dd/Package.hpp"
+#include "ir/Register.hpp"
 #include "ir/operations/ClassicControlledOperation.hpp"
 #include "ir/operations/OpType.hpp"
 
@@ -870,8 +871,9 @@ size_t ddsimCompile(SimulationState* self, char* buffer,
   auto* ddsim = toDDSimulationState(self);
   switch (settings.mode) {
   case CompilationMode::STATISTICAL_SLICES:
-    return compileStatisticalSlice(ddsim, buffer, settings);
   case CompilationMode::PROJECTIVE_MEASUREMENTS:
+    return compileStatisticalSlice(ddsim, buffer, settings);
+  default:
     std::cerr << "Compilation mode not supported by the DD simulator\n";
     return 0;
   }
@@ -1486,6 +1488,22 @@ std::string getStatisticalSliceSuperpositionPreamble(
   return ss.str();
 }
 
+std::string getProjectiveMeasurementPreamble(
+    std::unique_ptr<CircuitEqualityAssertion>& assertion,
+    std::map<std::string, std::string>& targetNames) {
+  std::stringstream ss;
+  // First target is rather straightforward.
+  ss << "// ASSERT: (";
+  for (size_t i = 0; i < assertion->getTargetQubits().size(); i++) {
+    ss << targetNames[assertion->getTargetQubits()[i]];
+    if (i != assertion->getTargetQubits().size() - 1) {
+      ss << ",";
+    }
+  }
+  ss << ") {zero}\n";
+  return ss.str();
+}
+
 /**
  * @brief Attempt to cancel an assertion based on all previously encountered
  * assertions.
@@ -1512,6 +1530,10 @@ bool tryCancelAssertion(DDSimulationState* ddsim, size_t newAssertion) {
 
 bool areAssertionsIndependent(DDSimulationState* ddsim,
                               size_t previousAssertion, size_t newAssertion) {
+  if (ddsim->assertionInstructions[previousAssertion]->getType() ==
+      AssertionType::CircuitEquality) {
+    return true;
+  }
   const auto& next = ddsim->assertionInstructions[newAssertion];
 
   const auto nextQubits =
@@ -1540,6 +1562,40 @@ bool areAssertionsIndependent(DDSimulationState* ddsim,
                        return areAssertionsIndependent(ddsim, prev,
                                                        newAssertion);
                      });
+}
+
+void compileProjectiveMeasurement(
+    DDSimulationState* ddsim, std::stringstream& stream, size_t assertionIndex,
+    std::map<std::string, std::string> targetNames) {
+  const auto& assertion = dynamic_cast<CircuitEqualityAssertion&>(
+      *ddsim->assertionInstructions[assertionIndex].get());
+
+  qc::QuantumComputation newQc;
+  std::stringstream codeStream{assertion.getCircuitCode()};
+  newQc.import(codeStream, qc::Format::OpenQASM3);
+
+  newQc.unifyQuantumRegisters("assert_qubit");
+
+  qc::QubitIndexToRegisterMap qubitIndexToRegisterMap{};
+  const auto reg = newQc.getQuantumRegisters().begin()->second;
+  for (qc::Qubit i = 0; i < assertion.getTargetQubits().size(); i++) {
+    const auto& originalVariable = assertion.getTargetQubits()[i];
+    qubitIndexToRegisterMap.try_emplace(i, reg, originalVariable);
+  }
+
+  for (auto it = newQc.rbegin(); it != newQc.rend(); it++) {
+    auto inverted = it->get()->getInverted();
+    it->get()->dumpOpenQASM2(stream, qubitIndexToRegisterMap, {});
+  }
+
+  // invertedQc.dump(stream, qc::Format::OpenQASM2);
+  for (const auto& [qbit, cbit] : targetNames) {
+    stream << "measure " << qbit << " -> " << cbit << "[0];\n";
+  }
+
+  for (auto& it : newQc) {
+    it->dumpOpenQASM2(stream, qubitIndexToRegisterMap, {});
+  }
 }
 
 size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
@@ -1609,6 +1665,12 @@ size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
       ss << getStatisticalSliceSuperpositionPreamble(
           superpositionAssertion, assertionTargets[foundIndex]);
       assertion = std::move(superpositionAssertion);
+    } else if (assertion->getType() == AssertionType::CircuitEquality) {
+      std::unique_ptr<CircuitEqualityAssertion> circuitEqualityAssertion(
+          dynamic_cast<CircuitEqualityAssertion*>(assertion.release()));
+      ss << getProjectiveMeasurementPreamble(circuitEqualityAssertion,
+                                             assertionTargets[foundIndex]);
+      assertion = std::move(circuitEqualityAssertion);
     }
   }
 
@@ -1631,8 +1693,14 @@ size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
       last++;
     }
     if (assertionTargets.find(toSkip) != assertionTargets.end()) {
-      for (const auto& [qbit, cbit] : assertionTargets[toSkip]) {
-        ss << "measure " << qbit << " -> " << cbit << "[0];\n";
+      if (ddsim->assertionInstructions[toSkip]->getType() ==
+          AssertionType::CircuitEquality) {
+        compileProjectiveMeasurement(ddsim, ss, toSkip,
+                                     assertionTargets[toSkip]);
+      } else {
+        for (const auto& [qbit, cbit] : assertionTargets[toSkip]) {
+          ss << "measure " << qbit << " -> " << cbit << "[0];\n";
+        }
       }
     }
   }

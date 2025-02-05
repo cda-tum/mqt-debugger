@@ -262,8 +262,8 @@ const std::string& CircuitEqualityAssertion::getCircuitCode() const {
 }
 
 bool CircuitEqualityAssertion::implies(const Assertion& /*other*/) const {
-  throw std::runtime_error(
-      "`implies` method not supported for CircuitEqualityAssertion");
+  return false; // `implies` method not supported for
+                // CircuitEqualityAssertion");
 }
 
 /**
