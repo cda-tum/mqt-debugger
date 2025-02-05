@@ -183,4 +183,4 @@ app/code/*.qasm
 
 .python-version
 
-.smart-commit-config.yaml
+.quick-commit-config.yaml
