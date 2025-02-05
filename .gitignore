@@ -182,3 +182,5 @@ wheelhouse/
 app/code/*.qasm
 
 .python-version
+
+.smart-commit-config.yaml
