@@ -128,27 +128,14 @@ This is always equal to 2^`num_qubits`.)")
 Contains one element for each of the `num_states` states in the state vector.)")
       .doc() = "Represents a state vector.";
 
-  py::enum_<CompilationMode>(
-      m, "CompilationMode",
-      "The mode in which an assertion program should be compiled.")
-      .value("StatisticalSlices", STATISTICAL_SLICES,
-             "Compiles the program into slices based on the given assertions "
-             "to be tested statistically.")
-      .value("ProjectiveMeasurements", PROJECTIVE_MEASUREMENTS,
-             "Compiles assertions into projective measurements.")
-      .export_values();
-
   py::class_<CompilationSettings>(m, "CompilationSettings")
-      .def(py::init<CompilationMode, int, int>(), py::arg("mode"),
-           py::arg("opt"), py::arg("slice_index") = 0,
+      .def(py::init<uint8_t, size_t>(), py::arg("opt"),
+           py::arg("slice_index") = 0,
            R"(Initializes a new set of compilation settings.
 
 Args:
-   mode (CompilationMode): The mode in which the program should be compiled.
    opt (int): The optimization level that should be used.
    slice_index (int, optional): The index of the slice that should be compiled (defaults to 0).)")
-      .def_readwrite("mode", &CompilationSettings::mode,
-                     "The mode in which the program should be compiled.")
       .def_readwrite(
           "opt", &CompilationSettings ::opt,
           "The optimization level that should be used. Exact meaning depends "

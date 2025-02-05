@@ -869,16 +869,7 @@ Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
 size_t ddsimCompile(SimulationState* self, char* buffer,
                     CompilationSettings settings) {
   auto* ddsim = toDDSimulationState(self);
-  switch (settings.mode) {
-  case CompilationMode::STATISTICAL_SLICES:
-  case CompilationMode::PROJECTIVE_MEASUREMENTS:
-    return compileStatisticalSlice(ddsim, buffer, settings);
-  default:
-    std::cerr << "Compilation mode not supported by the DD simulator\n";
-    return 0;
-  }
-
-  return 0;
+  return compileStatisticalSlice(ddsim, buffer, settings);
 }
 
 Result destroyDDSimulationState(DDSimulationState* self) {

@@ -4,176 +4,22 @@
  * assertion programs using statistical slices.
  */
 
-#include "common.h"
 #include "common_fixtures.hpp"
 #include "utils_test.hpp"
 
-#include <algorithm>
-#include <cstddef>
-#include <cstdint>
 #include <gtest/gtest.h>
-#include <iterator>
-#include <sstream>
+#include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
-/**
- * @brief A preamble entry for statistical equality assertions.
- */
-class StatEqPreambleEntry : public PreambleEntry {
-  /**
-   * @brief The name of the variable the preamble entry is for.
-   */
-  std::vector<std::string> names;
-  /**
-   * @brief The expected ratio of |1> results for the variable's measurement or
-   * another variable it is related to.
-   */
-  std::vector<Complex> distribution;
-  /**
-   * @brief The required fidelity for the variable's measurement outcomes.
-   */
-  double fidelity;
-
-public:
-  /**
-   * @brief Constructs a new StatEqPreambleEntry with the given names,
-   * distribution, and fidelity.
-   * @param n The names of the variables the preamble entry is for.
-   * @param dist The expected distribution of the preamble entry as complex
-   * numbers.
-   * @param fid The required fidelity for the preamble entry.
-   */
-  StatEqPreambleEntry(std::vector<std::string> n, std::vector<Complex> dist,
-                      double fid)
-      : names(std::move(n)), distribution(std::move(dist)), fidelity(fid) {}
-
-  /**
-   * @brief Constructs a new StatEqPreambleEntry with the given names,
-   * distribution, and fidelity.
-   * @param n The names of the variables the preamble entry is for.
-   * @param dist The expected distribution of the preamble entry as real
-   * numbers.
-   * @param fid The required fidelity for the preamble entry.
-   */
-  StatEqPreambleEntry(std::vector<std::string> n, std::vector<double> dist,
-                      double fid)
-      : names(std::move(n)), distribution(dist.size()), fidelity(fid) {
-    std::transform(dist.begin(), dist.end(), this->distribution.begin(),
-                   [](double value) { return Complex{value, 0.0}; });
-  }
-
-  [[nodiscard]] std::string toString() const override {
-    std::stringstream ss;
-    ss << "// ASSERT: (";
-    for (size_t i = 0; i < names.size(); i++) {
-      ss << names[i];
-      if (i < names.size() - 1) {
-        ss << ",";
-      }
-    }
-    ss << ") {";
-    for (size_t i = 0; i < distribution.size(); i++) {
-      ss << complexToStringTest(distribution[i]);
-      if (i < distribution.size() - 1) {
-        ss << ",";
-      }
-    }
-    ss << "} " << fidelity << "\n";
-
-    return ss.str();
-  }
-};
-
-/**
- * @brief A preamble entry for statistical superposition assertions.
- */
-class StatSupPreambleEntry : public PreambleEntry {
-  /**
-   * @brief The name of the variable the preamble entry is for.
-   */
-  std::vector<std::string> names;
-
-public:
-  /**
-   * @brief Constructs a new StatSupPreambleEntry with the given names
-   * @param n The names of the variables the preamble entry is for.
-   */
-  StatSupPreambleEntry(std::vector<std::string> n) : names(std::move(n)) {}
-
-  [[nodiscard]] std::string toString() const override {
-    std::stringstream ss;
-    ss << "// ASSERT: (";
-    for (size_t i = 0; i < names.size(); i++) {
-      ss << names[i];
-      if (i < names.size() - 1) {
-        ss << ",";
-      }
-    }
-    ss << ") {superposition}\n";
-    return ss.str();
-  }
-};
+using SV = std::vector<std::string>;
+using DV = std::vector<double>;
 
 /**
  * @brief A test fixture for testing the compilation of assertion programs using
- * statistical slices.
+ * only statistical slices.
  */
-class StatisticalSlicesCompilationTest : public CompilationTest {
-public:
-  /**
-   * @brief Creates a new CompilationSettings object for statistical slices.
-   * @param opt The optimization level to use.
-   * @param slice The slice index to use.
-   * @return The created CompilationSettings object.
-   */
-  static CompilationSettings makeSettings(uint8_t opt, size_t slice) {
-    return {
-        /*mode=*/CompilationMode::STATISTICAL_SLICES,
-        /*opt=*/opt,
-        /*sliceIndex=*/slice,
-    };
-  }
-
-  /**
-   * @brief Check the compilation of the loaded code with the given settings.
-   * @param settings The settings to use for the compilation.
-   * @param expected The expected compiled code.
-   * @param expectedPreamble The expected preamble entries for equality
-   * assertions.
-   */
-  void
-  checkCompilation(const CompilationSettings& settings,
-                   const std::string& expected,
-                   const std::vector<StatEqPreambleEntry>& expectedPreamble) {
-    auto pointerVector =
-        std::vector<const PreambleEntry*>(expectedPreamble.size());
-    std::transform(expectedPreamble.begin(), expectedPreamble.end(),
-                   pointerVector.begin(),
-                   [](const StatEqPreambleEntry& entry) { return &entry; });
-    CompilationTest::checkCompilation(settings, expected, pointerVector);
-  }
-
-  /**
-   * @brief Check the compilation of the loaded code with the given settings.
-   * @param settings The settings to use for the compilation.
-   * @param expected The expected compiled code.
-   * @param expectedPreamble The expected preamble entries for entanglement
-   * assertions.
-   */
-  void
-  checkCompilation(const CompilationSettings& settings,
-                   const std::string& expected,
-                   const std::vector<StatSupPreambleEntry>& expectedPreamble) {
-    auto pointerVector =
-        std::vector<const PreambleEntry*>(expectedPreamble.size());
-    std::transform(expectedPreamble.begin(), expectedPreamble.end(),
-                   pointerVector.begin(),
-                   [](const StatSupPreambleEntry& entry) { return &entry; });
-    CompilationTest::checkCompilation(settings, expected, pointerVector);
-  }
-};
+class StatisticalSlicesCompilationTest : public CompilationTest {};
 
 /**
  * @brief Tests the compilation of a simple equality assertion using
@@ -185,8 +31,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "x q[0];\n"
            "assert-eq q[0] { 0, 1 }\n");
 
-  const std::vector<StatEqPreambleEntry> preamble = {
-      StatEqPreambleEntry({"test_q0"}, {0.0, 1.0}, 1.0)};
+  PreambleVector preamble;
+  preamble.emplace_back(
+      std::make_unique<StatEqPreambleEntry>(SV{"test_q0"}, DV{0.0, 1.0}, 1.0));
 
   checkCompilation(makeSettings(/*opt=*/0, /*slice=*/0),
                    "creg test_q0[1];\n"
@@ -208,8 +55,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "h q[0];\n"
            "assert-eq 0.9, q[0] { 0.707, 0.707 }\n");
 
-  const std::vector<StatEqPreambleEntry> preamble = {
-      StatEqPreambleEntry({"test_q0"}, {0.499849, 0.499849}, 0.9)};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatEqPreambleEntry>(
+      SV{"test_q0"}, DV{0.499849, 0.499849}, 0.9));
 
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
@@ -230,8 +78,9 @@ TEST_F(StatisticalSlicesCompilationTest, StatisticalTwoQubitEqualityNoOpt) {
            "cx q[0], q[1];\n"
            "assert-eq 0.9, q[0], q[1] { 0.707, 0, 0, 0.707 }\n");
 
-  const std::vector<StatEqPreambleEntry> preamble = {StatEqPreambleEntry(
-      {"test_q0", "test_q1"}, {0.499849, 0, 0, 0.499849}, 0.9)};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatEqPreambleEntry>(
+      SV{"test_q0", "test_q1"}, DV{0.499849, 0, 0, 0.499849}, 0.9));
 
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
@@ -256,8 +105,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-eq 0.9, q[0] { 0.707, 0.707 }\n"
            "assert-eq 0.9, q[0] { 0.707, 0.707 }\n");
 
-  const std::vector<StatEqPreambleEntry> preamble = {
-      StatEqPreambleEntry({"test_q0"}, {0.499849, 0.499849}, 0.9)};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatEqPreambleEntry>(
+      SV{"test_q0"}, DV{0.499849, 0.499849}, 0.9));
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -287,8 +137,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "x q[0];\n"
            "assert-eq q[0] { 1, 0 }\n");
 
-  const std::vector<StatEqPreambleEntry> preamble1 = {
-      StatEqPreambleEntry({"test_q0"}, {0, 1}, 1.0)};
+  PreambleVector preamble1;
+  preamble1.emplace_back(
+      std::make_unique<StatEqPreambleEntry>(SV{"test_q0"}, DV{0, 1}, 1.0));
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -296,8 +147,9 @@ TEST_F(StatisticalSlicesCompilationTest,
                    "measure q[0] -> test_q0[0];\n",
                    preamble1);
 
-  const std::vector<StatEqPreambleEntry> preamble2 = {
-      StatEqPreambleEntry({"test_q0"}, {1, 0}, 1.0)};
+  PreambleVector preamble2;
+  preamble2.emplace_back(
+      std::make_unique<StatEqPreambleEntry>(SV{"test_q0"}, DV{1, 0}, 1.0));
   checkCompilation(makeSettings(0, 1),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -324,8 +176,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-eq q[0] { 0, 1 }\n"
            "assert-eq q[0] { 0, 1 }\n");
 
-  const std::vector<StatEqPreambleEntry> preamble = {
-      StatEqPreambleEntry({"test_q0"}, {0, 1}, 1.0)};
+  PreambleVector preamble;
+  preamble.emplace_back(
+      std::make_unique<StatEqPreambleEntry>(SV{"test_q0"}, DV{0, 1}, 1.0));
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -384,8 +237,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-eq 0.9, q[0] { 0, 1 }\n"
            "assert-eq 0.99, q[0] { 0, 1 }\n");
 
-  const std::vector<StatEqPreambleEntry> preamble = {
-      StatEqPreambleEntry({"test_q0"}, {0, 1}, 0.99)};
+  PreambleVector preamble;
+  preamble.emplace_back(
+      std::make_unique<StatEqPreambleEntry>(SV{"test_q0"}, DV{0, 1}, 0.99));
   checkCompilation(makeSettings(1, 1),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
@@ -406,8 +260,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-eq q[0] { 0, 1 }\n"
            "assert-eq q[0], q[1] { 0, 0, 1, 0 }\n");
 
-  const std::vector<StatEqPreambleEntry> preamble = {
-      StatEqPreambleEntry({"test_q0", "test_q1"}, {0, 0, 1, 0}, 1.0)};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatEqPreambleEntry>(
+      SV{"test_q0", "test_q1"}, DV{0, 0, 1, 0}, 1.0));
   checkCompilation(makeSettings(1, 1),
                    "creg test_q0[1];\n"
                    "creg test_q1[1];\n"
@@ -427,8 +282,8 @@ TEST_F(StatisticalSlicesCompilationTest, StatisticalSingleSuperpositionNoOpt) {
            "h q[0];\n"
            "assert-sup q[0];\n");
 
-  const std::vector<StatSupPreambleEntry> preamble = {
-      StatSupPreambleEntry({"test_q0"})};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
@@ -450,8 +305,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "h q[0];\n"
            "assert-sup q[0], q[1];\n");
 
-  const std::vector<StatSupPreambleEntry> preamble = {
-      StatSupPreambleEntry({"test_q0", "test_q1"})};
+  PreambleVector preamble;
+  preamble.emplace_back(
+      std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q1"}));
 
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
@@ -477,8 +333,8 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-sup q[0];\n"
            "assert-sup q[1];\n");
 
-  const std::vector<StatSupPreambleEntry> preamble1 = {
-      StatSupPreambleEntry({"test_q0"})};
+  PreambleVector preamble1;
+  preamble1.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(0, 0),
                    "creg test_q0[1];\n"
@@ -488,8 +344,8 @@ TEST_F(StatisticalSlicesCompilationTest,
                    "measure q[0] -> test_q0[0];\n",
                    preamble1);
 
-  const std::vector<StatSupPreambleEntry> preamble2 = {
-      StatSupPreambleEntry({"test_q1"})};
+  PreambleVector preamble2;
+  preamble2.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q1"}));
   checkCompilation(makeSettings(0, 1),
                    "creg test_q1[1];\n"
                    "qreg q[2];\n"
@@ -512,8 +368,8 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-sup q[0];\n"
            "assert-sup q[0];\n");
 
-  const std::vector<StatSupPreambleEntry> preamble = {
-      StatSupPreambleEntry({"test_q0"})};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
@@ -538,8 +394,8 @@ TEST_F(StatisticalSlicesCompilationTest,
            "x q[0];\n"
            "assert-sup q[0];\n");
 
-  const std::vector<StatSupPreambleEntry> preamble = {
-      StatSupPreambleEntry({"test_q0"})};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
@@ -564,8 +420,8 @@ TEST_F(StatisticalSlicesCompilationTest,
            "x q[0];\n"
            "assert-sup q[0], q[1];\n");
 
-  const std::vector<StatSupPreambleEntry> preamble = {
-      StatSupPreambleEntry({"test_q0"})};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
@@ -589,8 +445,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-sup q[0], q[2];\n"
            "assert-sup q[0], q[1];\n");
 
-  const std::vector<StatSupPreambleEntry> preamble1 = {
-      StatSupPreambleEntry({"test_q0", "test_q2"})};
+  PreambleVector preamble1;
+  preamble1.emplace_back(
+      std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q2"}));
 
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
@@ -601,8 +458,9 @@ TEST_F(StatisticalSlicesCompilationTest,
                    "measure q[2] -> test_q2[0];\n",
                    preamble1);
 
-  const std::vector<StatSupPreambleEntry> preamble2 = {
-      StatSupPreambleEntry({"test_q0", "test_q1"})};
+  PreambleVector preamble2;
+  preamble2.emplace_back(
+      std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q1"}));
 
   checkCompilation(makeSettings(1, 1),
                    "creg test_q0[1];\n"
@@ -628,8 +486,8 @@ TEST_F(
            "h q[0];\n"
            "assert-sup q[0], q[1];\n");
 
-  const std::vector<StatSupPreambleEntry> preamble1 = {
-      StatSupPreambleEntry({"test_q0"})};
+  PreambleVector preamble1;
+  preamble1.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
@@ -638,8 +496,9 @@ TEST_F(
                    "measure q[0] -> test_q0[0];\n",
                    preamble1);
 
-  const std::vector<StatSupPreambleEntry> preamble2 = {
-      StatSupPreambleEntry({"test_q0", "test_q1"})};
+  PreambleVector preamble2;
+  preamble2.emplace_back(
+      std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q1"}));
 
   checkCompilation(makeSettings(1, 1),
                    "creg test_q0[1];\n"
@@ -668,8 +527,8 @@ TEST_F(
            "h q[1];\n"
            "assert-sup q[0], q[1];\n");
 
-  const std::vector<StatSupPreambleEntry> preamble1 = {
-      StatSupPreambleEntry({"test_q0"})};
+  PreambleVector preamble1;
+  preamble1.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
@@ -678,8 +537,9 @@ TEST_F(
                    "measure q[0] -> test_q0[0];\n",
                    preamble1);
 
-  const std::vector<StatSupPreambleEntry> preamble2 = {
-      StatSupPreambleEntry({"test_q0", "test_q1"})};
+  PreambleVector preamble2;
+  preamble2.emplace_back(
+      std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q1"}));
 
   checkCompilation(makeSettings(1, 1),
                    "creg test_q0[1];\n"
@@ -707,8 +567,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "x q[0];\n"
            "assert-sup q[0];\n");
 
-  const std::vector<StatEqPreambleEntry> preamble = {
-      StatEqPreambleEntry({"test_q0"}, {0.499849, 0.499849}, 0.9)};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatEqPreambleEntry>(
+      SV{"test_q0"}, DV{0.499849, 0.499849}, 0.9));
 
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
@@ -733,8 +594,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "x q[0];\n"
            "assert-sup q[0], q[2];\n");
 
-  const std::vector<StatEqPreambleEntry> preamble = {StatEqPreambleEntry(
-      {"test_q0", "test_q1"}, {0.499849, 0.499849, 0, 0}, 0.9)};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatEqPreambleEntry>(
+      SV{"test_q0", "test_q1"}, DV{0.499849, 0.499849, 0, 0}, 0.9));
 
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
@@ -762,8 +624,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "x q[0];\n"
            "assert-sup q[0], q[2];\n");
 
-  const std::vector<StatEqPreambleEntry> preamble1 = {StatEqPreambleEntry(
-      {"test_q0", "test_q1"}, {0.499849, 0, 0.499849, 0}, 0.9)};
+  PreambleVector preamble1;
+  preamble1.emplace_back(std::make_unique<StatEqPreambleEntry>(
+      SV{"test_q0", "test_q1"}, DV{0.499849, 0, 0.499849, 0}, 0.9));
 
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
@@ -774,8 +637,9 @@ TEST_F(StatisticalSlicesCompilationTest,
                    "measure q[1] -> test_q1[0];\n",
                    preamble1);
 
-  const std::vector<StatSupPreambleEntry> preamble2 = {
-      StatSupPreambleEntry({"test_q0", "test_q2"})};
+  PreambleVector preamble2;
+  preamble2.emplace_back(
+      std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q2"}));
 
   checkCompilation(makeSettings(1, 1),
                    "creg test_q0[1];\n"
@@ -805,8 +669,9 @@ TEST_F(StatisticalSlicesCompilationTest,
       "x q[0];\n"
       "assert-ent q[0], q[1];\n");
 
-  const std::vector<StatEqPreambleEntry> preamble = {
-      StatEqPreambleEntry({"test_q0", "test_q1"}, {0.5, 0, 0, 0.5}, 0.99999)};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatEqPreambleEntry>(
+      SV{"test_q0", "test_q1"}, DV{0.5, 0, 0, 0.5}, 0.99999));
 
   checkCompilation(makeSettings(1, 0),
                    "creg test_q0[1];\n"
@@ -831,9 +696,11 @@ TEST_F(StatisticalSlicesCompilationTest, StatisticalEqualityOptCombined) {
            "assert-eq q[0], q[1] { 0, 1, 0, 0 }\n"
            "assert-eq q[2] { 0, 1 }\n");
 
-  const std::vector<StatEqPreambleEntry> preamble = {
-      StatEqPreambleEntry({"test_q0", "test_q1"}, {0, 1, 0, 0}, 1),
-      StatEqPreambleEntry({"test_q2"}, {0, 1}, 1)};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatEqPreambleEntry>(
+      SV{"test_q0", "test_q1"}, DV{0, 1, 0, 0}, 1));
+  preamble.emplace_back(
+      std::make_unique<StatEqPreambleEntry>(SV{"test_q2"}, DV{0, 1}, 1));
 
   checkCompilation(makeSettings(2, 0),
                    "creg test_q0[1];\n"
@@ -861,8 +728,9 @@ TEST_F(StatisticalSlicesCompilationTest,
            "h q[0];\n"
            "assert-sup q[1];\n");
 
-  const std::vector<StatSupPreambleEntry> preamble = {
-      StatSupPreambleEntry({"test_q0"}), StatSupPreambleEntry({"test_q1"})};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
+  preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q1"}));
 
   checkCompilation(makeSettings(2, 0),
                    "creg test_q0[1];\n"
@@ -888,9 +756,10 @@ TEST_F(StatisticalSlicesCompilationTest, StatisticalOptCombinedRemeasure) {
            "assert-sup q[0], q[1];\n"
            "assert-sup q[0];\n");
 
-  const std::vector<StatSupPreambleEntry> preamble = {
-      StatSupPreambleEntry({"test_q0", "test_q1"}),
-      StatSupPreambleEntry({"test_q0_"})};
+  PreambleVector preamble;
+  preamble.emplace_back(
+      std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q1"}));
+  preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0_"}));
 
   checkCompilation(makeSettings(2, 0),
                    "creg test_q0[1];\n"
@@ -920,10 +789,10 @@ TEST_F(StatisticalSlicesCompilationTest,
            "assert-sup q[1];\n"
            "assert-sup q[0];\n");
 
-  const auto preamble1 = StatEqPreambleEntry({"test_q0"}, {0, 1}, 1.0);
-  const auto preamble2 = StatSupPreambleEntry({"test_q1"});
-  const auto preambles =
-      std::vector<const PreambleEntry*>{&preamble1, &preamble2};
+  PreambleVector preambles;
+  preambles.emplace_back(
+      std::make_unique<StatEqPreambleEntry>(SV{"test_q0"}, DV{0, 1}, 1.0));
+  preambles.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q1"}));
 
   CompilationTest::checkCompilation(makeSettings(2, 0),
                                     "creg test_q0[1];\n"
@@ -935,9 +804,9 @@ TEST_F(StatisticalSlicesCompilationTest,
                                     "measure q[1] -> test_q1[0];\n",
                                     preambles);
 
-  const std::vector<StatSupPreambleEntry> lastPreamble = {
-      StatSupPreambleEntry({"test_q0"}),
-  };
+  PreambleVector lastPreamble;
+  lastPreamble.emplace_back(
+      std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(2, 1),
                    "creg test_q0[1];\n"

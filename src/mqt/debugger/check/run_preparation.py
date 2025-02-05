@@ -66,7 +66,6 @@ def start_compilation(code: Path, output_dir: Path, calibration: Calibration) ->
     while True:
         i += 1
         settings = dbg.CompilationSettings(
-            dbg.CompilationMode.StatisticalSlices,
             opt=0,
             slice_index=i - 1,
         )

@@ -4,89 +4,20 @@
  * assertion programs using projective measurements.
  */
 
-#include "common.h"
 #include "common_fixtures.hpp"
 #include "utils_test.hpp"
 
-#include <algorithm>
-#include <cstddef>
-#include <cstdint>
 #include <gtest/gtest.h>
-#include <sstream>
 #include <string>
-#include <utility>
 #include <vector>
 
-/**
- * @brief A preamble entry for projective measurement assertions.
- */
-class ProjPreambleEntry : public PreambleEntry {
-  /**
-   * @brief The name of the variable the preamble entry is for.
-   */
-  std::vector<std::string> names;
-
-public:
-  /**
-   * @brief Constructs a new ProjPreambleEntry with the given names
-   * @param n The names of the variables the preamble entry is for.
-   */
-  explicit ProjPreambleEntry(std::vector<std::string> n)
-      : names(std::move(n)) {}
-
-  [[nodiscard]] std::string toString() const override {
-    std::stringstream ss;
-    ss << "// ASSERT: (";
-    for (size_t i = 0; i < names.size(); i++) {
-      ss << names[i];
-      if (i < names.size() - 1) {
-        ss << ",";
-      }
-    }
-    ss << ") {zero}\n";
-    return ss.str();
-  }
-};
+using SV = std::vector<std::string>;
 
 /**
  * @brief A test fixture for testing the compilation of assertion programs using
- * projective measurements.
+ * only projective measurements.
  */
-class ProjectiveMeasurementsCompilationTest : public CompilationTest {
-public:
-  /**
-   * @brief Creates a new CompilationSettings object for projective
-   * measurements.
-   * @param opt The optimization level to use.
-   * @return The created CompilationSettings object.
-   */
-  static CompilationSettings makeSettings(uint8_t opt) {
-    return {
-        /*mode=*/CompilationMode::PROJECTIVE_MEASUREMENTS,
-        /*opt=*/opt,
-        /*sliceIndex=*/0,
-    };
-  }
-
-  /**
-   * @brief Check the compilation of the loaded code with the given settings.
-   * @param settings The settings to use for the compilation.
-   * @param expected The expected compiled code.
-   * @param expectedPreamble The expected preamble entries for equality
-   * assertions.
-   */
-  void
-  checkCompilation(const CompilationSettings& settings,
-                   const std::string& expected,
-                   const std::vector<ProjPreambleEntry>& expectedPreamble) {
-    auto pointerVector =
-        std::vector<const PreambleEntry*>(expectedPreamble.size());
-    std::transform(expectedPreamble.begin(), expectedPreamble.end(),
-                   pointerVector.begin(),
-                   [](const ProjPreambleEntry& entry) { return &entry; });
-    CompilationTest::checkCompilation(settings, expected, pointerVector);
-  }
-};
+class ProjectiveMeasurementsCompilationTest : public CompilationTest {};
 
 /**
  * @brief Tests the compilation of a simple equality assertion using
@@ -100,10 +31,10 @@ TEST_F(ProjectiveMeasurementsCompilationTest, ProjectiveSingleOperation) {
            "x p[0];\n"
            "}\n");
 
-  const std::vector<ProjPreambleEntry> preamble = {
-      ProjPreambleEntry({"test_q0"})};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q0"}));
 
-  checkCompilation(makeSettings(/*opt=*/0),
+  checkCompilation(makeSettings(/*opt=*/0, /*slice=*/0),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "x q[0];\n"
@@ -128,10 +59,10 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
            "x p[0];\n"
            "}\n");
 
-  const std::vector<ProjPreambleEntry> preamble = {
-      ProjPreambleEntry({"test_q0"})};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q0"}));
 
-  checkCompilation(makeSettings(/*opt=*/0),
+  checkCompilation(makeSettings(/*opt=*/0, /*slice=*/0),
                    "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "h q[0];\n"
@@ -158,10 +89,11 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
            "cx p[1], p[0];\n"
            "}\n");
 
-  const std::vector<ProjPreambleEntry> preamble = {
-      ProjPreambleEntry({"test_q0", "test_q1"})};
+  PreambleVector preamble;
+  preamble.emplace_back(
+      std::make_unique<ProjPreambleEntry>(SV{"test_q0", "test_q1"}));
 
-  checkCompilation(makeSettings(/*opt=*/0),
+  checkCompilation(makeSettings(/*opt=*/0, /*slice=*/0),
                    "creg test_q0[1];\n"
                    "creg test_q1[1];\n"
                    "qreg q[2];\n"
@@ -192,10 +124,10 @@ TEST_F(ProjectiveMeasurementsCompilationTest, ProjectiveSubstateAssertion) {
            "h p[0];\n"
            "}\n");
 
-  const std::vector<ProjPreambleEntry> preamble = {
-      ProjPreambleEntry({"test_q1"})};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q1"}));
 
-  checkCompilation(makeSettings(/*opt=*/0),
+  checkCompilation(makeSettings(/*opt=*/0, /*slice=*/0),
                    "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "x q[1];\n"
@@ -229,10 +161,11 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
            "h p[0];\n"
            "}\n");
 
-  const std::vector<ProjPreambleEntry> preamble = {
-      ProjPreambleEntry({"test_q0"}), ProjPreambleEntry({"test_q0_"})};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q0"}));
+  preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q0_"}));
 
-  checkCompilation(makeSettings(/*opt=*/2),
+  checkCompilation(makeSettings(/*opt=*/2, /*slice=*/0),
                    "creg test_q0[1];\n"
                    "creg test_q0_[1];\n"
                    "qreg q[1];\n"
@@ -269,10 +202,11 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
            "z p[0];\n"
            "}\n");
 
-  const std::vector<ProjPreambleEntry> preamble = {
-      ProjPreambleEntry({"test_q0"}), ProjPreambleEntry({"test_q0_"})};
+  PreambleVector preamble;
+  preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q0"}));
+  preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q0_"}));
 
-  checkCompilation(makeSettings(/*opt=*/2),
+  checkCompilation(makeSettings(/*opt=*/2, /*slice=*/0),
                    "creg test_q0[1];\n"
                    "creg test_q0_[1];\n"
                    "qreg q[1];\n"

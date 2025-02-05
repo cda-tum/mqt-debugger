@@ -15,9 +15,11 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -201,14 +203,26 @@ protected:
   }
 
   /**
+   * @brief Creates a new CompilationSettings object for tests.
+   * @param opt The optimization level to use.
+   * @param slice The slice index to use.
+   * @return The created CompilationSettings object.
+   */
+  static CompilationSettings makeSettings(uint8_t opt, size_t slice) {
+    return {
+        /*opt=*/opt,
+        /*sliceIndex=*/slice,
+    };
+  }
+
+  /**
    * @brief Add the testing preamble to the given code.
    * @param code The code to add the preamble to.
    * @param preamble The preamble to add to the code.
    * @return The code with the preamble added.
    */
-  static std::string
-  addPreamble(const std::string& code,
-              const std::vector<const PreambleEntry*>& preamble) {
+  static std::string addPreamble(const std::string& code,
+                                 const PreambleVector& preamble) {
     std::stringstream ss;
     for (const auto& entry : preamble) {
       ss << entry->toString();
@@ -279,10 +293,9 @@ public:
    * @param settings The settings to use for the compilation.
    * @param expected The expected compiled code.
    */
-  void
-  checkCompilation(const CompilationSettings& settings,
-                   const std::string& expected,
-                   const std::vector<const PreambleEntry*>& expectedPreamble) {
+  void checkCompilation(const CompilationSettings& settings,
+                        const std::string& expected,
+                        const PreambleVector& expectedPreamble) {
     // Compile the code
     const size_t size = state->compile(state, nullptr, settings);
     ASSERT_NE(size, 0) << "Compilation failed";
