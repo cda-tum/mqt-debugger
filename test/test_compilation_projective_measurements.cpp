@@ -8,6 +8,7 @@
 #include "utils_test.hpp"
 
 #include <gtest/gtest.h>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -42,6 +43,8 @@ TEST_F(ProjectiveMeasurementsCompilationTest, ProjectiveSingleOperation) {
                    "measure q[0] -> test_q0[0];\n"
                    "x q[0];\n",
                    preamble);
+
+  checkNoCompilation(makeSettings(0, 1));
 }
 
 /**
@@ -181,6 +184,8 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
                    "z q[0];\n"
                    "h q[0];\n",
                    preamble);
+
+  checkNoCompilation(makeSettings(2, 1));
 }
 
 /**
@@ -221,4 +226,6 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
                    "x q[0];\n"
                    "z q[0];\n",
                    preamble);
+
+  checkNoCompilation(makeSettings(2, 1));
 }
