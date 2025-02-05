@@ -60,7 +60,13 @@ Building (and running) is continuously tested under Linux, macOS, and Windows us
 
 ## References
 
-MQT Debugger has been developed based on methods proposed in a scientific paper that has not been released yet.
+MQT Debugger has been developed based on methods proposed in the following papers:
+
+[![a](https://img.shields.io/static/v1?label=arXiv&message=2412.12269&color=inactive&style=flat-square)](https://arxiv.org/abs/2412.12269)
+D. Rovara, L. Burgholzer, and R. Wille, "[A Framework for Debugging Quantum Programs](https://arxiv.org/abs/2412.12269)," arXiv, 2024
+
+[![a](https://img.shields.io/static/v1?label=arXiv&message=2412.14252&color=inactive&style=flat-square)](https://arxiv.org/abs/2412.14252)
+D. Rovara, L. Burgholzer, and R. Wille, "[Automatically Refining Assertions for Efficient Debugging of Quantum Programs](https://arxiv.org/abs/2412.14252)," arXiv, 2024
 
 ## Acknowledgements
 
