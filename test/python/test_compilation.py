@@ -144,7 +144,7 @@ def test_correct_bad_sample_size(compiled_slice_1: str) -> None:
     results = []
     for _ in range(100):
         expected_success_probability = CALIBRATION.get_expected_success_probability(compiled_slice_1)
-        with GeneratedOutput(["test_q0", "test_q1"], [0.5, 0, 0, 0.5], 10, expected_success_probability) as o:
+        with GeneratedOutput(["test_q0", "test_q1"], [0.5, 0, 0, 0.5], 25, expected_success_probability) as o:
             result = check.check_result(compiled_slice_1, o, CALIBRATION, silent=True)
             results.append(result)
     errors = 100 - sum(results)
@@ -161,7 +161,7 @@ def test_incorrect_bad_sample_size(compiled_slice_1: str) -> None:
     results = []
     for _ in range(100):
         expected_success_probability = CALIBRATION.get_expected_success_probability(compiled_slice_1)
-        with GeneratedOutput(["test_q0", "test_q1"], [0.75, 0, 0, 0.25], 10, expected_success_probability) as o:
+        with GeneratedOutput(["test_q0", "test_q1"], [0.75, 0, 0, 0.25], 25, expected_success_probability) as o:
             result = check.check_result(compiled_slice_1, o, CALIBRATION, silent=True)
             results.append(result)
     errors = 100 - sum(results)
