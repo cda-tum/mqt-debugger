@@ -1192,9 +1192,10 @@ wheels = [
 
 [[package]]
 name = "mqt-debugger"
-version = "1.0.2.dev28+g483321d.d20250131"
+version = "1.0.2.dev54+gc960e6b.d20250218"
 source = { editable = "." }
 dependencies = [
+    { name = "qiskit" },
     { name = "scipy" },
 ]
 
@@ -1282,6 +1283,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'", specifier = ">=7.0" },
     { name = "pytest-console-scripts", marker = "extra == 'test'", specifier = ">=1.4" },
     { name = "pytest-cov", marker = "extra == 'coverage'", specifier = ">=4" },
+    { name = "qiskit", specifier = ">=1.2.4" },
     { name = "qiskit", extras = ["qasm3-import"], marker = "extra == 'qiskit'", specifier = ">=1.0.0" },
     { name = "qiskit", extras = ["visualization"], marker = "extra == 'docs'" },
     { name = "scipy", specifier = ">=1.13.1" },
