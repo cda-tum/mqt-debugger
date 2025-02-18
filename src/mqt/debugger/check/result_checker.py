@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from scipy.stats import chisquare  # type: ignore[import-not-found]
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from io import TextIOWrapper
 
     from .calibration import Calibration
 
@@ -26,18 +27,21 @@ class Result:
     distribution: dict[tuple[str, ...], list[int]]
 
     @classmethod
-    def load(cls, path: Path, distributions: list[tuple[str, ...]]) -> Result:
+    def load(cls, path: Path | TextIOWrapper, distributions: list[tuple[str, ...]]) -> Result:
         """Load the results from a file.
 
         Args:
-            path (Path): The path to the file containing the results.
+            path (Path | TextIOWrapper): The path to or the file containing the results.
             distributions (list[tuple[str, ...]]): The set of distributions that should be grouped.
 
         Returns:
             Result: The result of the quantum program.
         """
-        with path.open("r") as f:
-            data = json.load(f)
+        if isinstance(path, Path):
+            with path.open("r") as f:
+                data = json.load(f)
+        else:
+            data = json.load(path)
         filled_distribution = {key: [0 for _ in range(2 ** len(key))] for key in distributions}
         for entry in data:
             indices = dict.fromkeys(distributions, 0)
@@ -170,12 +174,14 @@ def check_assertion(
     return check_assertion_equality(assertion, distribution, num_samples, expected_success_probability)
 
 
-def check_result(compiled_code: str, result_path: Path, calibration: Calibration, silent: bool = False) -> bool:
+def check_result(
+    compiled_code: str, result_path: Path | TextIOWrapper, calibration: Calibration, silent: bool = False
+) -> bool:
     """Check the result of a quantum program against assertions.
 
     Args:
         compiled_code (str): The compiled code of the quantum program.
-        result_path (Path): The path to the file containing the results.
+        result_path (Path | TextIOWrapper): The path to or the file containing the results.
         calibration (Calibration): The calibration data for the device.
         silent (bool, optional): If true, the output is suppressed. Defaults to False.
 

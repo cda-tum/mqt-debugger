@@ -1,4 +1,7 @@
 // ASSERT: (test_q0) {superposition}
+OPENQASM 2.0;
+include "qelib1.inc";
+
 creg test_q0[1];
 qreg q[2];
 h q[0];
