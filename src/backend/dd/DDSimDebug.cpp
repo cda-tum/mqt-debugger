@@ -1665,11 +1665,6 @@ size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
     }
   }
 
-  // Add the required classical registers.
-  for (const auto& cbit : assertionTargetsSet) {
-    ss << "creg " << cbit << "[1];\n";
-  }
-
   // Add the remaining code.
   size_t last = 0;
   for (const auto toSkip : assertionsToSkip) {
@@ -1684,6 +1679,10 @@ size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
       last++;
     }
     if (assertionTargets.find(toSkip) != assertionTargets.end()) {
+      // Add the required classical registers.
+      for (const auto& [_, cbit] : assertionTargets[toSkip]) {
+        ss << "creg " << cbit << "[1];\n";
+      }
       if (ddsim->assertionInstructions[toSkip]->getType() ==
           AssertionType::CircuitEquality) {
         compileProjectiveMeasurement(ddsim, ss, toSkip,
