@@ -31,7 +31,7 @@ If you have any questions, feel free to contact us via [quantum.cda@xcit.tum.de]
 
 ## Getting Started
 
-MQT Debugger is available via [PyPI](https://pypi.org/project/mqt.debugger/) for Linux, macOS, and Windows and supports Python 3.8 to 3.12.
+MQT Debugger is available via [PyPI](https://pypi.org/project/mqt.debugger/) for Linux, macOS, and Windows and supports Python 3.9 to 3.12.
 
 ```console
 (venv) $ pip install mqt.debugger
@@ -53,7 +53,7 @@ print(f.get_state_vector_full())
 
 ## System Requirements and Building
 
-The implementation is compatible with any C++20 compiler, a minimum CMake version of 3.19, and Python 3.8+.
+The implementation is compatible with any C++20 compiler, a minimum CMake version of 3.19, and Python 3.9+.
 Please refer to the [documentation](https://mqt.readthedocs.io/projects/debugger) on how to build the project.
 
 Building (and running) is continuously tested under Linux, macOS, and Windows using the [latest available system versions for GitHub Actions](https://github.com/actions/virtual-environments).
