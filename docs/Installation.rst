@@ -2,7 +2,7 @@ Installation
 ============
 
 MQT Debugger is mainly developed as a C++ library with many of its interfaces for important modules being defined in C.
-Parts of the implementation build upon `MQT Core <https://github.com/cda-tum/mqt-core>`_, which forms the backbone of the `MQT <https://mqt.readthedocs.io>`_.
+Parts of the implementation build upon `MQT Core <https://github.com/munich-quantum-toolkit/core>`_, which forms the backbone of the `MQT <https://mqt.readthedocs.io>`_.
 In order to make the tool as accessible as possible, it comes with an easy-to-use Python interface.
 
 We encourage installing MQT Debugger via pip (preferably in a `virtual environment <https://docs.python.org/3/library/venv.html>`_):
