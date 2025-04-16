@@ -27,9 +27,7 @@ jobs:
       contents: read
     with:
       cmake-args: ""
-      cmake-args-ubuntu: -G Ninja
-      cmake-args-macos: -G Ninja -DMQT_CORE_WITH_GMP=ON
-      cmake-args-windows: -T ClangCL
+      cmake-args-macos: -DMQT_CORE_WITH_GMP=ON
 
   cpp-linter:
     name: 🇨‌ Lint
