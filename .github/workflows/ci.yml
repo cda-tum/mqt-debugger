@@ -26,7 +26,7 @@ jobs:
       id-token: write # Explicitly allows the `id-token: write` permission for this job
       contents: read
     with:
-      cmake-args: ""
+      cmake-args: -DEIGEN_BUILD_TESTING=OFF -DEIGEN_BUILD_PKGCONFIG=OFF -DBUILD_TESTING=OFF
       cmake-args-macos: -DMQT_CORE_WITH_GMP=ON
 
   cpp-linter:
