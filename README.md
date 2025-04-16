@@ -9,8 +9,8 @@
 <p align="center">
   <a href="https://mqt.readthedocs.io">
    <picture>
-     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/mqt_light.png" width="60%">
-     <img src="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/mqt_dark.png" width="60%">
+     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-banner-dark.svg" width="90%">
+     <img src="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-banner-light.svg" width="90%" alt="MQT Banner">
    </picture>
   </a>
 </p>
@@ -18,7 +18,7 @@
 # MQT Debugger - A Quantum Circuit Debugging Tool
 
 A tool for debugging quantum circuits developed as part of the [_Munich Quantum Toolkit (MQT)_](https://mqt.readthedocs.io) by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/).
-It proposes an interface for the simulation of circuits and diagnosis of errors and provides a base implementation built upon [MQT Core](https://github.com/cda-tum/mqt-core), which forms the backbone of the MQT.
+It proposes an interface for the simulation of circuits and diagnosis of errors and provides a base implementation built upon [MQT Core](https://github.com/munich-quantum-toolkit/core), which forms the backbone of the MQT.
 It also provides a Debugger Adapter Protocol (DAP) server that can be used to integrate the debugger into IDEs.
 
 <p align="center">
@@ -31,7 +31,7 @@ If you have any questions, feel free to contact us via [quantum.cda@xcit.tum.de]
 
 ## Getting Started
 
-MQT Debugger is available via [PyPI](https://pypi.org/project/mqt.debugger/) for Linux, macOS, and Windows and supports Python 3.8 to 3.12.
+MQT Debugger is available via [PyPI](https://pypi.org/project/mqt.debugger/) for Linux, macOS, and Windows and supports Python 3.9 to 3.13.
 
 ```console
 (venv) $ pip install mqt.debugger
@@ -53,7 +53,7 @@ print(f.get_state_vector_full())
 
 ## System Requirements and Building
 
-The implementation is compatible with any C++20 compiler, a minimum CMake version of 3.19, and Python 3.8+.
+The implementation is compatible with any C++20 compiler, a minimum CMake version of 3.19, and Python 3.9+.
 Please refer to the [documentation](https://mqt.readthedocs.io/projects/debugger) on how to build the project.
 
 Building (and running) is continuously tested under Linux, macOS, and Windows using the [latest available system versions for GitHub Actions](https://github.com/actions/virtual-environments).
@@ -76,18 +76,8 @@ No. 101001318), the Bavarian State Ministry for Science and Arts through the Dis
 Munich Quantum Valley, which is supported by the Bavarian state government with funds from the Hightech Agenda Bayern Plus.
 
 <p align="center">
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/tum_dark.svg" width="28%">
-<img src="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/tum_light.svg" width="28%" alt="TUM Logo">
-</picture>
-<picture>
-<img src="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/logo-bavaria.svg" width="16%" alt="Coat of Arms of Bavaria">
-</picture>
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/erc_dark.svg" width="24%">
-<img src="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/erc_light.svg" width="24%" alt="ERC Logo">
-</picture>
-<picture>
-<img src="https://raw.githubusercontent.com/cda-tum/mqt/main/docs/_static/logo-mqv.svg" width="28%" alt="MQV Logo">
-</picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-funding-footer-dark.svg" width="90%">
+    <img src="https://raw.githubusercontent.com/munich-quantum-toolkit/.github/refs/heads/main/docs/_static/mqt-funding-footer-light.svg" width="90%" alt="MQT Funding Footer">
+  </picture>
 </p>
