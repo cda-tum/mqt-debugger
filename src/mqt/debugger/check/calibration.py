@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+import numpy as np
 from qiskit import QuantumCircuit
 
 
@@ -14,9 +15,13 @@ class Calibration:
     error_rate_1q: float
     error_rate_2q: float
     error_rate_measurement: float
+    specific_gate_errors: dict[str, float] = field(default_factory=dict)
+    t: float = 0.0
 
     def get_expected_success_probability(self, code: str) -> float:
         """Get the expected success probability of the device for some program.
+
+        ... (rest of the code remains the same)
 
         Currently, expected success probability is computed in terms of measurement and gate fidelities.
 
@@ -34,6 +39,9 @@ class Calibration:
         qc = QuantumCircuit.from_qasm_str(code)
         for instruction in qc.data:
             gate_type = instruction.name
+            if gate_type in self.specific_gate_errors:
+                gate_fidelity *= 1 - self.specific_gate_errors[gate_type]
+                continue
             if gate_type == "barrier":
                 continue
             if len(instruction.qubits) == 1:
@@ -44,7 +52,16 @@ class Calibration:
             else:
                 gate_fidelity *= fidelity_2q
 
-        return gate_fidelity
+        qubit_times = dict.fromkeys(qc.qubits, 0)
+
+        for instruction in qc.data:
+            max_time = max(qubit_times[qubit] for qubit in instruction.qubits)
+            for qubit in instruction.qubits:
+                qubit_times[qubit] = max_time + 1
+        qubit_fidelity = 1
+        for qubit in qubit_times:
+            qubit_fidelity *= np.exp(-qubit_times[qubit] * self.t)
+        return gate_fidelity * qubit_fidelity
 
     @classmethod
     def example(cls) -> Calibration:
