@@ -24,7 +24,7 @@ All main functionalities are included in the module ``mqt.debugger``, no other m
     state = dbg.create_ddsim_simulation_state()
 
 The first step is to create a simulation state. The current implementation of MQT Debugger implements a single simulation backend based on
-decision diagrams from `MQT Core <https://github.com/cda-tum/mqt-core>`_. This backend is instantiated by calling :py:func:`create_ddsim_simulation_state <mqt.debugger.create_ddsim_simulation_state>`.
+decision diagrams from `MQT Core <https://github.com/munich-quantum-toolkit/core>`_. This backend is instantiated by calling :py:func:`create_ddsim_simulation_state <mqt.debugger.create_ddsim_simulation_state>`.
 
 .. code-block:: python
 
