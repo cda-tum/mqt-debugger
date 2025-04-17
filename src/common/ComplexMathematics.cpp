@@ -306,9 +306,9 @@ double dotProduct(const Statevector& sv1, const Statevector& sv2) {
   const Span<Complex> amplitudes2(sv2.amplitudes, sv2.numStates);
 
   for (size_t i = 0; i < sv1.numStates; i++) {
-    resultReal += amplitudes1[i].real * amplitudes2[i].real -
+    resultReal += amplitudes1[i].real * amplitudes2[i].real +
                   amplitudes1[i].imaginary * amplitudes2[i].imaginary;
-    resultImag += amplitudes1[i].real * amplitudes2[i].imaginary +
+    resultImag += -1 * amplitudes1[i].real * amplitudes2[i].imaginary +
                   amplitudes1[i].imaginary * amplitudes2[i].real;
   }
   Complex result{resultReal, resultImag};
