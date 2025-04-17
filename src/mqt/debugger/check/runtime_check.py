@@ -35,6 +35,20 @@ def main() -> None:
     sub_checker.add_argument("results", type=Path, help="The path to a JSON file containing all results.")
     sub_checker.add_argument("--dir", "-d", type=Path, help="The path to the compiled program.", default=".")
     sub_checker.add_argument("--slice", "-s", type=int, help="The slice index to check.", default=1)
+    sub_checker.add_argument("-p", type=float, help="The minimal desired p-value to accept an assertion.", default=0.05)
+
+    # Add the subparser for shot estimation.
+    sub_checker = subparsers.add_parser(
+        "shots", help="Estimate the number of shots required to evaluate the assertion."
+    )
+    sub_checker.add_argument("slice", type=Path, help="The path to a compiled assertion program slice.")
+    sub_checker.add_argument("-p", type=float, help="The minimal desired p-value to accept an assertion.", default=0.05)
+    sub_checker.add_argument(
+        "--trials", type=int, help="The number of trials for probabilistic estimation.", default=1000
+    )
+    sub_checker.add_argument(
+        "--accuracy", type=float, help="The desired accuracy to report a sample count.", default=0.95
+    )
 
     args = parser.parse_args()
 
@@ -45,8 +59,13 @@ def main() -> None:
         calibration_data = Calibration.example()
 
     if args.mode == "prepare":
-        run_preparation.start_compilation(args.code, args.output_dir, calibration_data)
+        run_preparation.start_compilation(args.code, args.output_dir)
     elif args.mode == "check":
         with (args.dir / f"slice_{args.slice}.qasm").open("r", encoding=locale.getpreferredencoding(False)) as f:
             compiled_code = f.read()
-        result_checker.check_result(compiled_code, args.results, calibration_data)
+        result_checker.check_result(compiled_code, args.results, calibration_data, p_value=args.p)
+    elif args.mode == "shots":
+        result = run_preparation.estimate_required_shots_from_path(
+            args.slice, calibration_data, args.p, args.trials, args.accuracy
+        )
+        print(f"Estimated required shots: {result}")  # noqa: T201

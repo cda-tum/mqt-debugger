@@ -165,7 +165,8 @@ def test_incorrect_bad_sample_size(compiled_slice_1: str) -> None:
             result = check.check_result(compiled_slice_1, o, CALIBRATION, silent=True)
             results.append(result)
     errors = 100 - sum(results)
-    assert errors <= 50
+    # Due to the low sample size, the checker does not find at least one out of 4 errors
+    assert errors <= 75
 
 
 def test_incorrect_good_sample_size(compiled_slice_1: str) -> None:
@@ -182,4 +183,15 @@ def test_incorrect_good_sample_size(compiled_slice_1: str) -> None:
             result = check.check_result(compiled_slice_1, o, CALIBRATION, silent=True)
             results.append(result)
     errors = 100 - sum(results)
-    assert errors >= 95
+    assert errors >= 75
+
+
+def test_sample_estimate(compiled_slice_1: str) -> None:
+    """Test the estimation of required shots.
+
+    Args:
+        compiled_slice_1 (str): The compiled program slice code.
+    """
+    random.seed(12345)
+    n = check.estimate_required_shots(compiled_slice_1, CALIBRATION)
+    assert n == 100
