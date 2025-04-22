@@ -36,9 +36,9 @@ TEST_F(StatisticalSlicesCompilationTest,
       std::make_unique<StatEqPreambleEntry>(SV{"test_q0"}, DV{0.0, 1.0}, 1.0));
 
   checkCompilation(makeSettings(/*opt=*/0, /*slice=*/0),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "x q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
@@ -60,9 +60,9 @@ TEST_F(StatisticalSlicesCompilationTest,
       SV{"test_q0"}, DV{0.499849, 0.499849}, 0.9));
 
   checkCompilation(makeSettings(0, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 }
@@ -83,11 +83,11 @@ TEST_F(StatisticalSlicesCompilationTest, StatisticalTwoQubitEqualityNoOpt) {
       SV{"test_q0", "test_q1"}, DV{0.499849, 0, 0, 0.499849}, 0.9));
 
   checkCompilation(makeSettings(0, 0),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
                    "cx q[0], q[1];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[1] -> test_q1[0];\n",
                    preamble);
@@ -109,16 +109,16 @@ TEST_F(StatisticalSlicesCompilationTest,
   preamble.emplace_back(std::make_unique<StatEqPreambleEntry>(
       SV{"test_q0"}, DV{0.499849, 0.499849}, 0.9));
   checkCompilation(makeSettings(0, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
   checkCompilation(makeSettings(0, 1),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
@@ -141,9 +141,9 @@ TEST_F(StatisticalSlicesCompilationTest,
   preamble1.emplace_back(
       std::make_unique<StatEqPreambleEntry>(SV{"test_q0"}, DV{0, 1}, 1.0));
   checkCompilation(makeSettings(0, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "x q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble1);
 
@@ -151,10 +151,10 @@ TEST_F(StatisticalSlicesCompilationTest,
   preamble2.emplace_back(
       std::make_unique<StatEqPreambleEntry>(SV{"test_q0"}, DV{1, 0}, 1.0));
   checkCompilation(makeSettings(0, 1),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "x q[0];\n"
                    "x q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble2);
 
@@ -180,9 +180,9 @@ TEST_F(StatisticalSlicesCompilationTest,
   preamble.emplace_back(
       std::make_unique<StatEqPreambleEntry>(SV{"test_q0"}, DV{0, 1}, 1.0));
   checkCompilation(makeSettings(1, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "x q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
@@ -241,9 +241,9 @@ TEST_F(StatisticalSlicesCompilationTest,
   preamble.emplace_back(
       std::make_unique<StatEqPreambleEntry>(SV{"test_q0"}, DV{0, 1}, 0.99));
   checkCompilation(makeSettings(1, 1),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "x q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 }
@@ -264,10 +264,10 @@ TEST_F(StatisticalSlicesCompilationTest,
   preamble.emplace_back(std::make_unique<StatEqPreambleEntry>(
       SV{"test_q0", "test_q1"}, DV{0, 0, 1, 0}, 1.0));
   checkCompilation(makeSettings(1, 1),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "x q[0];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[1] -> test_q1[0];\n",
                    preamble);
@@ -286,9 +286,9 @@ TEST_F(StatisticalSlicesCompilationTest, StatisticalSingleSuperpositionNoOpt) {
   preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(0, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
@@ -310,10 +310,10 @@ TEST_F(StatisticalSlicesCompilationTest,
       std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q1"}));
 
   checkCompilation(makeSettings(0, 0),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[1] -> test_q1[0];\n",
                    preamble);
@@ -337,20 +337,20 @@ TEST_F(StatisticalSlicesCompilationTest,
   preamble1.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(0, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
                    "h q[1];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble1);
 
   PreambleVector preamble2;
   preamble2.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q1"}));
   checkCompilation(makeSettings(0, 1),
-                   "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
                    "h q[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[1] -> test_q1[0];\n",
                    preamble2);
 
@@ -372,9 +372,9 @@ TEST_F(StatisticalSlicesCompilationTest,
   preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(1, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
@@ -398,9 +398,9 @@ TEST_F(StatisticalSlicesCompilationTest,
   preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(1, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
@@ -424,9 +424,9 @@ TEST_F(StatisticalSlicesCompilationTest,
   preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(1, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
@@ -450,10 +450,10 @@ TEST_F(StatisticalSlicesCompilationTest,
       std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q2"}));
 
   checkCompilation(makeSettings(1, 0),
-                   "creg test_q0[1];\n"
-                   "creg test_q2[1];\n"
                    "qreg q[3];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q2[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[2] -> test_q2[0];\n",
                    preamble1);
@@ -463,10 +463,10 @@ TEST_F(StatisticalSlicesCompilationTest,
       std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q1"}));
 
   checkCompilation(makeSettings(1, 1),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[3];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[1] -> test_q1[0];\n",
                    preamble2);
@@ -490,9 +490,9 @@ TEST_F(
   preamble1.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(1, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble1);
 
@@ -501,11 +501,11 @@ TEST_F(
       std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q1"}));
 
   checkCompilation(makeSettings(1, 1),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[1] -> test_q1[0];\n",
                    preamble2);
@@ -531,9 +531,9 @@ TEST_F(
   preamble1.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(1, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble1);
 
@@ -542,11 +542,11 @@ TEST_F(
       std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q1"}));
 
   checkCompilation(makeSettings(1, 1),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
                    "h q[1];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[1] -> test_q1[0];\n",
                    preamble2);
@@ -572,9 +572,9 @@ TEST_F(StatisticalSlicesCompilationTest,
       SV{"test_q0"}, DV{0.499849, 0.499849}, 0.9));
 
   checkCompilation(makeSettings(1, 0),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    preamble);
 
@@ -599,10 +599,10 @@ TEST_F(StatisticalSlicesCompilationTest,
       SV{"test_q0", "test_q1"}, DV{0.499849, 0.499849, 0, 0}, 0.9));
 
   checkCompilation(makeSettings(1, 0),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[3];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[1] -> test_q1[0];\n",
                    preamble);
@@ -629,10 +629,10 @@ TEST_F(StatisticalSlicesCompilationTest,
       SV{"test_q0", "test_q1"}, DV{0.499849, 0, 0.499849, 0}, 0.9));
 
   checkCompilation(makeSettings(1, 0),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[3];\n"
                    "h q[1];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[1] -> test_q1[0];\n",
                    preamble1);
@@ -642,11 +642,11 @@ TEST_F(StatisticalSlicesCompilationTest,
       std::make_unique<StatSupPreambleEntry>(SV{"test_q0", "test_q2"}));
 
   checkCompilation(makeSettings(1, 1),
-                   "creg test_q0[1];\n"
-                   "creg test_q2[1];\n"
                    "qreg q[3];\n"
                    "h q[1];\n"
                    "x q[0];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q2[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[2] -> test_q2[0];\n",
                    preamble2);
@@ -674,11 +674,11 @@ TEST_F(StatisticalSlicesCompilationTest,
       SV{"test_q0", "test_q1"}, DV{0.5, 0, 0, 0.5}, 0.99999));
 
   checkCompilation(makeSettings(1, 0),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
                    "cx q[0], q[1];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[1] -> test_q1[0];\n",
                    preamble);
@@ -703,13 +703,13 @@ TEST_F(StatisticalSlicesCompilationTest, StatisticalEqualityOptCombined) {
       std::make_unique<StatEqPreambleEntry>(SV{"test_q2"}, DV{0, 1}, 1));
 
   checkCompilation(makeSettings(2, 0),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
-                   "creg test_q2[1];\n"
                    "qreg q[3];\n"
                    "x q[0];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[1] -> test_q1[0];\n"
+                   "creg test_q2[1];\n"
                    "measure q[2] -> test_q2[0];\n",
                    preamble);
 
@@ -733,12 +733,12 @@ TEST_F(StatisticalSlicesCompilationTest,
   preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q1"}));
 
   checkCompilation(makeSettings(2, 0),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "h q[0];\n"
+                   "creg test_q1[1];\n"
                    "measure q[1] -> test_q1[0];\n",
                    preamble);
 
@@ -762,14 +762,14 @@ TEST_F(StatisticalSlicesCompilationTest, StatisticalOptCombinedRemeasure) {
   preamble.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q0_"}));
 
   checkCompilation(makeSettings(2, 0),
-                   "creg test_q0[1];\n"
-                   "creg test_q0_[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
                    "h q[1];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "measure q[1] -> test_q1[0];\n"
+                   "creg test_q0_[1];\n"
                    "measure q[0] -> test_q0_[0];\n",
                    preamble);
 
@@ -795,12 +795,12 @@ TEST_F(StatisticalSlicesCompilationTest,
   preambles.emplace_back(std::make_unique<StatSupPreambleEntry>(SV{"test_q1"}));
 
   CompilationTest::checkCompilation(makeSettings(2, 0),
-                                    "creg test_q0[1];\n"
-                                    "creg test_q1[1];\n"
                                     "qreg q[2];\n"
                                     "x q[0];\n"
+                                    "creg test_q0[1];\n"
                                     "measure q[0] -> test_q0[0];\n"
                                     "h q[0];\n"
+                                    "creg test_q1[1];\n"
                                     "measure q[1] -> test_q1[0];\n",
                                     preambles);
 
@@ -809,10 +809,10 @@ TEST_F(StatisticalSlicesCompilationTest,
       std::make_unique<StatSupPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(2, 1),
-                   "creg test_q0[1];\n"
                    "qreg q[2];\n"
                    "x q[0];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "measure q[0] -> test_q0[0];\n",
                    lastPreamble);
 

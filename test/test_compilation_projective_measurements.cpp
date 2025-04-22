@@ -36,9 +36,9 @@ TEST_F(ProjectiveMeasurementsCompilationTest, ProjectiveSingleOperation) {
   preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(/*opt=*/0, /*slice=*/0),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "x q[0];\n"
+                   "creg test_q0[1];\n"
                    "x q[0];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "x q[0];\n",
@@ -66,11 +66,11 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
   preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q0"}));
 
   checkCompilation(makeSettings(/*opt=*/0, /*slice=*/0),
-                   "creg test_q0[1];\n"
                    "qreg q[1];\n"
                    "h q[0];\n"
                    "z q[0];\n"
                    "h q[0];\n"
+                   "creg test_q0[1];\n"
                    "x q[0];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "x q[0];\n",
@@ -97,11 +97,11 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
       std::make_unique<ProjPreambleEntry>(SV{"test_q0", "test_q1"}));
 
   checkCompilation(makeSettings(/*opt=*/0, /*slice=*/0),
-                   "creg test_q0[1];\n"
-                   "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "h q[0];\n"
                    "cx q[0], q[1];\n"
+                   "creg test_q0[1];\n"
+                   "creg test_q1[1];\n"
                    "cx q[1], q[0];\n"
                    "h q[1];\n"
                    "measure q[0] -> test_q0[0];\n"
@@ -131,10 +131,10 @@ TEST_F(ProjectiveMeasurementsCompilationTest, ProjectiveSubstateAssertion) {
   preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q1"}));
 
   checkCompilation(makeSettings(/*opt=*/0, /*slice=*/0),
-                   "creg test_q1[1];\n"
                    "qreg q[2];\n"
                    "x q[1];\n"
                    "h q[0];\n"
+                   "creg test_q1[1];\n"
                    "h q[1];\n"
                    "z q[1];\n"
                    "h q[1];\n"
@@ -169,13 +169,13 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
   preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q0_"}));
 
   checkCompilation(makeSettings(/*opt=*/2, /*slice=*/0),
-                   "creg test_q0[1];\n"
-                   "creg test_q0_[1];\n"
                    "qreg q[1];\n"
                    "x q[0];\n"
+                   "creg test_q0[1];\n"
                    "x q[0];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "x q[0];\n"
+                   "creg test_q0_[1];\n"
                    "h q[0];\n"
                    "z q[0];\n"
                    "h q[0];\n"
@@ -212,14 +212,14 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
   preamble.emplace_back(std::make_unique<ProjPreambleEntry>(SV{"test_q0_"}));
 
   checkCompilation(makeSettings(/*opt=*/2, /*slice=*/0),
-                   "creg test_q0[1];\n"
-                   "creg test_q0_[1];\n"
                    "qreg q[1];\n"
                    "x q[0];\n"
+                   "creg test_q0[1];\n"
                    "x q[0];\n"
                    "measure q[0] -> test_q0[0];\n"
                    "x q[0];\n"
                    "z q[0];\n"
+                   "creg test_q0_[1];\n"
                    "z q[0];\n"
                    "x q[0];\n"
                    "measure q[0] -> test_q0_[0];\n"
