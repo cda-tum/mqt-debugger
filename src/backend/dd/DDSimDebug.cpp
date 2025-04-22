@@ -1557,7 +1557,7 @@ bool areAssertionsIndependent(DDSimulationState* ddsim,
 
 void compileProjectiveMeasurement(
     DDSimulationState* ddsim, std::stringstream& stream, size_t assertionIndex,
-    std::map<std::string, std::string> targetNames) {
+    const std::map<std::string, std::string>& targetNames) {
   const auto& assertion = dynamic_cast<CircuitEqualityAssertion&>(
       *ddsim->assertionInstructions[assertionIndex].get());
 

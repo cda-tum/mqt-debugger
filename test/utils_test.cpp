@@ -10,16 +10,11 @@
 
 #include "common.h"
 
-#include <algorithm>
-#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
-#include <sstream>
 #include <string>
-#include <utility>
-#include <vector>
 
 bool complexEquality(const Complex& c, double real, double imaginary) {
   const double epsilon = 0.001;

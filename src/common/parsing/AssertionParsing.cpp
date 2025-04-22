@@ -153,8 +153,7 @@ bool StatevectorEqualityAssertion::implies(
          other.getSimilarityThreshold();
 }
 
-static bool qubitInSuperposition(const Span<Complex> statevector,
-                                 size_t qubit) {
+bool qubitInSuperposition(const Span<Complex> statevector, size_t qubit) {
   double prob = 0;
   for (size_t i = 0; i < statevector.size(); i++) {
     if ((i & (1ULL << qubit)) != 0) {
@@ -168,19 +167,21 @@ bool StatevectorEqualityAssertion::implies(
     const SuperpositionAssertion& other) const {
   const auto& targetSV = getTargetStatevector();
   const auto svSpan = Span<Complex>(targetSV.amplitudes, targetSV.numStates);
-  for (const auto& qubit : other.getTargetQubits()) {
-    const auto found =
-        std::find(getTargetQubits().begin(), getTargetQubits().end(), qubit);
-    if (found == getTargetQubits().end()) {
-      continue;
-    }
-    if (!qubitInSuperposition(svSpan, static_cast<size_t>(std::distance(
-                                          getTargetQubits().begin(), found)))) {
-      continue;
-    }
-    return true;
-  }
-  return false;
+  return std::any_of(
+      other.getTargetQubits().begin(), other.getTargetQubits().end(),
+      [this, &svSpan](const std::string& qubit) {
+        const auto found = std::find(getTargetQubits().begin(),
+                                     getTargetQubits().end(), qubit);
+        if (found == getTargetQubits().end()) {
+          return false;
+        }
+        if (!qubitInSuperposition(
+                svSpan, static_cast<size_t>(
+                            std::distance(getTargetQubits().begin(), found)))) {
+          return false;
+        }
+        return true;
+      });
 }
 
 bool StatevectorEqualityAssertion::implies(

@@ -6,12 +6,18 @@
 #include "common/ComplexMathematics.hpp"
 
 #include "Eigen/src/Eigenvalues/ComplexEigenSolver.h"
+#include "common.h"
 #include "common/Span.hpp"
 
+#include <Eigen/Core>
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 /**
  * @brief Compute the trace of the square of a given matrix.
