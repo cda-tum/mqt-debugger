@@ -9,7 +9,6 @@
 #include "common.h"
 #include "common/Span.hpp"
 
-#include <Eigen/Core>
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
@@ -106,7 +105,7 @@ getPartialTrace(const std::vector<std::vector<Complex>>& matrix,
 double getEntropy(const std::vector<std::vector<Complex>>& matrix) {
   const auto mat = toEigenMatrix(matrix);
 
-  const Eigen::ComplexEigenSolver<Eigen::MatrixXcd> solver(mat);
+  const Eigen::ComplexEigenSolver<Eigen::MatrixXcd> solver(mat); // NOLINT
   const auto& eigenvalues = solver.eigenvalues();
   double entropy = 0;
   for (const auto val : eigenvalues) {
