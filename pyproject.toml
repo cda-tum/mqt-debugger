@@ -36,7 +36,8 @@ requires-python = ">=3.9"
 dynamic = ["version"]
 dependencies = [
     "qiskit>=1.2.4",
-    "scipy>=1.13.1",
+    "scipy>=1.15; python_version >= '3.13'",
+    "scipy>=1.13.1; python_version < '3.13'",
 ]
 
 [project.optional-dependencies]
