@@ -1579,7 +1579,6 @@ void compileProjectiveMeasurement(
     it->get()->dumpOpenQASM2(stream, qubitIndexToRegisterMap, {});
   }
 
-  // invertedQc.dump(stream, qc::Format::OpenQASM2);
   for (const auto& [qbit, cbit] : targetNames) {
     stream << "measure " << qbit << " -> " << cbit << "[0];\n";
   }
