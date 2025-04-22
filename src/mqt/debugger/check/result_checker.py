@@ -104,10 +104,7 @@ def distribution_equal_under_noise(
     if p == 0.0 and statistic == 0.0:
         return False
 
-    if float(p) > p_value:
-        return True
-    (statistic / num_samples) ** 0.5
-    return False
+    return float(p) > p_value
 
 
 def filter_out_zeros(observed: Sequence[float], expected: Sequence[float]) -> tuple[list[float], list[float]]:
