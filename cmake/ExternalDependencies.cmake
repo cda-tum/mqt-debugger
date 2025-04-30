@@ -19,9 +19,9 @@ endif()
 
 # ---------------------------------------------------------------------------------Fetch MQT Core
 # cmake-format: off
-set(MQT_CORE_VERSION 2.7.0
+set(MQT_CORE_VERSION 3.0.2
         CACHE STRING "MQT Core version")
-set(MQT_CORE_REV "4176e32376f0289f616bde18e9dbb2f1333a85fb"
+set(MQT_CORE_REV "9b6e01482cc77f48c828d988407ee4f8e4e93b56"
         CACHE STRING "MQT Core identifier (tag, branch or commit hash)")
 set(MQT_CORE_REPO_OWNER "munich-quantum-toolkit"
         CACHE STRING "MQT Core repository owner (change when using a fork)")
