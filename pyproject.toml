@@ -41,7 +41,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=7.0", "pytest-console-scripts>=1.4", "mqt.debugger[qiskit]", "numpy>=2.1; python_version >= '3.13'"]
+test = ["pytest>=7.0", "pytest-console-scripts>=1.4", "mqt.debugger[qiskit]", "numpy>=2.1; python_version >= '3.13'", "uv >=0.5.20"]
 coverage = ["mqt.debugger[test]", "pytest-cov>=4"]
 docs = [
     "furo>=2023.08.17",
