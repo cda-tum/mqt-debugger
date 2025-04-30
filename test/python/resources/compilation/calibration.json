@@ -1,0 +1,10 @@
+{
+  "error_rate_1q": 0.001,
+  "error_rate_2q": 0.01,
+  "error_rate_measurement": 1.514e-2,
+  "specific_gate_errors": {
+    "ecr": 7.632e-3,
+    "sx": 2.235e-4,
+    "rx": 1e-4
+  }
+}
