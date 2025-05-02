@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from mqt.debugger import check
-from mqt.debugger.check import runtime_check
+from mqt.debugger.check import result_checker, runtime_check
 
 if TYPE_CHECKING:
     import types
@@ -339,7 +339,7 @@ def test_main_check_sup(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureF
     assert "passed" in captured.out
 
 
-def test_main_check_incorrect(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_main_check_eq_incorrect(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     """Test the correctness of the "check" mode of the main function with a statevector-equality assertion with incorrect results.
 
     Args:
@@ -361,6 +361,37 @@ def test_main_check_incorrect(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Ca
                 str(BASE_PATH.joinpath("test_program_compiled")),
                 "--slice",
                 "1",
+                "-p",
+                "0.05",
+            ],
+        )
+        runtime_check.main()
+    captured = capsys.readouterr()
+    assert "passed" not in captured.out
+
+
+def test_main_check_sup_incorrect(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Test the correctness of the "check" mode of the main function with a superposition assertion with incorrect results.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Monkeypatch fixture for testing.
+        capsys (pytest.CaptureFixture): Capture fixture for testing.
+    """
+    random.seed(12345)
+    with GeneratedOutput(["test_q0", "test_q1"], [1, 0, 0, 0], 250, 1.0) as (path, _):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "runtime_check.py",
+                "--calibration",
+                str(BASE_PATH.joinpath("calibration.json")),
+                "check",
+                str(path),
+                "--dir",
+                str(BASE_PATH.joinpath("test_program_compiled")),
+                "--slice",
+                "2",
                 "-p",
                 "0.05",
             ],
@@ -401,3 +432,17 @@ def test_main_shots(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixtu
     assert match is not None, f"Output did not match expected format: {out}"
     shots = int(match.group(1))
     assert shots == 180, f"Expected 100 shots, but got {shots}."
+
+
+def test_contribution_equal_under_noise_big_difference() -> None:
+    """Test the correctness of the `distribution_equal_under_noise` function when distributions are very different."""
+    assert not result_checker.distribution_equal_under_noise(
+        [100, 0, 0, 100], [0, 0.5, 0.5, 0], 200, 1.0, 0.05, scale=False
+    )
+
+
+def test_check_power_divergence_zeros() -> None:
+    """Tests that `check_power_divergence` correctly returns `False` if the expected distribution has a zero entry while the observed distribution's entry is non-zero."""
+    statistic, p = result_checker.check_power_divergence([99, 1, 0, 0], [100, 0, 0, 0])
+    assert statistic == 0.0
+    assert p == 0.0
