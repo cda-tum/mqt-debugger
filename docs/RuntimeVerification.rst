@@ -114,8 +114,8 @@ This is done by executing the ``mqt.debugger.check`` module with the ``"shots"``
 
     python -m mqt.debugger.check shots ...
 
-This method requires a quantum program containing assertions to be passed as an argument.
-Importantly, this program should be the starting program *before* the run preparation step.
+This method requires a quantum program containing translated assertions to be passed as an argument.
+Importantly, this program should be the starting program *after* the run preparation step. This is because different slices might require more or fewer shots.
 Once again, the ``--calibration`` option is used to specify the calibration file and the ``-p`` option can be used to specify a p-value threshold.
 
 Shot estimation is performed by running a set number of simulated trials. The number of trials can be specified using the ``--trials`` option.
