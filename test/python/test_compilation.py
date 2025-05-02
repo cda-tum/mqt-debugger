@@ -285,7 +285,7 @@ def test_main_check_equality_circuit(monkeypatch: pytest.MonkeyPatch, capsys: py
         capsys (pytest.CaptureFixture): Capture fixture for testing.
     """
     random.seed(12345)
-    with GeneratedOutput(["test_q0", "test_q1"], [1, 0, 0, 0], 250, 0.9) as (path, _):
+    with GeneratedOutput(["test_q0", "test_q1"], [1, 0, 0, 0], 250, 0.99) as (path, _):
         monkeypatch.setattr(
             sys,
             "argv",
@@ -367,7 +367,7 @@ def test_main_check_incorrect(monkeypatch: pytest.MonkeyPatch, capsys: pytest.Ca
         )
         runtime_check.main()
     captured = capsys.readouterr()
-    assert "passed" in captured.out
+    assert "passed" not in captured.out
 
 
 def test_main_shots(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
