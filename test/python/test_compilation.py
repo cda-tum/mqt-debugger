@@ -293,7 +293,7 @@ def test_main_shots(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixtu
             "--calibration",
             str(BASE_PATH.joinpath("calibration.json")),
             "shots",
-            str(BASE_PATH.joinpath("test_program_compiled", "slice_1.qasm")),
+            str(BASE_PATH.joinpath("test-shots.qasm")),
             "-p",
             "0.05",
             "--trials",
