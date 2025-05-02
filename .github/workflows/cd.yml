@@ -10,7 +10,7 @@ on:
 jobs:
   python-packaging:
     name: 🐍 Packaging
-    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-packaging.yml@v1.8.1
+    uses: munich-quantum-toolkit/workflows/.github/workflows/reusable-python-packaging.yml@v1.9.0
 
   deploy:
     if: github.event_name == 'release' && github.event.action == 'published'
@@ -31,7 +31,7 @@ jobs:
           path: dist
           merge-multiple: true
       - name: Generate artifact attestation for sdist and wheel(s)
-        uses: actions/attest-build-provenance@v2.2.3
+        uses: actions/attest-build-provenance@v2.3.0
         with:
           subject-path: "dist/*"
       - uses: pypa/gh-action-pypi-publish@release/v1
