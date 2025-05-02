@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import numpy as np
 from scipy.stats import chi2  # type: ignore[import-not-found]
 
 if TYPE_CHECKING:
@@ -221,29 +220,6 @@ def check_power_divergence(
         val += o * (((o / e) ** power) - 1)
     val *= 2 / (power * (power + 1))
 
-    return val, chi2.sf(val, len(observed) - 1)
-
-
-def check_g(observed: list[float], expected: list[float]) -> tuple[float, float]:
-    """Checks the G statistic for the observed and expected distributions.
-
-    Args:
-        observed (list[float]): The observed values.
-        expected (list[float]): The expected values.
-
-    Returns:
-        tuple[float, float]: The G statistic and the degree of freedom.
-    """
-    observed, expected = filter_out_zeros(observed, expected)
-    if not observed or not expected:
-        return 0.0, 0.0
-    observed, expected = merge_bins(observed, expected)
-    val = 0.0
-    for o, e in zip(observed, expected):
-        if o == 0:
-            continue
-        val += o * np.log(o / e)
-    val *= 2
     return val, chi2.sf(val, len(observed) - 1)
 
 
