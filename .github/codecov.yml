@@ -6,6 +6,7 @@ ignore:
   - "src/mqt/debugger/dap/*"
   - "app/*"
   - "src/frontend/**/*"
+  - "**/__main__.py"
 
 coverage:
   range: 60..90

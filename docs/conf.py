@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import warnings
 from importlib import metadata
 from pathlib import Path
@@ -67,8 +68,9 @@ extensions = [
     "breathe",
 ]
 
-breathe_projects = {"mqt.debugger": "doxygen/xml"}
-breathe_default_project = "MQT Debugger"
+breathe_projects = {"mqt-debugger": "doxygen/xml"}
+breathe_default_project = "mqt-debugger"
+subprocess.call("doxygen", shell=True)  # noqa: S602, S607
 
 pygments_style = "colorful"
 
