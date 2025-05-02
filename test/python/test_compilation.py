@@ -250,37 +250,37 @@ def test_sample_estimate(compiled_slice_1: str) -> None:
 #    check_dir_contents_and_delete(Path("tmp"), {"slice_1.qasm": compiled_slice_1})
 #
 #
-# def test_main_check(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-#    """Test the correctness of the "check" mode of the main function.
-#
-#    Args:
-#        monkeypatch (pytest.MonkeyPatch): Monkeypatch fixture for testing.
-#        capsys (pytest.CaptureFixture): Capture fixture for testing.
-#    """
-#    random.seed(12345)
-#    with GeneratedOutput(["test_q0", "test_q1"], [0.5, 0, 0, 0.5], 250, 0.9) as (path, _):
-#        monkeypatch.setattr(
-#            sys,
-#            "argv",
-#            [
-#                "runtime_check.py",
-#                "--calibration",
-#                str(BASE_PATH.joinpath("calibration.json")),
-#                "check",
-#                str(path),
-#                "--dir",
-#                str(BASE_PATH.joinpath("test_program_compiled")),
-#                "--slice",
-#                "1",
-#                "-p",
-#                "0.05",
-#            ],
-#        )
-#        runtime_check.main()
-#    captured = capsys.readouterr()
-#    assert "passed" in captured.out
-#
-#
+def test_main_check(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Test the correctness of the "check" mode of the main function.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Monkeypatch fixture for testing.
+        capsys (pytest.CaptureFixture): Capture fixture for testing.
+    """
+    random.seed(12345)
+    with GeneratedOutput(["test_q0", "test_q1"], [0.5, 0, 0, 0.5], 250, 0.9) as (path, _):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "runtime_check.py",
+                "--calibration",
+                str(BASE_PATH.joinpath("calibration.json")),
+                "check",
+                str(path),
+                "--dir",
+                str(BASE_PATH.joinpath("test_program_compiled")),
+                "--slice",
+                "1",
+                "-p",
+                "0.05",
+            ],
+        )
+        runtime_check.main()
+    captured = capsys.readouterr()
+    assert "passed" in captured.out
+
+
 def test_main_shots(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     """Test the correctness of the "check" mode of the main function.
 
