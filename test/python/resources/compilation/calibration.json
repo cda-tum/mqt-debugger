@@ -3,6 +3,6 @@
   "error_rate_2q": 0.01,
   "error_rate_measurement": 0.01,
   "specific_gate_errors": {
-    "cx": "0.001"
+    "cx": 0.001
   }
 }
