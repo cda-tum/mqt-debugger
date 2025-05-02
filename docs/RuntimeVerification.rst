@@ -8,6 +8,7 @@ After running the program and collecting measurement outcomes, the results can b
 Translating assertion programs into executable slices is done by the :cpp:member:`SimulationState::compile <SimulationStateStruct::compile>` method.
 However, python bindings and a full python framework are available to automate this process. The remainder of this document will focus on the python framework and its usage.
 The functionalities of this framework devised as part of a scientific paper that is currently under review.
+
 .. For further information, please refer to :cite:labelpar:`rovara2025runtimeverification`.
 
 .. _assertion_movement:
@@ -42,7 +43,7 @@ An example execution command is:
     python -m mqt.debugger.check prepare my_program.qasm --output slices
 
 Verification
-============
+############
 
 The generated slices should be executed on a quantum computer over multiple shots.
 The larger the number of shots, the more accurate the results will be.
@@ -103,7 +104,7 @@ A full example command for verification is:
     python -m mqt.debugger.check --calibration calibration.json check --dir slices --slice 1 --p-value 0.05 results.json
 
 Shot Estimation
-===============
+###############
 
 Using a device calibration and a program containing assertions, the verification framework can also attempt to estimate a sufficient number of shots to be performed for good results.
 While this is only an estimate, it can help to reduce the resources needed for the verification process.
