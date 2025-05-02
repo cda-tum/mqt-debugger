@@ -7,10 +7,10 @@ import locale
 
 # import os
 import random
+import re
 
-# import re
 # import shutil
-# import sys
+import sys
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -18,8 +18,7 @@ from typing import TYPE_CHECKING, Any
 import pytest
 
 from mqt.debugger import check
-
-# from mqt.debugger.check import runtime_check
+from mqt.debugger.check import runtime_check
 
 if TYPE_CHECKING:
     import types
@@ -282,34 +281,34 @@ def test_sample_estimate(compiled_slice_1: str) -> None:
 #    assert "passed" in captured.out
 #
 #
-# def test_main_shots(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-#    """Test the correctness of the "check" mode of the main function.
-#
-#    Args:
-#        monkeypatch (pytest.MonkeyPatch): Monkeypatch fixture for testing.
-#        capsys (pytest.CaptureFixture): Capture fixture for testing.
-#    """
-#    random.seed(12345)
-#    monkeypatch.setattr(
-#        sys,
-#        "argv",
-#        [
-#            "runtime_check.py",
-#            "--calibration",
-#            str(BASE_PATH.joinpath("calibration.json")),
-#            "shots",
-#            str(BASE_PATH.joinpath("test_program_compiled", "slice_1.qasm")),
-#            "-p",
-#            "0.05",
-#            "--trials",
-#            "100",
-#            "--accuracy",
-#            "0.9",
-#        ],
-#    )
-#    runtime_check.main()
-#    out = capsys.readouterr().out
-#    match = re.match("^Estimated required shots: (\\d+)$", out)
-#    assert match is not None, f"Output did not match expected format: {out}"
-#    shots = int(match.group(1))
-#    assert shots == 60, f"Expected 100 shots, but got {shots}."
+def test_main_shots(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Test the correctness of the "check" mode of the main function.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Monkeypatch fixture for testing.
+        capsys (pytest.CaptureFixture): Capture fixture for testing.
+    """
+    random.seed(12345)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "runtime_check.py",
+            "--calibration",
+            str(BASE_PATH.joinpath("calibration.json")),
+            "shots",
+            str(BASE_PATH.joinpath("test_program_compiled", "slice_1.qasm")),
+            "-p",
+            "0.05",
+            "--trials",
+            "100",
+            "--accuracy",
+            "0.9",
+        ],
+    )
+    runtime_check.main()
+    out = capsys.readouterr().out
+    match = re.match("^Estimated required shots: (\\d+)$", out)
+    assert match is not None, f"Output did not match expected format: {out}"
+    shots = int(match.group(1))
+    assert shots == 60, f"Expected 100 shots, but got {shots}."
