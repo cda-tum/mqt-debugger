@@ -107,6 +107,11 @@ def docs(session: nox.Session) -> None:
     session.install("--no-build-isolation", "-ve.[docs]")
     session.chdir("docs")
 
+    env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
+
+    session.log("Running Doxygen...")
+    session.run("doxygen", "Doxyfile", external=True, env=env)
+
     if args.builder == "linkcheck":
         session.run("sphinx-build", "-b", "linkcheck", ".", "_build/linkcheck", *posargs)
         return
@@ -119,8 +124,6 @@ def docs(session: nox.Session) -> None:
         f"_build/{args.builder}",
         *posargs,
     )
-
-    env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
 
     if serve:
         session.run("sphinx-autobuild", *shared_args, env=env)

@@ -11,8 +11,6 @@ The functionalities of this framework devised as part of a scientific paper that
 
 .. For further information, please refer to :cite:labelpar:`rovara2025runtimeverification`.
 
-.. _assertion_movement:
-
 Run Preparation
 ###############
 
