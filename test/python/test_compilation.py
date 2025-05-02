@@ -236,8 +236,6 @@ def test_main_prepare(compiled_slice_1: str, monkeypatch: pytest.MonkeyPatch) ->
         "argv",
         [
             "runtime_check.py",
-            "--calibration",
-            str(BASE_PATH.joinpath("calibration.json")),
             "prepare",
             str(BASE_PATH.joinpath("original.qasm")),
             "-o",
