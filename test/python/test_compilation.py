@@ -246,8 +246,8 @@ def test_main_prepare(compiled_slice_1: str, monkeypatch: pytest.MonkeyPatch) ->
     check_dir_contents_and_delete(Path("tmp-test"), {"slice_1.qasm": compiled_slice_1})
 
 
-def test_main_check(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    """Test the correctness of the "check" mode of the main function.
+def test_main_check_equality_sv(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Test the correctness of the "check" mode of the main function with a statevector-equality assertion.
 
     Args:
         monkeypatch (pytest.MonkeyPatch): Monkeypatch fixture for testing.
@@ -255,6 +255,99 @@ def test_main_check(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixtu
     """
     random.seed(12345)
     with GeneratedOutput(["test_q0", "test_q1"], [0.5, 0, 0, 0.5], 250, 0.9) as (path, _):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "runtime_check.py",
+                "--calibration",
+                str(BASE_PATH.joinpath("calibration.json")),
+                "check",
+                str(path),
+                "--dir",
+                str(BASE_PATH.joinpath("test_program_compiled")),
+                "--slice",
+                "1",
+                "-p",
+                "0.05",
+            ],
+        )
+        runtime_check.main()
+    captured = capsys.readouterr()
+    assert "passed" in captured.out
+
+
+def test_main_check_equality_circuit(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Test the correctness of the "check" mode of the main function with a circuit-equality assertion.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Monkeypatch fixture for testing.
+        capsys (pytest.CaptureFixture): Capture fixture for testing.
+    """
+    random.seed(12345)
+    with GeneratedOutput(["test_q0", "test_q1"], [1, 0, 0, 0], 250, 0.9) as (path, _):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "runtime_check.py",
+                "--calibration",
+                str(BASE_PATH.joinpath("calibration.json")),
+                "check",
+                str(path),
+                "--dir",
+                str(BASE_PATH.joinpath("test_program_compiled")),
+                "--slice",
+                "3",
+                "-p",
+                "0.05",
+            ],
+        )
+        runtime_check.main()
+    captured = capsys.readouterr()
+    assert "passed" in captured.out
+
+
+def test_main_check_sup(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Test the correctness of the "check" mode of the main function with a superposition assertion.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Monkeypatch fixture for testing.
+        capsys (pytest.CaptureFixture): Capture fixture for testing.
+    """
+    random.seed(12345)
+    with GeneratedOutput(["test_q0", "test_q1"], [0.5, 0, 0, 0.5], 250, 0.9) as (path, _):
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "runtime_check.py",
+                "--calibration",
+                str(BASE_PATH.joinpath("calibration.json")),
+                "check",
+                str(path),
+                "--dir",
+                str(BASE_PATH.joinpath("test_program_compiled")),
+                "--slice",
+                "2",
+                "-p",
+                "0.05",
+            ],
+        )
+        runtime_check.main()
+    captured = capsys.readouterr()
+    assert "passed" in captured.out
+
+
+def test_main_check_incorrect(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Test the correctness of the "check" mode of the main function with a statevector-equality assertion with incorrect results.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Monkeypatch fixture for testing.
+        capsys (pytest.CaptureFixture): Capture fixture for testing.
+    """
+    random.seed(12345)
+    with GeneratedOutput(["test_q0", "test_q1"], [0.9, 0, 0, 0.1], 250, 0.9) as (path, _):
         monkeypatch.setattr(
             sys,
             "argv",
