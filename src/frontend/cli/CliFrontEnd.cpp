@@ -81,7 +81,7 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
       }
       wasGet = false;
     }
-    printState(state, inspecting, state->getNumQubits(state) >= 6);
+    printState(state, inspecting, state->getNumQubits(state) >= 7);
 
     std::cout << "Enter command: ";
     std::getline(std::cin, command);
@@ -108,8 +108,21 @@ void CliFrontEnd::run(const char* code, SimulationState* state) {
       const auto count = state->getDiagnostics(state)->potentialErrorCauses(
           state->getDiagnostics(state), problems.data(), problems.size());
       std::cout << count << " potential problems found\n";
+    } else if (command.substr(0, 10) == "breakpoint") {
+      const auto param = command.substr(11, command.length() - 11);
+      const auto breakpoint = std::stoul(param);
+      size_t instr = 0;
+      state->setBreakpoint(state, breakpoint, &instr);
+      std::cout << "Breakpoint set at instruction " << instr << "\n";
     } else if (command == "assertions") {
       suggestUpdatedAssertions(state);
+    } else if (command == "state") {
+      for (size_t i = 0; i < 1ULL << state->getNumQubits(state); i++) {
+        Complex c;
+        state->getAmplitudeIndex(state, i, &c);
+        std::cout << c.real << " + " << c.imaginary << "i\n";
+      }
+      std::cin >> command;
     } else {
       wasError = true;
     }

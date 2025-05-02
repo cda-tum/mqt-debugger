@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 nox.needs_version = ">=2024.3.2"
-nox.options.default_venv_backend = "uv|virtualenv"
+nox.options.default_venv_backend = "uv"
 
 nox.options.sessions = ["lint", "tests"]
 
@@ -50,7 +50,7 @@ def _run_tests(
     extras: Sequence[str] = (),
 ) -> None:
     posargs = list(session.posargs)
-    env = {"PIP_DISABLE_PIP_VERSION_CHECK": "1"}
+    env = {"PIP_DISABLE_PIP_VERSION_CHECK": "1", "UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
 
     if os.environ.get("CI", None) and sys.platform == "win32":
         env["SKBUILD_CMAKE_ARGS"] = "-T ClangCL"
@@ -89,7 +89,9 @@ def minimums(session: nox.Session) -> None:
         install_args=["--resolution=lowest-direct"],
         run_args=["-Wdefault"],
     )
-    session.run("uv", "pip", "list")
+    env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
+    session.run("uv", "tree", "--frozen", env=env)
+    session.run("uv", "lock", "--refresh", env=env)
 
 
 @nox.session(reuse_venv=True)
@@ -105,6 +107,11 @@ def docs(session: nox.Session) -> None:
     session.install("--no-build-isolation", "-ve.[docs]")
     session.chdir("docs")
 
+    env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
+
+    session.log("Running Doxygen...")
+    session.run("doxygen", "Doxyfile", external=True, env=env)
+
     if args.builder == "linkcheck":
         session.run("sphinx-build", "-b", "linkcheck", ".", "_build/linkcheck", *posargs)
         return
@@ -119,6 +126,6 @@ def docs(session: nox.Session) -> None:
     )
 
     if serve:
-        session.run("sphinx-autobuild", *shared_args)
+        session.run("sphinx-autobuild", *shared_args, env=env)
     else:
-        session.run("sphinx-build", "--keep-going", *shared_args)
+        session.run("sphinx-build", "--keep-going", *shared_args, env=env)

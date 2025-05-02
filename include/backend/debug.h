@@ -396,6 +396,18 @@ struct SimulationStateStruct {
    * @return The diagnostics interface instance.
    */
   Diagnostics* (*getDiagnostics)(SimulationState* self);
+
+  /**
+   * @brief Compiles the given code into a quantum circuit without assertions.
+   * @param self The SimulationState instance from which the original assertion
+   * code should be taken.
+   * @param buffer The buffer that should be filled with the compiled code, or
+   * NULL to compute the required buffer size.
+   * @param settings The settings to use for the compilation.
+   * @return The size of the compiled code.
+   */
+  size_t (*compile)(SimulationState* self, char* buffer,
+                    CompilationSettings settings);
 };
 
 #ifdef __cplusplus

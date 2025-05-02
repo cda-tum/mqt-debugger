@@ -50,3 +50,32 @@ std::string readFromCircuitsPath(const std::string& testName) {
   file.close();
   return code;
 }
+
+/**
+ * @brief Generate a string representation of a double without trailing zeros.
+ *
+ * @param d The double to convert to a string.
+ * @return The string representation of the double.
+ */
+std::string doubleToStringTest(const double d) {
+  auto string = std::to_string(d);
+  while (string.back() == '0') {
+    string.pop_back();
+  }
+  if (string.back() == '.') {
+    string.pop_back();
+  }
+  return string;
+}
+
+std::string complexToStringTest(const Complex& c) {
+  const double epsilon = 0.0000001;
+  if (c.imaginary < epsilon && c.imaginary > -epsilon) {
+    return doubleToStringTest(c.real);
+  }
+  if (c.real < epsilon && c.real > -epsilon) {
+    return doubleToStringTest(c.imaginary) + "i";
+  }
+  return doubleToStringTest(c.real) + " + " + doubleToStringTest(c.imaginary) +
+         "i";
+}
