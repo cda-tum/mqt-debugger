@@ -6,12 +6,17 @@
 #include "common/ComplexMathematics.hpp"
 
 #include "Eigen/src/Eigenvalues/ComplexEigenSolver.h"
+#include "common.h"
 #include "common/Span.hpp"
 
 #include <Eigen/Dense>
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 /**
  * @brief Compute the trace of the square of a given matrix.
@@ -100,7 +105,7 @@ getPartialTrace(const std::vector<std::vector<Complex>>& matrix,
 double getEntropy(const std::vector<std::vector<Complex>>& matrix) {
   const auto mat = toEigenMatrix(matrix);
 
-  const Eigen::ComplexEigenSolver<Eigen::MatrixXcd> solver(mat);
+  const Eigen::ComplexEigenSolver<Eigen::MatrixXcd> solver(mat); // NOLINT
   const auto& eigenvalues = solver.eigenvalues();
   double entropy = 0;
   for (const auto val : eigenvalues) {
@@ -296,4 +301,21 @@ std::string complexToString(const Complex& c) {
     return doubleToString(c.imaginary) + "i";
   }
   return doubleToString(c.real) + " + " + doubleToString(c.imaginary) + "i";
+}
+
+double dotProduct(const Statevector& sv1, const Statevector& sv2) {
+  double resultReal = 0;
+  double resultImag = 0;
+
+  const Span<Complex> amplitudes1(sv1.amplitudes, sv1.numStates);
+  const Span<Complex> amplitudes2(sv2.amplitudes, sv2.numStates);
+
+  for (size_t i = 0; i < sv1.numStates; i++) {
+    resultReal += amplitudes1[i].real * amplitudes2[i].real +
+                  amplitudes1[i].imaginary * amplitudes2[i].imaginary;
+    resultImag += -1 * amplitudes1[i].real * amplitudes2[i].imaginary +
+                  amplitudes1[i].imaginary * amplitudes2[i].real;
+  }
+  Complex result{resultReal, resultImag};
+  return complexMagnitude(result);
 }

@@ -32,6 +32,7 @@ We appreciate any feedback and contributions to the project. If you want to cont
     Assertions
     Diagnosis
     AssertionRefinement
+    RuntimeVerification
     Publications
 
  .. toctree::

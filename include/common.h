@@ -12,6 +12,7 @@
 #ifndef __cplusplus
 #else
 #include <cstddef>
+#include <cstdint>
 extern "C" {
 #endif
 
@@ -102,6 +103,21 @@ typedef struct {
    */
   Complex* amplitudes;
 } Statevector;
+
+/**
+ * @brief The settings that should be used to compile an assertion program.
+ */
+typedef struct {
+  /**
+   * @brief The optimization level that should be used. Exact meaning depends on
+   * the implementation, but typically 0 means no optimization.
+   */
+  uint8_t opt;
+  /**
+   * @brief The index of the slice that should be compiled.
+   */
+  size_t sliceIndex;
+} CompilationSettings;
 
 #ifdef __cplusplus
 }

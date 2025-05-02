@@ -3,17 +3,26 @@
  * @brief Provides common fixture base classes for other tests.
  */
 
+#pragma once
+
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/dd/DDSimDiagnostics.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
 #include "common.h"
+#include "common/parsing/Utils.hpp"
 #include "utils_test.hpp"
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <gtest/gtest.h>
+#include <iomanip>
+#include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
 /**
  * @brief Fixture that loads custom code.
@@ -52,13 +61,40 @@ protected:
    */
   std::string userCode;
 
+  /**
+   * @brief Add boilerplate code to the given code.
+   *
+   * This method adds the necessary qreg and creg declarations to the code.
+   * @param numQubits The number of qubits to declare.
+   * @param numClassics The number of classical bits to declare.
+   * @param code The code to add the boilerplate to.
+   * @param preamble The preamble to add to the code before loading declaring
+   * the registers (e.g., library imports).
+   * @return The code with the boilerplate added.
+   */
+  virtual std::string addBoilerplate(size_t numQubits, size_t numClassics,
+                                     const char* code, const char* preamble) {
+    numQubits = std::max<size_t>(numQubits, 1);
+    numClassics = std::max<size_t>(numClassics, 1);
+    std::ostringstream ss;
+
+    ss << preamble;
+
+    ss << "qreg q[" << numQubits << "];\n";
+    ss << "creg c[" << numClassics << "];\n";
+
+    ss << code;
+
+    return ss.str();
+  }
+
   /*
    * @brief Load custom code into the state.
    *
-   * Classical and Quantum registers of the given size are created automatically
-   * with the names `c` and `q`. Therefore, the first instruction in the
-   * provided code will have instruction index 2, as 0 and 1 are reserved for
-   * the registers.\n\n
+   * By default, classical and Quantum registers of the given size are created
+   * automatically with the names `c` and `q`. Therefore, the first instruction
+   * in the provided code will have instruction index 2, as 0 and 1 are reserved
+   * for the registers.\n\n
    *
    * At least one classical and quantum bit will always be created, even if the
    * given number is less than 1.
@@ -73,23 +109,8 @@ protected:
    */
   void loadCode(size_t numQubits, size_t numClassics, const char* code,
                 bool shouldFail = false, const char* preamble = "") {
-    if (numQubits < 1) {
-      numQubits = 1;
-    }
-    if (numClassics < 1) {
-      numClassics = 1;
-    }
-    std::ostringstream ss;
-
-    ss << preamble;
-
-    ss << "qreg q[" << numQubits << "];\n";
-    ss << "creg c[" << numClassics << "];\n";
-
-    ss << code;
-
     userCode = code;
-    fullCode = ss.str();
+    fullCode = addBoilerplate(numQubits, numClassics, code, preamble);
     ASSERT_EQ(state->loadCode(state, fullCode.c_str()),
               shouldFail ? ERROR : OK);
   }
@@ -162,5 +183,139 @@ protected:
       state->stepForward(state);
       currentInstruction = state->getCurrentInstruction(state);
     }
+  }
+};
+
+/**
+ * @brief Fixture for testing the correctness of the compilation process.
+ *
+ * This fixture sets up a DDSimulationState and provides the method
+ * `loadCode` to load custom code into the state. The code is then
+ * compiled and the resulting program is checked for correctness.
+ */
+class CompilationTest : public CustomCodeFixture {
+
+protected:
+  std::string addBoilerplate(size_t /*numQubits*/, size_t /*numClassics*/,
+                             const char* code,
+                             const char* /*preamble*/) override {
+    return code;
+  }
+
+  /**
+   * @brief Creates a new CompilationSettings object for tests.
+   * @param opt The optimization level to use.
+   * @param slice The slice index to use.
+   * @return The created CompilationSettings object.
+   */
+  static CompilationSettings makeSettings(uint8_t opt, size_t slice) {
+    return {
+        /*opt=*/opt,
+        /*sliceIndex=*/slice,
+    };
+  }
+
+  /**
+   * @brief Add the testing preamble to the given code.
+   * @param code The code to add the preamble to.
+   * @param preamble The preamble to add to the code.
+   * @return The code with the preamble added.
+   */
+  static std::string addPreamble(const std::string& code,
+                                 const PreambleVector& preamble) {
+    std::stringstream ss;
+    for (const auto& entry : preamble) {
+      ss << entry->toString();
+    }
+    ss << code;
+    return ss.str();
+  }
+
+  /**
+   * @brief Load the given code into the state.
+   *
+   * Convenience overload for base method that automatically sets unneeded
+   * parameters to 0.
+   *
+   * @param code The code to load.
+   */
+  void loadCode(const char* code) {
+    CustomCodeFixture::loadCode(0, 0, code, false, "");
+  }
+
+  /**
+   * @brief Display the expected and actual compiled codes side by side.
+   * @param expected The expected compiled code.
+   * @param actual The actual compiled code.
+   */
+  static void prettyPrintComparison(const std::string& expected,
+                                    const std::string& actual) {
+    auto expectedLines = splitString(expected, '\n');
+    auto actualLines = splitString(actual, '\n');
+    expectedLines.insert(expectedLines.begin(), "");
+    actualLines.insert(actualLines.begin(), "");
+    expectedLines.insert(expectedLines.begin(), "EXPECTED:");
+    actualLines.insert(actualLines.begin(), "ACTUAL:");
+    const auto maxLenExpected =
+        std::max_element(expectedLines.begin(), expectedLines.end(),
+                         [](const std::string& a, const std::string& b) {
+                           return a.size() < b.size();
+                         })
+            ->size();
+    const auto maxLenActual =
+        std::max_element(actualLines.begin(), actualLines.end(),
+                         [](const std::string& a, const std::string& b) {
+                           return a.size() < b.size();
+                         })
+            ->size();
+    const auto lineCount = std::max(expectedLines.size(), actualLines.size());
+    std::cout << "\n";
+    for (size_t i = 0; i < lineCount; i++) {
+      if (i == 1) {
+        std::cout << std::setfill('-');
+      } else {
+        std::cout << std::setfill(' ');
+      }
+      const auto expectedLine =
+          i < expectedLines.size() ? expectedLines[i] : "";
+      const auto actualLine = i < actualLines.size() ? actualLines[i] : "";
+      std::cout << std::left << std::setw(static_cast<int>(maxLenExpected + 3))
+                << expectedLine << " | "
+                << std::setw(static_cast<int>(maxLenActual + 3)) << actualLine
+                << "\n";
+    }
+    std::cout << "\n";
+  }
+
+public:
+  /**
+   * @brief Check the compilation of the loaded code with the given settings.
+   * @param settings The settings to use for the compilation.
+   * @param expected The expected compiled code.
+   */
+  void checkCompilation(const CompilationSettings& settings,
+                        const std::string& expected,
+                        const PreambleVector& expectedPreamble) {
+    // Compile the code
+    const size_t size = state->compile(state, nullptr, settings);
+    ASSERT_NE(size, 0) << "Compilation failed";
+    std::vector<char> buffer(size);
+    const size_t newSize = state->compile(state, buffer.data(), settings);
+    ASSERT_EQ(size, newSize) << "Compilation resulted in unexpected size";
+    const auto expectedCode = addPreamble(expected, expectedPreamble);
+    const auto receivedCode = std::string(buffer.data());
+    prettyPrintComparison(expectedCode, receivedCode);
+    ASSERT_EQ(expectedCode, receivedCode)
+        << "Compilation resulted in unexpected code";
+  }
+
+  /**
+   * @brief Check whether the compilation of the loaded code fails with the
+   * given settings.
+   * @param settings The settings to use for the compilation.
+   */
+  void checkNoCompilation(const CompilationSettings& settings) {
+    ASSERT_EQ(state->compile(state, nullptr, settings), 0)
+        << "Compilation should have failed";
   }
 };

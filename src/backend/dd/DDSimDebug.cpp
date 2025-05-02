@@ -14,11 +14,13 @@
 #include "common/ComplexMathematics.hpp"
 #include "common/Span.hpp"
 #include "common/parsing/AssertionParsing.hpp"
+#include "common/parsing/AssertionTools.hpp"
 #include "common/parsing/CodePreprocessing.hpp"
 #include "common/parsing/Utils.hpp"
 #include "dd/DDDefinitions.hpp"
 #include "dd/Operations.hpp"
 #include "dd/Package.hpp"
+#include "ir/Register.hpp"
 #include "ir/operations/ClassicControlledOperation.hpp"
 #include "ir/operations/OpType.hpp"
 
@@ -30,9 +32,11 @@
 #include <exception>
 #include <iostream>
 #include <iterator>
+#include <map>
 #include <memory>
 #include <numeric>
 #include <random>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -107,6 +111,7 @@ Result createDDSimulationState(DDSimulationState* self) {
   self->interface.clearBreakpoints = ddsimClearBreakpoints;
   self->interface.getStackDepth = ddsimGetStackDepth;
   self->interface.getStackTrace = ddsimGetStackTrace;
+  self->interface.compile = ddsimCompile;
 
   // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
   return self->interface.init(reinterpret_cast<SimulationState*>(self));
@@ -861,6 +866,12 @@ Result ddsimGetStackTrace(SimulationState* self, size_t maxDepth,
   return OK;
 }
 
+size_t ddsimCompile(SimulationState* self, char* buffer,
+                    CompilationSettings settings) {
+  auto* ddsim = toDDSimulationState(self);
+  return compileStatisticalSlice(ddsim, buffer, settings);
+}
+
 Result destroyDDSimulationState(DDSimulationState* self) {
   self->ready = false;
   destroyDDDiagnostics(&self->diagnostics);
@@ -986,29 +997,6 @@ std::pair<size_t, size_t> variableToQubitAt(DDSimulationState* ddsim,
 
   return {static_cast<size_t>(std::distance(targets.begin(), found)),
           functionDef};
-}
-
-/**
- * @brief Compute the dot product of two state vectors.
- * @param sv1 The first state vector.
- * @param sv2 The second state vector.
- * @return The computed dot product.
- */
-double dotProduct(const Statevector& sv1, const Statevector& sv2) {
-  double resultReal = 0;
-  double resultImag = 0;
-
-  const Span<Complex> amplitudes1(sv1.amplitudes, sv1.numStates);
-  const Span<Complex> amplitudes2(sv2.amplitudes, sv2.numStates);
-
-  for (size_t i = 0; i < sv1.numStates; i++) {
-    resultReal += amplitudes1[i].real * amplitudes2[i].real -
-                  amplitudes1[i].imaginary * amplitudes2[i].imaginary;
-    resultImag += amplitudes1[i].real * amplitudes2[i].imaginary +
-                  amplitudes1[i].imaginary * amplitudes2[i].real;
-  }
-  Complex result{resultReal, resultImag};
-  return complexMagnitude(result);
 }
 
 /**
@@ -1285,6 +1273,7 @@ std::string preprocessAssertionCode(const char* code,
   ddsim->dataDependencies.clear();
   ddsim->functionCallers.clear();
   ddsim->targetQubits.clear();
+  ddsim->instructionObjects.clear();
 
   for (auto& instruction : instructions) {
     ddsim->targetQubits.push_back(instruction.targets);
@@ -1371,7 +1360,7 @@ std::string preprocessAssertionCode(const char* code,
       declaration = replaceString(declaration, "\t", "");
       declaration = replaceString(declaration, ";", "");
       auto parts = splitString(declaration, '[');
-      auto name = parts[0];
+      auto& name = parts[0];
       const size_t size = std::stoul(parts[1].substr(0, parts[1].size() - 1));
 
       const size_t index = ddsim->classicalRegisters.empty()
@@ -1410,6 +1399,8 @@ std::string preprocessAssertionCode(const char* code,
       correctLines.begin(), correctLines.end(), std::string(),
       [](const std::string& a, const std::string& b) { return a + b; });
 
+  std::move(instructions.begin(), instructions.end(),
+            std::back_inserter(ddsim->instructionObjects));
   return result;
 }
 
@@ -1429,4 +1420,288 @@ std::string getQuantumBitName(DDSimulationState* ddsim, size_t index) {
     }
   }
   return "UNKNOWN";
+}
+
+//-----------------------------------------------------------------------------
+
+/**
+ * @brief Construct the preamble for a statistical slice equality assertion.
+ * @param assertion The assertion to construct the preamble for.
+ * @param targetNames The names of the target qubits.
+ * @return The constructed preamble.
+ */
+std::string getStatisticalSliceEqualityPreamble(
+    std::unique_ptr<StatevectorEqualityAssertion>& assertion,
+    std::map<std::string, std::string>& targetNames) {
+  std::stringstream ss;
+  const auto sv = Span<Complex>(assertion->getTargetStatevector().amplitudes,
+                                assertion->getTargetStatevector().numStates);
+
+  // First target is rather straightforward.
+  ss << "// ASSERT: (";
+  for (size_t i = 0; i < assertion->getTargetQubits().size(); i++) {
+    ss << targetNames[assertion->getTargetQubits()[i]];
+    if (i != assertion->getTargetQubits().size() - 1) {
+      ss << ",";
+    }
+  }
+  ss << ") {";
+  for (size_t i = 0; i < assertion->getTargetStatevector().numStates; i++) {
+    ss << (sv[i].real * sv[i].real) + (sv[i].imaginary * sv[i].imaginary);
+    if (i != assertion->getTargetStatevector().numStates - 1) {
+      ss << ",";
+    }
+  }
+  ss << "} " << assertion->getSimilarityThreshold() << "\n";
+  return ss.str();
+}
+
+/**
+ * @brief Construct the preamble for a statistical slice superposition
+ * assertion.
+ * @param assertion The assertion to construct the preamble for.
+ * @param targetNames The names of the target qubits.
+ * @return The constructed preamble.
+ */
+std::string getStatisticalSliceSuperpositionPreamble(
+    std::unique_ptr<SuperpositionAssertion>& assertion,
+    std::map<std::string, std::string>& targetNames) {
+  std::stringstream ss;
+  // First target is rather straightforward.
+  ss << "// ASSERT: (";
+  for (size_t i = 0; i < assertion->getTargetQubits().size(); i++) {
+    ss << targetNames[assertion->getTargetQubits()[i]];
+    if (i != assertion->getTargetQubits().size() - 1) {
+      ss << ",";
+    }
+  }
+  ss << ") {superposition}\n";
+  return ss.str();
+}
+
+std::string getProjectiveMeasurementPreamble(
+    std::unique_ptr<CircuitEqualityAssertion>& assertion,
+    std::map<std::string, std::string>& targetNames) {
+  std::stringstream ss;
+  // First target is rather straightforward.
+  ss << "// ASSERT: (";
+  for (size_t i = 0; i < assertion->getTargetQubits().size(); i++) {
+    ss << targetNames[assertion->getTargetQubits()[i]];
+    if (i != assertion->getTargetQubits().size() - 1) {
+      ss << ",";
+    }
+  }
+  ss << ") {zero}\n";
+  return ss.str();
+}
+
+/**
+ * @brief Attempt to cancel an assertion based on all previously encountered
+ * assertions.
+ * @param ddsim The simulation state.
+ * @param newAssertion The index of the new assertion to check.
+ * @return True if the assertion can be cancelled, false otherwise.
+ */
+bool tryCancelAssertion(DDSimulationState* ddsim, size_t newAssertion) {
+  const auto& assertion = ddsim->assertionInstructions[newAssertion];
+  for (size_t i = newAssertion - 1; i > 0; i--) {
+    if (ddsim->instructionTypes[i] != ASSERTION) {
+      if (!doesCommute(assertion, ddsim->instructionObjects[i])) {
+        return false;
+      }
+      continue;
+    }
+    const auto& potentialParent = ddsim->assertionInstructions[i];
+    if (potentialParent->implies(*assertion)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool areAssertionsIndependent(DDSimulationState* ddsim,
+                              size_t previousAssertion, size_t newAssertion) {
+  if (ddsim->assertionInstructions[previousAssertion]->getType() ==
+      AssertionType::CircuitEquality) {
+    return true;
+  }
+  const auto& next = ddsim->assertionInstructions[newAssertion];
+
+  const auto nextQubits =
+      std::set(next->getTargetQubits().begin(), next->getTargetQubits().end());
+
+  for (size_t i = previousAssertion + 1; i < newAssertion; i++) {
+    if (ddsim->instructionTypes[i] == InstructionType::ASSERTION) {
+      continue;
+    }
+    const auto targets = ddsim->targetQubits[i];
+    if (std::any_of(targets.begin(), targets.end(), [&](const auto& target) {
+          return nextQubits.find(target) != nextQubits.end();
+        })) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool areAssertionsIndependent(DDSimulationState* ddsim,
+                              std::vector<size_t>& previousAssertions,
+                              size_t newAssertion) {
+  return std::all_of(previousAssertions.begin(), previousAssertions.end(),
+                     [&](const auto prev) {
+                       return areAssertionsIndependent(ddsim, prev,
+                                                       newAssertion);
+                     });
+}
+
+void compileProjectiveMeasurement(
+    DDSimulationState* ddsim, std::stringstream& stream, size_t assertionIndex,
+    const std::map<std::string, std::string>& targetNames) {
+  const auto& assertion = dynamic_cast<CircuitEqualityAssertion&>(
+      *ddsim->assertionInstructions[assertionIndex].get());
+
+  qc::QuantumComputation newQc;
+  std::stringstream codeStream{assertion.getCircuitCode()};
+  newQc.import(codeStream, qc::Format::OpenQASM3);
+
+  newQc.unifyQuantumRegisters("assert_qubit");
+
+  qc::QubitIndexToRegisterMap qubitIndexToRegisterMap{};
+  const auto reg = newQc.getQuantumRegisters().begin()->second;
+  for (qc::Qubit i = 0; i < assertion.getTargetQubits().size(); i++) {
+    const auto& originalVariable = assertion.getTargetQubits()[i];
+    qubitIndexToRegisterMap.try_emplace(i, reg, originalVariable);
+  }
+
+  for (auto it = newQc.rbegin(); it != newQc.rend(); it++) {
+    auto inverted = it->get()->getInverted();
+    it->get()->dumpOpenQASM2(stream, qubitIndexToRegisterMap, {});
+  }
+
+  for (const auto& [qbit, cbit] : targetNames) {
+    stream << "measure " << qbit << " -> " << cbit << "[0];\n";
+  }
+
+  for (auto& it : newQc) {
+    it->dumpOpenQASM2(stream, qubitIndexToRegisterMap, {});
+  }
+}
+
+size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
+                               CompilationSettings settings) {
+  std::vector<size_t> assertionsToSkip;
+  std::vector<size_t> assertionsToCover;
+  auto sliceIndex = settings.sliceIndex;
+  for (size_t i = 0; i < ddsim->instructionTypes.size(); i++) {
+    if (ddsim->instructionTypes[i] != ASSERTION) {
+      continue;
+    }
+    assertionsToSkip.push_back(i);
+    if (settings.opt >= 1 && tryCancelAssertion(ddsim, i)) {
+      continue;
+    }
+
+    if (settings.opt < 2 ||
+        !areAssertionsIndependent(ddsim, assertionsToCover, i)) {
+      if (sliceIndex == 0) {
+        if (settings.opt < 2) {
+          assertionsToCover.emplace_back(i);
+        }
+        break;
+      }
+      sliceIndex--;
+      assertionsToCover.clear();
+    }
+    if (settings.opt >= 2) {
+      assertionsToCover.emplace_back(i);
+    }
+  }
+  if (sliceIndex > 0 || assertionsToCover.empty()) {
+    return 0;
+  }
+
+  std::stringstream ss;
+
+  // Determine the measurement targets required for the assertion.
+  std::map<size_t, std::map<std::string, std::string>> assertionTargets;
+  std::set<std::string> assertionTargetsSet;
+  for (const auto foundIndex : assertionsToCover) {
+    for (const auto& target :
+         ddsim->assertionInstructions[foundIndex]->getTargetQubits()) {
+      std::string targetName =
+          "test_" + replaceString(replaceString(target, "]", ""), "[", "");
+      while (assertionTargetsSet.find(targetName) !=
+             assertionTargetsSet.end()) {
+        targetName += "_";
+      }
+      assertionTargets[foundIndex][target] = targetName;
+      assertionTargetsSet.insert(targetName);
+    }
+  }
+
+  // Add the preamble.
+  for (const auto foundIndex : assertionsToCover) {
+    auto& assertion = ddsim->assertionInstructions[foundIndex];
+    if (assertion->getType() == AssertionType::StatevectorEquality) {
+      std::unique_ptr<StatevectorEqualityAssertion> svEqualityAssertion(
+          dynamic_cast<StatevectorEqualityAssertion*>(assertion.release()));
+      ss << getStatisticalSliceEqualityPreamble(svEqualityAssertion,
+                                                assertionTargets[foundIndex]);
+      assertion = std::move(svEqualityAssertion);
+    } else if (assertion->getType() == AssertionType::Superposition) {
+      std::unique_ptr<SuperpositionAssertion> superpositionAssertion(
+          dynamic_cast<SuperpositionAssertion*>(assertion.release()));
+      ss << getStatisticalSliceSuperpositionPreamble(
+          superpositionAssertion, assertionTargets[foundIndex]);
+      assertion = std::move(superpositionAssertion);
+    } else if (assertion->getType() == AssertionType::CircuitEquality) {
+      std::unique_ptr<CircuitEqualityAssertion> circuitEqualityAssertion(
+          dynamic_cast<CircuitEqualityAssertion*>(assertion.release()));
+      ss << getProjectiveMeasurementPreamble(circuitEqualityAssertion,
+                                             assertionTargets[foundIndex]);
+      assertion = std::move(circuitEqualityAssertion);
+    }
+  }
+
+  // Add the remaining code.
+  size_t last = 0;
+  for (const auto toSkip : assertionsToSkip) {
+    size_t start = 0;
+    size_t end = 0;
+    ddsim->interface.getInstructionPosition(&ddsim->interface, toSkip, &start,
+                                            &end);
+    const auto before = ddsim->code.substr(last, start - last);
+    ss << before;
+    last = end + 1;
+    if (ddsim->code[last] == '\n') {
+      last++;
+    }
+    if (assertionTargets.find(toSkip) != assertionTargets.end()) {
+      // Add the required classical registers.
+      for (const auto& [_, cbit] : assertionTargets[toSkip]) {
+        ss << "creg " << cbit << "[1];\n";
+      }
+      if (ddsim->assertionInstructions[toSkip]->getType() ==
+          AssertionType::CircuitEquality) {
+        compileProjectiveMeasurement(ddsim, ss, toSkip,
+                                     assertionTargets[toSkip]);
+      } else {
+        for (const auto& [qbit, cbit] : assertionTargets[toSkip]) {
+          ss << "measure " << qbit << " -> " << cbit << "[0];\n";
+        }
+      }
+    }
+  }
+
+  const auto compiledCode = ss.str();
+  if (buffer == nullptr) {
+    return compiledCode.length() + 1;
+  }
+  const Span<char> bufferSpan(buffer, compiledCode.length() + 1);
+  for (size_t i = 0; i < compiledCode.length(); i++) {
+    bufferSpan[i] = compiledCode[i];
+  }
+  bufferSpan[compiledCode.length()] = '\0';
+  return compiledCode.length() + 1;
 }

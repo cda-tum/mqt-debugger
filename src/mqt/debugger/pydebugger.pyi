@@ -60,6 +60,22 @@ class Complex:
             imaginary (float, optional): The imaginary part of the complex number. Defaults to 0.0.
         """
 
+class CompilationSettings:
+    """The settings that should be used to compile an assertion program."""
+
+    opt: int
+    """The optimization level that should be used. Exact meaning depends on the implementation, but typically 0 means no optimization."""
+    slice_index: int
+    """The index of the slice that should be compiled."""
+
+    def __init__(self, opt: int, slice_index: int = 0) -> None:
+        """Initializes a new set of compilation settings.
+
+        Args:
+            opt (int): The optimization level that should be used.
+            slice_index (int, optional): The index of the slice that should be compiled (defaults to 0).
+        """
+
 class Statevector:
     """Represents a state vector."""
 
@@ -365,6 +381,16 @@ class SimulationState:
 
         Returns:
             Diagnostics: The diagnostics instance employed by this debugger.
+        """
+
+    def compile(self, settings: CompilationSettings) -> str:
+        """Compiles the program in the current state.
+
+        Args:
+        settings (CompilationSettings): The settings to use for the compilation.
+
+        Returns:
+            str: The compiled code.
         """
 
 class ErrorCauseType(enum.Enum):

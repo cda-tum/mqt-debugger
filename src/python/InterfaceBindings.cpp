@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <pybind11/detail/common.h>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -46,7 +47,8 @@ struct StatevectorCPP {
 
 void bindFramework(py::module& m) {
   // Bind the VariableType enum
-  py::enum_<VariableType>(m, "VariableType")
+  py::enum_<VariableType>(m, "VariableType",
+                          "The type of a classical variable.")
       .value("VarBool", VarBool, "A boolean variable.")
       .value("VarInt", VarInt, "An integer variable.")
       .value("VarFloat", VarFloat, "A floating-point variable.")
@@ -125,6 +127,24 @@ This is always equal to 2^`num_qubits`.)")
 
 Contains one element for each of the `num_states` states in the state vector.)")
       .doc() = "Represents a state vector.";
+
+  py::class_<CompilationSettings>(m, "CompilationSettings")
+      .def(py::init<uint8_t, size_t>(), py::arg("opt"),
+           py::arg("slice_index") = 0,
+           R"(Initializes a new set of compilation settings.
+
+Args:
+   opt (int): The optimization level that should be used.
+   slice_index (int, optional): The index of the slice that should be compiled (defaults to 0).)")
+      .def_readwrite(
+          "opt", &CompilationSettings ::opt,
+          "The optimization level that should be used. Exact meaning depends "
+          "on "
+          "the implementation, but typically 0 means no optimization.")
+      .def_readwrite("slice_index", &CompilationSettings::sliceIndex,
+                     "The index of the slice that should be compiled.")
+      .doc() =
+      "The settings that should be used to compile an assertion program.";
 
   py::class_<SimulationState>(m, "SimulationState")
       .def(py::init<>(), "Creates a new `SimulationState` instance.")
@@ -532,6 +552,25 @@ Returns:
 
 Returns:
     Diagnostics: The diagnostics instance employed by this debugger.)")
+      .def(
+          "compile",
+          [](SimulationState* self, CompilationSettings& settings) {
+            const auto size = self->compile(self, nullptr, settings);
+            if (size == 0) {
+              return std::string();
+            }
+            std::vector<char> buffer(size);
+            self->compile(self, buffer.data(), settings);
+            std::string result(buffer.data(), size - 1);
+            return result;
+          },
+          R"(Compiles the given code into a quantum circuit without assertions.
+
+Args:
+    settings (CompilationSettings): The settings to use for the compilation.
+
+Returns:
+  str: The compiled code.)")
       .doc() = R"(Represents the state of a quantum simulation for debugging.
 
 "This is the main class of the `mqt-debugger` library, allowing developers to step through the code and inspect the state of the simulation.)";
@@ -539,7 +578,8 @@ Returns:
 
 void bindDiagnostics(py::module& m) {
   // Bind the ErrorCauseType enum
-  py::enum_<ErrorCauseType>(m, "ErrorCauseType")
+  py::enum_<ErrorCauseType>(m, "ErrorCauseType",
+                            "The type of a potential error cause.")
       .value("Unknown", Unknown, "An unknown error cause.")
       .value("MissingInteraction", MissingInteraction,
              "Indicates that an entanglement error may be caused by a missing "
@@ -764,7 +804,7 @@ Each entry of the resulting list consists of the suggested position for the new 
 string representation.
 
 Returns:
-  list[tupke[int, str]]: A list of new assertions.
+  list[tuple[int, str]]: A list of new assertions.
 )")
       .doc() = "Provides diagnostics capabilities such as different analysis "
                "methods for the debugger.";
