@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import json
 import locale
-
-# import os
+import os
 import random
 import re
-
-# import shutil
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -204,52 +202,52 @@ def test_sample_estimate(compiled_slice_1: str) -> None:
     assert n == 100
 
 
-# def check_dir_contents_and_delete(directory: Path, expected: dict[str, str]) -> None:
-#    """Check the contents of a directory against expected values.
-#
-#    Args:
-#        directory (Path): The directory to check.
-#        expected (dict[Path, str]): A dictionary mapping file paths to their expected contents.
-#    """
-#    contents: dict[str, str] = {}
-#    for dir_path, _, files in os.walk(str(directory)):
-#        for file in files:
-#            path = Path(dir_path) / file
-#            with path.open("r") as f:
-#                contents[str(path.relative_to(directory))] = f.read()
-#    shutil.rmtree(directory)
-#
-#    assert len(contents) == len(expected), f"Expected {len(expected)} files, but found {len(contents)}."
-#    for name, expected_contents in expected.items():
-#        assert name in contents, f"File {name} not found in directory."
-#        assert contents[name] == expected_contents, f"Contents of {name} do not match expected value."
-#
-#
-# def test_main_prepare(compiled_slice_1: str, monkeypatch: pytest.MonkeyPatch) -> None:
-#    """Test the correctness of the "prepare" mode of the main function.
-#
-#    Args:
-#        compiled_slice_1 (str): The compiled program slice code.
-#        monkeypatch (pytest.MonkeyPatch): Monkeypatch fixture for testing.
-#    """
-#    Path("tmp").mkdir(exist_ok=True)
-#    monkeypatch.setattr(
-#        sys,
-#        "argv",
-#        [
-#            "runtime_check.py",
-#            "--calibration",
-#            str(BASE_PATH.joinpath("calibration.json")),
-#            "prepare",
-#            str(BASE_PATH.joinpath("original.qasm")),
-#            "-o",
-#            "tmp",
-#        ],
-#    )
-#    runtime_check.main()
-#    check_dir_contents_and_delete(Path("tmp"), {"slice_1.qasm": compiled_slice_1})
-#
-#
+def check_dir_contents_and_delete(directory: Path, expected: dict[str, str]) -> None:
+    """Check the contents of a directory against expected values.
+
+    Args:
+        directory (Path): The directory to check.
+        expected (dict[Path, str]): A dictionary mapping file paths to their expected contents.
+    """
+    contents: dict[str, str] = {}
+    for dir_path, _, files in os.walk(str(directory)):
+        for file in files:
+            path = Path(dir_path) / file
+            with path.open("r") as f:
+                contents[str(path.relative_to(directory))] = f.read()
+
+    shutil.rmtree(directory)
+    assert len(contents) == len(expected), f"Expected {len(expected)} files, but found {len(contents)}."
+    for name, expected_contents in expected.items():
+        assert name in contents, f"File {name} not found in directory."
+        assert contents[name] == expected_contents, f"Contents of {name} do not match expected value."
+
+
+def test_main_prepare(compiled_slice_1: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test the correctness of the "prepare" mode of the main function.
+
+    Args:
+        compiled_slice_1 (str): The compiled program slice code.
+        monkeypatch (pytest.MonkeyPatch): Monkeypatch fixture for testing.
+    """
+    Path("tmp-test").mkdir(exist_ok=True)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "runtime_check.py",
+            "--calibration",
+            str(BASE_PATH.joinpath("calibration.json")),
+            "prepare",
+            str(BASE_PATH.joinpath("original.qasm")),
+            "-o",
+            "tmp-test",
+        ],
+    )
+    runtime_check.main()
+    check_dir_contents_and_delete(Path("tmp-test"), {"slice_1.qasm": compiled_slice_1})
+
+
 def test_main_check(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
     """Test the correctness of the "check" mode of the main function.
 
