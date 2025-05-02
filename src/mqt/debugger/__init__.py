@@ -32,7 +32,6 @@ __all__ = [
     "VariableValue",
     "__version__",
     "check",
-    "check",
     "create_ddsim_simulation_state",
     "create_ddsim_simulation_state",
     "dap",

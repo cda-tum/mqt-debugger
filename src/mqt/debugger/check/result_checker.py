@@ -236,13 +236,8 @@ def check_assertion_superposition(
     Returns:
         bool: True if the assertion is satisfied, False otherwise.
     """
-    to_test = [0.0 for _ in distribution]
-    for i in range(len(distribution)):
-        to_test[i] = 1.0
-        if distribution_equal_under_noise(distribution, to_test, num_samples, expected_success_probability):
-            return False
-        to_test[i] = 0
-    return True
+    highest = max(distribution) / num_samples
+    return (highest - (1 - expected_success_probability) / len(distribution)) < expected_success_probability
 
 
 def check_assertion_equality(
