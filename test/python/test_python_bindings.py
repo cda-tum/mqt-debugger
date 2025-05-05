@@ -1,3 +1,11 @@
+# Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
 """This module contains tests for the Python bindings of the Debugging interface.
 
 It only tests whether the bindings are working correctly. It does not stress-test the functionality or test edge cases.
