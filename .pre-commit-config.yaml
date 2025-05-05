@@ -116,10 +116,3 @@ repos:
         language: pygrep
         name: Disallow improper capitalization
     repo: local
-  - hooks:
-      - id: commitizen
-      - id: commitizen-branch
-        stages:
-          - pre-push
-    repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.1.0

@@ -130,7 +130,7 @@ struct DDSimulationState {
   /**
    * @brief The DD package used for simulation.
    */
-  std::unique_ptr<dd::Package<>> dd;
+  std::unique_ptr<dd::Package> dd;
   /**
    * @brief The iterator pointing to the current instruction in the simulation.
    */
@@ -138,7 +138,7 @@ struct DDSimulationState {
   /**
    * @brief The DD vector representing the current simulation state.
    */
-  qc::VectorDD simulationState;
+  dd::VectorDD simulationState;
   /**
    * @brief A vector containing the `InstructionType` of each instruction.
    */
