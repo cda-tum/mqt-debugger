@@ -54,7 +54,7 @@ check = [
 
 
 [project.scripts]
-mqt-debugger-compare = "mqt.debugger.evaluation:main"
+mqt-debugger-check = "mqt.debugger.check.runtime_check:main"
 
 [project.urls]
 Homepage = "https://github.com/cda-tum/mqt-debugger"
@@ -65,7 +65,7 @@ Discussions = "https://github.com/cda-tum/mqt-debugger/discussions"
 
 [tool.scikit-build]
 # Protect the configuration against future changes in scikit-build-core
-minimum-version = "0.8.1"
+minimum-version = "build-system.requires"
 
 # Set the wheel install directory
 wheel.install-dir = "mqt/debugger"
@@ -131,9 +131,6 @@ testpaths = ["test/python"]
 
 [tool.coverage]
 run.source = ["mqt.debugger"]
-run.omit = [
-    '*/_compat/*',
-]
 report.exclude_also = [
     '\.\.\.',
     'if TYPE_CHECKING:',
@@ -218,7 +215,6 @@ ignore = [
     "S101",    # Use of assert detected
     "S404",    # `subprocess` module is possibly insecure
 ]
-typing-modules = ["mqt.debugger._compat.typing"]
 isort.required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
@@ -227,9 +223,6 @@ isort.required-imports = ["from __future__ import annotations"]
 "typing.Mapping".msg = "Use collections.abc.Mapping instead."
 "typing.Sequence".msg = "Use collections.abc.Sequence instead."
 "typing.Set".msg = "Use collections.abc.Set instead."
-"typing.Self".msg = "Use mqt.debugger._compat.typing.Self instead."
-"typing_extensions.Self".msg = "Use mqt.debugger._compat.typing.Self instead."
-"typing.assert_never".msg = "Use mqt.debugger._compat.typing.assert_never instead."
 
 [tool.ruff.lint.per-file-ignores]
 "test/python/**" = ["T20", "ANN"]
@@ -241,9 +234,6 @@ isort.required-imports = ["from __future__ import annotations"]
     "E402", # Allow imports to appear anywhere in Jupyter notebooks
     "I002", # Allow missing `from __future__ import annotations` import
 ]
-"src/mqt/debugger/_compat/**.py" = ["TID251"]
-"src/mqt/debugger/evaluation.py" = ["T201"]
-"src/mqt/debugger/__main__.py" = ["T201"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -271,8 +261,17 @@ build = "cp3*"
 skip = "*-musllinux_*"
 archs = "auto64"
 test-command = "python -c \"from mqt import debugger\""
-test-skip = ["cp38-macosx_arm64", "cp313*"]
 build-frontend = "build[uv]"
+enable = ["cpython-freethreading"]
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+manylinux-ppc64le-image = "manylinux_2_28"
+manylinux-s390x-image = "manylinux_2_28"
+test-skip = [
+  "cp3*t-*", # no freethreading qiskit wheels
+  "cp*-win_arm64", # no numpy, qiskit, ... wheels
+]
+
 
 [tool.cibuildwheel.linux]
 environment = { DEPLOY = "ON" }
@@ -281,16 +280,12 @@ environment = { DEPLOY = "ON" }
 environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
 
 [tool.cibuildwheel.windows]
-before-build = "uv pip install delvewheel>=1.4.0"
-repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel} --namespace-pkg mqt"
+before-build = "uv pip install delvewheel>=1.9.0"
+repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel} --namespace-pkg mqt --ignore-existing"
 
-[tool.commitizen]
-name = "cz_conventional_commits"
-tag_format = "v$version"
-version_scheme = "pep440"
-version_provider = "pep621"
-update_changelog_on_bump = true
-skip_questions = ["breaking"]
+[[tool.cibuildwheel.overrides]]
+select = "*-macosx_arm64"
+environment = { MACOSX_DEPLOYMENT_TARGET = "11.0" }
 
 [dependency-groups]
 build = [
