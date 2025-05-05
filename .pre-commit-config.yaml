@@ -68,6 +68,11 @@ repos:
           - file
     repo: https://github.com/cheshirekow/cmake-format-precommit
     rev: v0.6.13
+
+  - hooks:
+      - id: license-tools
+    repo: https://github.com/emzeat/mz-lictools
+    rev: v2.7.0
   - hooks:
       - id: clang-format
         types_or:
