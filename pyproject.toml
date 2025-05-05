@@ -73,11 +73,6 @@ wheel.install-dir = "mqt/debugger"
 # Explicitly set the package directory
 wheel.packages = ["src/mqt"]
 
-# Set required CMake and Ninja versions
-cmake.version = ">=3.19"
-
-# Only build the Python bindings target
-cmake.targets = ["pydebugger"]
 ninja.version = ">=1.10"
 
 # Setuptools-style build caching in a local directory
