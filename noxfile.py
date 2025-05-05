@@ -163,7 +163,7 @@ def docs(session: nox.Session) -> None:
             "-f",
             "-g",
             "namespace",
-            "_build/doxygen/xml/",
+            "doxygen/xml/",
             external=True,
         )
 
