@@ -16,7 +16,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from scipy.stats import chi2  # type: ignore[import-not-found]
+missing_optionals: list[str] = []
+try:
+    from scipy.stats import chi2  # type: ignore[import-not-found]
+except ImportError:
+    missing_optionals.append("scipy")
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -218,6 +222,11 @@ def check_power_divergence(
     Returns:
         tuple[float, float]: The power divergence statistic and the degree of freedom.
     """
+    if missing_optionals:
+        raise ImportError(
+            "The following optional dependencies are required to use this feature: " + ", ".join(missing_optionals)
+        )
+
     observed, expected = filter_out_zeros(observed, expected)
     if not observed or not expected:
         return 0.0, 0.0
