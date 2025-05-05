@@ -22,6 +22,8 @@
 #include <utility>
 #include <vector>
 
+namespace mqt::debugger::test {
+
 /**
  * @brief Fixture for testing the correctness of assertion movement on custom
  * code.
@@ -335,3 +337,5 @@ TEST_F(AssertionMovementTest, DontMoveOutsideOfCustomGate) {
   const std::set<std::pair<size_t, size_t>> expected{{2, 1}};
   checkMovements(expected);
 }
+
+} // namespace mqt::debugger::test

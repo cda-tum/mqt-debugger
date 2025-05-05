@@ -23,6 +23,8 @@
 #include <memory>
 #include <string>
 
+namespace mqt::debugger::test {
+
 /**
  * @brief Fixture for testing the correctness of parsing functions.
  */
@@ -177,3 +179,5 @@ TEST_F(ParsingTest, BadFunctionCall) {
       "gate my_gate q0, q1 { h q0; h q1 } qreg q[3]; my_gate q[0], q[1], q[2];";
   ASSERT_THROW(preprocessCode(input2, output), ParsingError);
 }
+
+} // namespace mqt::debugger::test

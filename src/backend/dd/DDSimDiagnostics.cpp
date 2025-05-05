@@ -39,6 +39,8 @@
 #include <utility>
 #include <vector>
 
+namespace mqt::debugger {
+
 /**
  * @brief Cast a `Diagnostics` pointer to a `DDDiagnostics` pointer.
  *
@@ -1005,3 +1007,5 @@ void dddiagnosticsOnFailedAssertion(DDDiagnostics* diagnostics,
     suggestSplitEqualityAssertion(diagnostics, instruction, eqAssertion);
   }
 }
+
+} // namespace mqt::debugger

@@ -22,6 +22,8 @@
 #include <string>
 #include <vector>
 
+namespace mqt::debugger::test {
+
 using SV = std::vector<std::string>;
 using DV = std::vector<double>;
 
@@ -828,3 +830,5 @@ TEST_F(StatisticalSlicesCompilationTest,
 
   checkNoCompilation(makeSettings(2, 2));
 }
+
+} // namespace mqt::debugger::test

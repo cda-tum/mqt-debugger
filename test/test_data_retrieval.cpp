@@ -27,6 +27,8 @@
 #include <string>
 #include <vector>
 
+namespace mqt::debugger::test {
+
 /**
  * @brief Fixture for testing the correctness of the debugger for data retrieval
  * operations.
@@ -235,3 +237,5 @@ TEST_F(DataRetrievalTest, GetBadClassicalVariableName) {
   forwardTo(6);
   ASSERT_EQ(state->getClassicalVariableName(state, 5, name.data()), ERROR);
 }
+
+} // namespace mqt::debugger::test

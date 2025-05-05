@@ -28,6 +28,8 @@
 #include <utility>
 #include <vector>
 
+namespace mqt::debugger {
+
 /**
  * @brief Represents an equality assertion that should be inserted into the
  * program.
@@ -355,3 +357,5 @@ size_t tryFindMissingInteraction(DDDiagnostics* diagnostics,
  */
 size_t tryFindZeroControls(DDDiagnostics* diagnostics, size_t instruction,
                            ErrorCause* output, size_t count);
+
+} // namespace mqt::debugger

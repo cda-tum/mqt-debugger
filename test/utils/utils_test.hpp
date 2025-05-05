@@ -24,6 +24,8 @@
 #include <utility>
 #include <vector>
 
+namespace mqt::debugger::test {
+
 /**
  * @brief Check if the given complex number is equal to the given real and
  * imaginary parts.
@@ -208,3 +210,5 @@ public:
     return ss.str();
   }
 };
+
+} // namespace mqt::debugger::test

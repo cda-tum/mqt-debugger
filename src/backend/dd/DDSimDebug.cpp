@@ -54,6 +54,8 @@
 #include <utility>
 #include <vector>
 
+namespace mqt::debugger {
+
 /**
  * @brief Cast a `SimulationState` pointer to a `DDSimulationState` pointer.
  *
@@ -1716,3 +1718,5 @@ size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
   bufferSpan[compiledCode.length()] = '\0';
   return compiledCode.length() + 1;
 }
+
+} // namespace mqt::debugger

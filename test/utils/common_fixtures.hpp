@@ -34,6 +34,8 @@
 #include <string>
 #include <vector>
 
+namespace mqt::debugger::test {
+
 /**
  * @brief Fixture that loads custom code.
  *
@@ -329,3 +331,5 @@ public:
         << "Compilation should have failed";
   }
 };
+
+} // namespace mqt::debugger::test

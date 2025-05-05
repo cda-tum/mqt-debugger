@@ -22,6 +22,8 @@
 #include <string>
 #include <vector>
 
+namespace mqt::debugger::test {
+
 using SV = std::vector<std::string>;
 
 /**
@@ -239,3 +241,5 @@ TEST_F(ProjectiveMeasurementsCompilationTest,
 
   checkNoCompilation(makeSettings(2, 1));
 }
+
+} // namespace mqt::debugger::test

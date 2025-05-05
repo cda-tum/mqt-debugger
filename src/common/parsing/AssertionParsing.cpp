@@ -32,6 +32,8 @@
 #include <utility>
 #include <vector>
 
+namespace mqt::debugger {
+
 Assertion::Assertion(std::vector<std::string> inputTargetQubits,
                      AssertionType assertionType)
     : targetQubits(std::move(inputTargetQubits)), type(assertionType) {}
@@ -407,3 +409,5 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
   }
   throw ParsingError("Expression is not a valid assertion");
 }
+
+} // namespace mqt::debugger

@@ -33,6 +33,8 @@
 #include <utility>
 #include <vector>
 
+namespace mqt::debugger {
+
 /**
  * @brief Represents the different types of an instruction.
  */
@@ -733,3 +735,5 @@ std::vector<std::string> getTargetVariables(DDSimulationState* ddsim,
  */
 size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
                                CompilationSettings settings);
+
+} // namespace mqt::debugger

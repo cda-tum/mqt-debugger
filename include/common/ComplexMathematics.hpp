@@ -22,6 +22,8 @@
 #include <string>
 #include <vector>
 
+namespace mqt::debugger {
+
 /**
  * @brief Compute the magnitude of a complex number.
  * @param c The complex number.
@@ -128,3 +130,5 @@ std::string complexToString(const Complex& c);
  * @return The computed dot product.
  */
 double dotProduct(const Statevector& sv1, const Statevector& sv2);
+
+} // namespace mqt::debugger

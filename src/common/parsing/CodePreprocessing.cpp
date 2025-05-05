@@ -30,6 +30,8 @@
 #include <utility>
 #include <vector>
 
+namespace mqt::debugger {
+
 Instruction::Instruction(size_t inputLineNumber, std::string inputCode,
                          std::unique_ptr<Assertion>& inputAssertion,
                          std::vector<std::string> inputTargets, size_t startPos,
@@ -494,3 +496,5 @@ preprocessCode(const std::string& code, size_t startIndex,
 
   return instructions;
 }
+
+} // namespace mqt::debugger

@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+namespace mqt::debugger {
+
 std::string trim(const std::string& str) {
   auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
   auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
@@ -93,3 +95,5 @@ bool variablesEqual(const std::string& v1, const std::string& v2) {
 std::string variableBaseName(const std::string& v) {
   return splitString(v, '[')[0];
 }
+
+} // namespace mqt::debugger

@@ -23,6 +23,8 @@
 #include <string>
 #include <vector>
 
+namespace mqt::debugger {
+
 /**
  * @brief Represents the type of an assertion.
  */
@@ -329,3 +331,5 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
  * @return True, if the string represents an assertion, false otherwise.
  */
 bool isAssertion(std::string expression);
+
+} // namespace mqt::debugger

@@ -21,6 +21,8 @@
 
 #include <cstddef>
 
+namespace mqt::debugger {
+
 /**
  * @brief Represents a contiguous range of elements that can be accessed as an
  * array.
@@ -68,3 +70,5 @@ private:
    */
   size_t spanSize;
 };
+
+} // namespace mqt::debugger

@@ -20,6 +20,8 @@
 #include <string>
 #include <vector>
 
+namespace mqt::debugger {
+
 #define YES(expression)                                                        \
   (expression) ? CommutationResult::Commutes : CommutationResult::Unknown;
 #define NO(expression)                                                         \
@@ -216,3 +218,5 @@ bool doesCommute(const std::unique_ptr<Assertion>& assertion,
 
   return doesCommute(assertion, instruction.code);
 }
+
+} // namespace mqt::debugger

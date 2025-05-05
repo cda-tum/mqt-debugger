@@ -20,8 +20,12 @@
 
 #include <pybind11/pybind11.h>
 
+namespace mqt::debugger {
+
 PYBIND11_MODULE(pydebugger, m) {
   bindDiagnostics(m);
   bindFramework(m);
   bindBackend(m);
 }
+
+} // namespace mqt::debugger

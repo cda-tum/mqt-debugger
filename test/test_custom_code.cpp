@@ -27,6 +27,8 @@
 #include <cstddef>
 #include <gtest/gtest.h>
 
+namespace mqt::debugger::test {
+
 /**
  * @brief Fixture for testing the correctness of the debugger on custom code.
  *
@@ -549,3 +551,5 @@ TEST_F(CustomCodeTest, PaperExampleGrover) {
   ASSERT_EQ(state->didAssertionFail(state), false);
   ASSERT_EQ(state->isFinished(state), true);
 }
+
+} // namespace mqt::debugger::test

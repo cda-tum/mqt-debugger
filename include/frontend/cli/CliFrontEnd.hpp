@@ -23,6 +23,8 @@
 #include <cstddef>
 #include <string>
 
+namespace mqt::debugger {
+
 #define ANSI_BG_YELLOW "\x1b[43m"
 #define ANSI_BG_RESET "\x1b[0m"
 #define ANSI_COL_GRAY "\x1b[90m"
@@ -72,3 +74,5 @@ private:
    */
   void suggestUpdatedAssertions(SimulationState* state);
 };
+
+} // namespace mqt::debugger

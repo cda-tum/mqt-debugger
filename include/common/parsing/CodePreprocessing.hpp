@@ -26,6 +26,8 @@
 #include <utility>
 #include <vector>
 
+namespace mqt::debugger {
+
 /**
  * @brief Represents a block of code.
  *
@@ -326,3 +328,5 @@ bool isBarrier(const std::string& line);
  * @return A vector containing the parsed parameters.
  */
 std::vector<std::string> parseParameters(const std::string& instruction);
+
+} // namespace mqt::debugger

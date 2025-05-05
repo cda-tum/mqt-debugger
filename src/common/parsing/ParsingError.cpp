@@ -18,4 +18,8 @@
 #include <stdexcept>
 #include <string>
 
+namespace mqt::debugger {
+
 ParsingError::ParsingError(const std::string& msg) : std::runtime_error(msg) {}
+
+} // namespace mqt::debugger

@@ -16,6 +16,8 @@
 #include <cstdint>
 #include <memory>
 
+namespace mqt::debugger {
+
 /**
  * @brief Define a general commutation rule.
  *
@@ -89,3 +91,5 @@ enum class CommutationResult : uint8_t {
  */
 bool doesCommute(const std::unique_ptr<Assertion>& assertion,
                  const Instruction& instruction);
+
+} // namespace mqt::debugger

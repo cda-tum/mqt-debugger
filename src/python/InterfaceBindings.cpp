@@ -32,6 +32,8 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
+namespace mqt::debugger {
+
 /**
  * @brief Checks whether the given result is OK, and throws a runtime_error
  * otherwise.
@@ -819,3 +821,5 @@ Returns:
       .doc() = "Provides diagnostics capabilities such as different analysis "
                "methods for the debugger.";
 }
+
+} // namespace mqt::debugger

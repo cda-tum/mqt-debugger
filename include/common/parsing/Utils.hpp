@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+namespace mqt::debugger {
+
 /**
  * @brief Removes leading and trailing whitespace from a string.
  * @param str The string to trim.
@@ -99,3 +101,5 @@ bool variablesEqual(const std::string& v1, const std::string& v2);
  * @return The base name of the register.
  */
 std::string variableBaseName(const std::string& variable);
+
+} // namespace mqt::debugger

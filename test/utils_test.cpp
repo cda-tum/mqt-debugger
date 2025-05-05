@@ -26,6 +26,8 @@
 #include <iterator>
 #include <string>
 
+namespace mqt::debugger::test {
+
 bool complexEquality(const Complex& c, double real, double imaginary) {
   const double epsilon = 0.001;
   if (real - c.real > epsilon || c.real - real > epsilon) {
@@ -89,3 +91,5 @@ std::string complexToStringTest(const Complex& c) {
   return doubleToStringTest(c.real) + " + " + doubleToStringTest(c.imaginary) +
          "i";
 }
+
+} // namespace mqt::debugger::test

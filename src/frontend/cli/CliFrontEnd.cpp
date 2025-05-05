@@ -27,6 +27,8 @@
 #include <string>
 #include <vector>
 
+namespace mqt::debugger {
+
 /**
  * @brief ANSI escape sequence for resetting the background color.
  *
@@ -311,3 +313,5 @@ void CliFrontEnd::printState(SimulationState* state, size_t inspecting,
     std::cout << "THIS LINE FAILED AN ASSERTION\n";
   }
 }
+
+} // namespace mqt::debugger

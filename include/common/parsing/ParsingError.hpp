@@ -18,6 +18,8 @@
 #include <stdexcept>
 #include <string>
 
+namespace mqt::debugger {
+
 /**
  * @brief Represents an error that occurred during parsing.
  */
@@ -29,3 +31,5 @@ public:
    */
   explicit ParsingError(const std::string& msg);
 };
+
+} // namespace mqt::debugger

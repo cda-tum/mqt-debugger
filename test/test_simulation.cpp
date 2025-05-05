@@ -25,6 +25,8 @@
 #include <utility>
 #include <vector>
 
+namespace mqt::debugger::test {
+
 /**
  * @brief Fixture for testing the correctness of the simulation methods.
  *
@@ -623,3 +625,5 @@ TEST_P(SimulationTest, BreakpointOutside) {
 INSTANTIATE_TEST_SUITE_P(StringParams, SimulationTest,
                          ::testing::Values("complex-jumps",
                                            "failing-assertions"));
+
+} // namespace mqt::debugger::test

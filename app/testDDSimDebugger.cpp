@@ -21,6 +21,8 @@
 #include <sstream>
 #include <string>
 
+using namespace mqt::debugger;
+
 int main() {
   std::ifstream file("program.qasm");
   if (!file.is_open()) {

@@ -28,6 +28,8 @@
 #include <utility>
 #include <vector>
 
+namespace mqt::debugger {
+
 /**
  * @brief Compute the trace of the square of a given matrix.
  *
@@ -329,3 +331,5 @@ double dotProduct(const Statevector& sv1, const Statevector& sv2) {
   Complex result{resultReal, resultImag};
   return complexMagnitude(result);
 }
+
+} // namespace mqt::debugger
