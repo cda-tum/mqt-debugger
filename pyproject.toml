@@ -20,7 +20,7 @@ authors = [
 ]
 keywords = ["MQT", "quantum-computing", "design-automation", "verification", "debugging", "dap"]
 license = "MIT"
-license-files = [ "LICENSE.txt" ]
+license-files = [ "LICENSE.md" ]
 
 classifiers = [
     "Development Status :: 5 - Production/Stable",
