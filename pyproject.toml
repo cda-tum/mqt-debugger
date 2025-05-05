@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core>=0.8.1", "setuptools-scm>=7", "pybind11>=2.13"]
+requires = ["scikit-build-core>=0.11.1", "setuptools-scm>=8.2", "pybind11>=2.13.6"]
 build-backend = "scikit_build_core.build"
 
 [project]
@@ -10,13 +10,13 @@ authors = [
     { name = "Damian Rovara", email = "damian.rovara@tum.de" },
     { name = "Lukas Burgholzer", email = "burgholzer@me.com" }
 ]
-keywords = ["MQT", "quantum-computing", "design-automation", "decision-diagrams", "debugging"]
-license = { file = "LICENSE.txt" }
+keywords = ["MQT", "quantum-computing", "design-automation", "verification", "debugging", "dap"]
+license = "MIT"
+license-files = [ "LICENSE.txt" ]
 
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
@@ -34,40 +34,16 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dynamic = ["version"]
-dependencies = [
+dependencies = []
+
+[project.optional-dependencies]
+check = [
     "qiskit>=1.2.4",
     "scipy>=1.15; python_version >= '3.13'",
     "scipy>=1.13.1; python_version < '3.13'",
+    "numpy>=2.1; python_version >= '3.13'",
 ]
 
-[project.optional-dependencies]
-test = ["pytest>=7.0", "pytest-console-scripts>=1.4", "mqt.debugger[qiskit]", "numpy>=2.1; python_version >= '3.13'", "uv >=0.5.20"]
-coverage = ["mqt.debugger[test]", "pytest-cov>=4"]
-docs = [
-    "furo>=2023.08.17",
-    "sphinx",
-    "myst_nb>=1.1.0",
-    "setuptools-scm>=7",
-    "sphinx-copybutton",
-    "sphinx_design",
-    "sphinxext-opengraph",
-    "sphinxcontrib-bibtex>=2.4.2",
-    "sphinxcontrib-svg2pdfconverter",
-    "pybtex>=0.24",
-    "ipython",
-    "ipykernel",
-    "sphinx-autoapi",
-    "qiskit[visualization]",
-    "mqt.debugger[evaluation]",
-    "sphinx-hoverxref",
-    "nbsphinx",
-    "sphinx_autodoc_typehints",
-    "breathe"
-]
-qiskit = [
-    "qiskit[qasm3-import]>=1.0.0",
-]
-dev = ["mqt.debugger[coverage, docs]",]
 
 [project.scripts]
 mqt-debugger-compare = "mqt.debugger.evaluation:main"
@@ -307,3 +283,42 @@ version_scheme = "pep440"
 version_provider = "pep621"
 update_changelog_on_bump = true
 skip_questions = ["breaking"]
+
+[dependency-groups]
+build = [
+  "pybind11>=2.13.6",
+  "scikit-build-core>=0.11.1",
+  "setuptools-scm>=8.2",
+]
+test = [
+    "pytest>=7.0",
+    "pytest-console-scripts>=1.4",
+    "uv >=0.5.20",
+    "pytest-cov>=6.1.1"
+]
+docs = [
+    "furo>=2023.08.17",
+    "sphinx",
+    "myst_nb>=1.1.0",
+    "setuptools-scm>=7",
+    "sphinx-copybutton",
+    "sphinx_design",
+    "sphinxext-opengraph",
+    "sphinxcontrib-bibtex>=2.4.2",
+    "sphinxcontrib-svg2pdfconverter",
+    "pybtex>=0.24",
+    "ipython",
+    "ipykernel",
+    "sphinx-autoapi",
+    "qiskit[visualization]",
+    "sphinx-hoverxref",
+    "nbsphinx",
+    "sphinx_autodoc_typehints",
+    "breathe"
+]
+dev = [
+    "mqt.debugger[check]",
+    {include-group = "build"},
+    {include-group = "docs"},
+    {include-group = "test"},
+]
