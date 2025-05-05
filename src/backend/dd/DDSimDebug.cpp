@@ -5,7 +5,6 @@
 
 #include "backend/dd/DDSimDebug.hpp"
 
-#include "Definitions.hpp"
 #include "backend/dd/DDSimDiagnostics.hpp"
 #include "backend/debug.h"
 #include "backend/diagnostics.h"
@@ -23,6 +22,7 @@
 #include "ir/Register.hpp"
 #include "ir/operations/ClassicControlledOperation.hpp"
 #include "ir/operations/OpType.hpp"
+#include "qasm3/Importer.hpp"
 
 #include <Eigen/Dense>
 #include <algorithm>
@@ -140,7 +140,7 @@ Result ddsimInit(SimulationState* self) {
 
   ddsim->simulationState.p = nullptr;
   ddsim->qc = std::make_unique<qc::QuantumComputation>();
-  ddsim->dd = std::make_unique<dd::Package<>>(1);
+  ddsim->dd = std::make_unique<dd::Package>(1);
   ddsim->iterator = ddsim->qc->begin();
   ddsim->currentInstruction = 0;
   ddsim->previousInstructionStack.clear();
@@ -174,7 +174,8 @@ Result ddsimLoadCode(SimulationState* self, const char* code) {
 
   try {
     std::stringstream ss{preprocessAssertionCode(code, ddsim)};
-    ddsim->qc->import(ss, qc::Format::OpenQASM3);
+    const auto imported = qasm3::Importer::import(ss);
+    ddsim->qc = std::make_unique<qc::QuantumComputation>(imported);
     qc::CircuitOptimizer::flattenOperations(*ddsim->qc, true);
   } catch (const std::exception& e) {
     std::cerr << e.what() << "\n";
@@ -349,7 +350,7 @@ Result ddsimStepForward(SimulationState* self) {
     return OK;
   }
 
-  qc::MatrixDD currDD;
+  dd::MatrixDD currDD;
   if ((*ddsim->iterator)->getType() == qc::Measure) {
     // Perform a measurement of the desired qubits, based on the amplitudes of
     // the current state.
@@ -492,7 +493,7 @@ Result ddsimStepBackward(SimulationState* self) {
   }
 
   ddsim->iterator--;
-  qc::MatrixDD currDD;
+  dd::MatrixDD currDD;
 
   if ((*ddsim->iterator)->getType() == qc::Barrier) {
     return OK;
@@ -1561,9 +1562,8 @@ void compileProjectiveMeasurement(
   const auto& assertion = dynamic_cast<CircuitEqualityAssertion&>(
       *ddsim->assertionInstructions[assertionIndex].get());
 
-  qc::QuantumComputation newQc;
   std::stringstream codeStream{assertion.getCircuitCode()};
-  newQc.import(codeStream, qc::Format::OpenQASM3);
+  auto newQc = qasm3::Importer::import(codeStream);
 
   newQc.unifyQuantumRegisters("assert_qubit");
 
