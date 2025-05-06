@@ -1,11 +1,27 @@
+# Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
 """Provides device calibration information for the runtime check."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-import numpy as np
-from qiskit import QuantumCircuit
+missing_optionals: list[str] = []
+
+try:
+    import numpy as np
+except ImportError:
+    missing_optionals.append("numpy")
+try:
+    from qiskit import QuantumCircuit
+except ImportError:
+    missing_optionals.append("qiskit")
 
 
 @dataclass
@@ -31,6 +47,10 @@ class Calibration:
         Returns:
             float: The expected success probability.
         """
+        if missing_optionals:
+            raise ImportError(
+                "The following optional dependencies are required to use this feature: " + ", ".join(missing_optionals)
+            )
         fidelity_measurement = 1 - self.error_rate_measurement
         fidelity_1q = 1 - self.error_rate_1q
         fidelity_2q = 1 - self.error_rate_2q

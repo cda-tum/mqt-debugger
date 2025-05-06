@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file test_data_retrieval.cpp
  * @brief Test the functionality of data-retrieval functions in the simulation.
@@ -16,6 +26,8 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
+
+namespace mqt::debugger::test {
 
 /**
  * @brief Fixture for testing the correctness of the debugger for data retrieval
@@ -225,3 +237,5 @@ TEST_F(DataRetrievalTest, GetBadClassicalVariableName) {
   forwardTo(6);
   ASSERT_EQ(state->getClassicalVariableName(state, 5, name.data()), ERROR);
 }
+
+} // namespace mqt::debugger::test

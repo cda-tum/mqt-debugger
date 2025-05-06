@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file CliFrontEnd.hpp
  * @brief Provides a CLI frontend for the debugger.
@@ -12,6 +22,8 @@
 
 #include <cstddef>
 #include <string>
+
+namespace mqt::debugger {
 
 #define ANSI_BG_YELLOW "\x1b[43m"
 #define ANSI_BG_RESET "\x1b[0m"
@@ -62,3 +74,5 @@ private:
    */
   void suggestUpdatedAssertions(SimulationState* state);
 };
+
+} // namespace mqt::debugger

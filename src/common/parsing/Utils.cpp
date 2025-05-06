@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file Utils.cpp
  * @brief Implementation of utility functions used by the debugger.
@@ -10,6 +20,8 @@
 #include <cstddef>
 #include <string>
 #include <vector>
+
+namespace mqt::debugger {
 
 std::string trim(const std::string& str) {
   auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
@@ -83,3 +95,5 @@ bool variablesEqual(const std::string& v1, const std::string& v2) {
 std::string variableBaseName(const std::string& v) {
   return splitString(v, '[')[0];
 }
+
+} // namespace mqt::debugger

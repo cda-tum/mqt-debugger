@@ -60,14 +60,9 @@ repos:
     repo: https://github.com/adamchainz/blacken-docs
     rev: 1.18.0
   - hooks:
-      - additional_dependencies:
-          - pyyaml
-        files: (\.cmake|CMakeLists.txt)(.in)?$
-        id: cmake-format
-        types:
-          - file
-    repo: https://github.com/cheshirekow/cmake-format-precommit
-    rev: v0.6.13
+      - id: license-tools
+    repo: https://github.com/emzeat/mz-lictools
+    rev: v2.7.0
   - hooks:
       - id: clang-format
         types_or:
@@ -75,7 +70,14 @@ repos:
           - c
           - cuda
     repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v18.1.8
+    rev: v20.1.3
+  - hooks:
+      - id: cmake-format
+        additional_dependencies: [pyyaml]
+        types: [file]
+        files: (\.cmake|CMakeLists.txt)(.in)?$
+    repo: https://github.com/cheshirekow/cmake-format-precommit
+    rev: v0.6.13
   - hooks:
       - id: prettier
         types_or:

@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file test_diagnostics.cpp
  * @brief Test the functionality of the diagnostics module.
@@ -17,6 +27,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace mqt::debugger::test {
 
 /**
  * @brief Fixture for testing the correctness of the diagnostics module.
@@ -311,3 +323,5 @@ TEST_F(DiagnosticsTest, RuntimeInteractions) {
   ASSERT_EQ(errors[0].type, ErrorCauseType::ControlAlwaysZero);
   ASSERT_EQ(errors[0].instruction, 6);
 }
+
+} // namespace mqt::debugger::test

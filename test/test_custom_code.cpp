@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file test_custom_code.cpp
  * @brief Tests the correctness of the framework for smaller, very specific edge
@@ -16,6 +26,8 @@
 #include <array>
 #include <cstddef>
 #include <gtest/gtest.h>
+
+namespace mqt::debugger::test {
 
 /**
  * @brief Fixture for testing the correctness of the debugger on custom code.
@@ -539,3 +551,5 @@ TEST_F(CustomCodeTest, PaperExampleGrover) {
   ASSERT_EQ(state->didAssertionFail(state), false);
   ASSERT_EQ(state->isFinished(state), true);
 }
+
+} // namespace mqt::debugger::test

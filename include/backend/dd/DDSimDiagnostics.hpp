@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file DDSimDiagnostics.hpp
  * @brief Contains the implementation of the `Diagnostics` interface for the DD
@@ -17,6 +27,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace mqt::debugger {
 
 /**
  * @brief Represents an equality assertion that should be inserted into the
@@ -345,3 +357,5 @@ size_t tryFindMissingInteraction(DDDiagnostics* diagnostics,
  */
 size_t tryFindZeroControls(DDDiagnostics* diagnostics, size_t instruction,
                            ErrorCause* output, size_t count);
+
+} // namespace mqt::debugger

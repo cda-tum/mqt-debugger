@@ -1,3 +1,11 @@
+# Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
 """Nox sessions."""
 
 from __future__ import annotations
@@ -5,7 +13,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
-import sys
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import nox
@@ -16,17 +24,9 @@ if TYPE_CHECKING:
 nox.needs_version = ">=2024.3.2"
 nox.options.default_venv_backend = "uv"
 
-nox.options.sessions = ["lint", "tests"]
+nox.options.sessions = ["lint", "tests", "minimums"]
 
 PYTHON_ALL_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13"]
-
-BUILD_REQUIREMENTS = [
-    "scikit-build-core[pyproject]>=0.8.1",
-    "setuptools_scm>=8.1",
-    "setuptools>=66.1",
-    "wheel>=0.40.0",
-    "pybind11>=2.13",
-]
 
 if os.environ.get("CI", None):
     nox.options.error_on_missing_interpreters = True
@@ -34,50 +34,68 @@ if os.environ.get("CI", None):
 
 @nox.session(reuse_venv=True)
 def lint(session: nox.Session) -> None:
-    """Lint the Python part of the codebase using pre-commit.
+    """Run the linter."""
+    if shutil.which("pre-commit") is None:
+        session.install("pre-commit")
 
-    Simply execute `nox -rs lint` to run all configured hooks.
-    """
-    session.install("pre-commit")
-    session.run("pre-commit", "run", "--all-files", *session.posargs)
+    session.run("pre-commit", "run", "--all-files", *session.posargs, external=True)
 
 
 def _run_tests(
     session: nox.Session,
     *,
     install_args: Sequence[str] = (),
-    run_args: Sequence[str] = (),
-    extras: Sequence[str] = (),
+    extra_command: Sequence[str] = (),
+    pytest_run_args: Sequence[str] = (),
 ) -> None:
-    posargs = list(session.posargs)
-    env = {"PIP_DISABLE_PIP_VERSION_CHECK": "1", "UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
-
-    if os.environ.get("CI", None) and sys.platform == "win32":
-        env["SKBUILD_CMAKE_ARGS"] = "-T ClangCL"
-
+    env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
     if shutil.which("cmake") is None and shutil.which("cmake3") is None:
         session.install("cmake")
     if shutil.which("ninja") is None:
         session.install("ninja")
 
-    _extras = ["test", *extras]
-    if "--cov" in posargs:
-        _extras.append("coverage")
-        posargs.append("--cov-config=pyproject.toml")
-
-    session.install(*BUILD_REQUIREMENTS, *install_args, env=env)
-    install_arg = f"-ve.[{','.join(_extras)}]"
-    session.install("--no-build-isolation", install_arg, *install_args, env=env)
-    session.run("pytest", *run_args, *posargs, env=env)
+    # install build and test dependencies on top of the existing environment
+    session.run(
+        "uv",
+        "sync",
+        "--inexact",
+        "--only-group",
+        "build",
+        "--only-group",
+        "test",
+        *install_args,
+        env=env,
+    )
+    session.run(
+        "uv",
+        "sync",
+        "--inexact",
+        "--no-dev",  # do not auto-install dev dependencies
+        "--no-build-isolation-package",
+        "mqt-debugger",  # build the project without isolation
+        "--extra",
+        "check",
+        *install_args,
+        env=env,
+    )
+    if extra_command:
+        session.run(*extra_command, env=env)
+    session.run(
+        "uv",
+        "run",
+        "--no-sync",  # do not sync as everything is already installed
+        *install_args,
+        "pytest",
+        *pytest_run_args,
+        *session.posargs,
+        "--cov-config=pyproject.toml",
+        env=env,
+    )
 
 
 @nox.session(reuse_venv=True, python=PYTHON_ALL_VERSIONS)
 def tests(session: nox.Session) -> None:
     """Run the test suite."""
-    # enable profile check when running locally or when running on Linux with Python 3.12 in CI
-    if os.environ.get("CI", None) is None or (sys.platform == "linux" and session.python == "3.12"):
-        session.env["CHECK_PROFILES"] = "1"
-
     _run_tests(session)
 
 
@@ -87,11 +105,22 @@ def minimums(session: nox.Session) -> None:
     _run_tests(
         session,
         install_args=["--resolution=lowest-direct"],
-        run_args=["-Wdefault"],
+        pytest_run_args=["-Wdefault"],
     )
     env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
     session.run("uv", "tree", "--frozen", env=env)
     session.run("uv", "lock", "--refresh", env=env)
+
+
+@nox.session(reuse_venv=True, venv_backend="uv", python=PYTHON_ALL_VERSIONS)
+def qiskit(session: nox.Session) -> None:
+    """Tests against the latest version of Qiskit."""
+    _run_tests(
+        session,
+        extra_command=["uv", "pip", "install", "qiskit[qasm3-import] @ git+https://github.com/Qiskit/qiskit.git"],
+    )
+    env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
+    session.run("uv", "pip", "show", "qiskit", env=env)
 
 
 @nox.session(reuse_venv=True)
@@ -102,30 +131,58 @@ def docs(session: nox.Session) -> None:
     args, posargs = parser.parse_known_args(session.posargs)
 
     serve = args.builder == "html" and session.interactive
-    extra_installs = ["sphinx-autobuild"] if serve else []
-    session.install(*BUILD_REQUIREMENTS, *extra_installs)
-    session.install("--no-build-isolation", "-ve.[docs]")
-    session.chdir("docs")
+    if serve:
+        session.install("sphinx-autobuild")
 
     env = {"UV_PROJECT_ENVIRONMENT": session.virtualenv.location}
+    # install build and docs dependencies on top of the existing environment
+    session.run(
+        "uv",
+        "sync",
+        "--inexact",
+        "--only-group",
+        "build",
+        "--only-group",
+        "docs",
+        env=env,
+    )
 
-    session.log("Running Doxygen...")
-    session.run("doxygen", "Doxyfile", external=True, env=env)
+    # build the C++ API docs using doxygen
+    with session.chdir("docs"):
+        if shutil.which("doxygen") is None:
+            session.error("doxygen is required to build the C++ API docs")
 
-    if args.builder == "linkcheck":
-        session.run("sphinx-build", "-b", "linkcheck", ".", "_build/linkcheck", *posargs)
-        return
+        Path("_build/doxygen").mkdir(parents=True, exist_ok=True)
+        session.run("doxygen", "Doxyfile", external=True)
+        Path("api/cpp").mkdir(parents=True, exist_ok=True)
+        session.run(
+            "breathe-apidoc",
+            "-o",
+            "api/cpp",
+            "-m",
+            "-f",
+            "-g",
+            "namespace",
+            "doxygen/xml/",
+            external=True,
+        )
 
-    shared_args = (
+    shared_args = [
         "-n",  # nitpicky mode
         "-T",  # full tracebacks
         f"-b={args.builder}",
-        ".",
-        f"_build/{args.builder}",
+        "docs",
+        f"docs/_build/{args.builder}",
         *posargs,
-    )
+    ]
 
-    if serve:
-        session.run("sphinx-autobuild", *shared_args, env=env)
-    else:
-        session.run("sphinx-build", "--keep-going", *shared_args, env=env)
+    session.run(
+        "uv",
+        "run",
+        "--no-dev",  # do not auto-install dev dependencies
+        "--no-build-isolation-package",
+        "mqt-debugger",  # build the project without isolation
+        "sphinx-autobuild" if serve else "sphinx-build",
+        *shared_args,
+        env=env,
+    )

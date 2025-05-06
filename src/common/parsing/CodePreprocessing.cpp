@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file CodePreprocessing.cpp
  * @brief Implementation of the code preprocessing functionality.
@@ -14,11 +24,12 @@
 #include <iterator>
 #include <map>
 #include <memory>
-#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace mqt::debugger {
 
 Instruction::Instruction(size_t inputLineNumber, std::string inputCode,
                          std::unique_ptr<Assertion>& inputAssertion,
@@ -484,3 +495,5 @@ preprocessCode(const std::string& code, size_t startIndex,
 
   return instructions;
 }
+
+} // namespace mqt::debugger

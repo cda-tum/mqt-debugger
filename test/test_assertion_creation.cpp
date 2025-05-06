@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file test_assertion_creation.cpp
  * @brief Tests the correctness of the assertion creation diagnosis methods.
@@ -16,6 +26,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace mqt::debugger::test {
 
 /**
  * @brief Fixture for testing the correctness of assertion creation on custom
@@ -167,3 +179,5 @@ TEST_F(AssertionCreationTest, SplitEqualityAssertionRounded) {
       {0, "assert-eq 0.99999, q[2] { 0.707107, -0.707107 }\n"}};
   checkNewAssertions(expected, 1);
 }
+
+} // namespace mqt::debugger::test

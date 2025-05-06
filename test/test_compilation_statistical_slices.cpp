@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file test_compilation_statistical_slices.cpp
  * @brief Tests the correctness of the assertion compilation process for
@@ -11,6 +21,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+namespace mqt::debugger::test {
 
 using SV = std::vector<std::string>;
 using DV = std::vector<double>;
@@ -818,3 +830,5 @@ TEST_F(StatisticalSlicesCompilationTest,
 
   checkNoCompilation(makeSettings(2, 2));
 }
+
+} // namespace mqt::debugger::test

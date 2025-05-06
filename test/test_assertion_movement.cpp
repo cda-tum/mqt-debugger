@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file test_assertion_movement.cpp
  * @brief Tests the correctness of the assertion movement diagnosis methods.
@@ -11,6 +21,8 @@
 #include <set>
 #include <utility>
 #include <vector>
+
+namespace mqt::debugger::test {
 
 /**
  * @brief Fixture for testing the correctness of assertion movement on custom
@@ -325,3 +337,5 @@ TEST_F(AssertionMovementTest, DontMoveOutsideOfCustomGate) {
   const std::set<std::pair<size_t, size_t>> expected{{2, 1}};
   checkMovements(expected);
 }
+
+} // namespace mqt::debugger::test

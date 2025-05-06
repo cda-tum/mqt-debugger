@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file DDSimDebug.cpp
  * @brief Implementation of DDSimDebug.hpp
@@ -43,6 +53,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace mqt::debugger {
 
 /**
  * @brief Cast a `SimulationState` pointer to a `DDSimulationState` pointer.
@@ -1706,3 +1718,5 @@ size_t compileStatisticalSlice(DDSimulationState* ddsim, char* buffer,
   bufferSpan[compiledCode.length()] = '\0';
   return compiledCode.length() + 1;
 }
+
+} // namespace mqt::debugger

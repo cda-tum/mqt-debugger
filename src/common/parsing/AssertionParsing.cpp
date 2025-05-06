@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file AssertionParsing.cpp
  * @brief Implementation of the assertion parsing functionality.
@@ -21,6 +31,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace mqt::debugger {
 
 Assertion::Assertion(std::vector<std::string> inputTargetQubits,
                      AssertionType assertionType)
@@ -397,3 +409,5 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
   }
   throw ParsingError("Expression is not a valid assertion");
 }
+
+} // namespace mqt::debugger

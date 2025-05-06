@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file DDSimDebugBindings.cpp
  * @brief Implements Python bindings for the DD Debugger.
@@ -11,6 +21,8 @@
 #include "backend/dd/DDSimDebug.hpp"
 #include "backend/debug.h"
 #include "pybind11/pybind11.h"
+
+namespace mqt::debugger {
 
 void bindBackend(pybind11::module& m) {
 
@@ -39,3 +51,5 @@ Returns:
 Args:
     state (SimulationState): The simulation state to delete.)");
 }
+
+} // namespace mqt::debugger

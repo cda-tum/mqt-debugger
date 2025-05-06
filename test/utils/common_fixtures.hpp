@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file common_fixtures.cpp
  * @brief Provides common fixture base classes for other tests.
@@ -23,6 +33,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+namespace mqt::debugger::test {
 
 /**
  * @brief Fixture that loads custom code.
@@ -319,3 +331,5 @@ public:
         << "Compilation should have failed";
   }
 };
+
+} // namespace mqt::debugger::test

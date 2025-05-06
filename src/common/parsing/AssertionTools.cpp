@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 #include "common/parsing/AssertionTools.hpp"
 
 #include "common/parsing/AssertionParsing.hpp"
@@ -9,6 +19,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+namespace mqt::debugger {
 
 #define YES(expression)                                                        \
   (expression) ? CommutationResult::Commutes : CommutationResult::Unknown;
@@ -206,3 +218,5 @@ bool doesCommute(const std::unique_ptr<Assertion>& assertion,
 
   return doesCommute(assertion, instruction.code);
 }
+
+} // namespace mqt::debugger

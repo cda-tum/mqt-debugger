@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file DDSimDiagnostics.cpp
  * @brief Implementation of the diagnostics interface for the DD simulator.
@@ -28,6 +38,8 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+
+namespace mqt::debugger {
 
 /**
  * @brief Cast a `Diagnostics` pointer to a `DDDiagnostics` pointer.
@@ -995,3 +1007,5 @@ void dddiagnosticsOnFailedAssertion(DDDiagnostics* diagnostics,
     suggestSplitEqualityAssertion(diagnostics, instruction, eqAssertion);
   }
 }
+
+} // namespace mqt::debugger

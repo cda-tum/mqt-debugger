@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file Utils.hpp
  * @brief Contains utility functions for parsing and string manipulation.
@@ -7,6 +17,8 @@
 
 #include <string>
 #include <vector>
+
+namespace mqt::debugger {
 
 /**
  * @brief Removes leading and trailing whitespace from a string.
@@ -89,3 +101,5 @@ bool variablesEqual(const std::string& v1, const std::string& v2);
  * @return The base name of the register.
  */
 std::string variableBaseName(const std::string& variable);
+
+} // namespace mqt::debugger

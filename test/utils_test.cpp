@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file utils_test.cpp
  * @brief Implementation of utility functions for testing.
@@ -15,6 +25,8 @@
 #include <iostream>
 #include <iterator>
 #include <string>
+
+namespace mqt::debugger::test {
 
 bool complexEquality(const Complex& c, double real, double imaginary) {
   const double epsilon = 0.001;
@@ -79,3 +91,5 @@ std::string complexToStringTest(const Complex& c) {
   return doubleToStringTest(c.real) + " + " + doubleToStringTest(c.imaginary) +
          "i";
 }
+
+} // namespace mqt::debugger::test

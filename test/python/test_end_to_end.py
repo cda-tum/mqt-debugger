@@ -1,3 +1,11 @@
+# Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# All rights reserved.
+#
+# SPDX-License-Identifier: MIT
+#
+# Licensed under the MIT License
+
 """This module tests the end-to-end functionality of the simulator by running a set of QASM files and comparing their results with the expected ones."""
 
 from __future__ import annotations

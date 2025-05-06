@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file ComplexMathematics.cpp
  * @brief Implementation of maths methods for complex numbers.
@@ -17,6 +27,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace mqt::debugger {
 
 /**
  * @brief Compute the trace of the square of a given matrix.
@@ -319,3 +331,5 @@ double dotProduct(const Statevector& sv1, const Statevector& sv2) {
   Complex result{resultReal, resultImag};
   return complexMagnitude(result);
 }
+
+} // namespace mqt::debugger

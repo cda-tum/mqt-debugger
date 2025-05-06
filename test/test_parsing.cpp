@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file test_parsing.cpp
  * @brief Test the functionality of parsing functions used by the debugger.
@@ -12,6 +22,8 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
+
+namespace mqt::debugger::test {
 
 /**
  * @brief Fixture for testing the correctness of parsing functions.
@@ -167,3 +179,5 @@ TEST_F(ParsingTest, BadFunctionCall) {
       "gate my_gate q0, q1 { h q0; h q1 } qreg q[3]; my_gate q[0], q[1], q[2];";
   ASSERT_THROW(preprocessCode(input2, output), ParsingError);
 }
+
+} // namespace mqt::debugger::test

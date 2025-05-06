@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file utils_test.cpp
  * @brief Utility functions for testing.
@@ -13,6 +23,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace mqt::debugger::test {
 
 /**
  * @brief Check if the given complex number is equal to the given real and
@@ -198,3 +210,5 @@ public:
     return ss.str();
   }
 };
+
+} // namespace mqt::debugger::test

@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file CliFrontEnd.cpp
  * @brief Implementation of the command-line interface front end.
@@ -16,6 +26,8 @@
 #include <set>
 #include <string>
 #include <vector>
+
+namespace mqt::debugger {
 
 /**
  * @brief ANSI escape sequence for resetting the background color.
@@ -301,3 +313,5 @@ void CliFrontEnd::printState(SimulationState* state, size_t inspecting,
     std::cout << "THIS LINE FAILED AN ASSERTION\n";
   }
 }
+
+} // namespace mqt::debugger

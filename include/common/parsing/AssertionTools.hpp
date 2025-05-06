@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 #pragma once
 
 #include "AssertionParsing.hpp"
@@ -5,6 +15,8 @@
 
 #include <cstdint>
 #include <memory>
+
+namespace mqt::debugger {
 
 /**
  * @brief Define a general commutation rule.
@@ -79,3 +91,5 @@ enum class CommutationResult : uint8_t {
  */
 bool doesCommute(const std::unique_ptr<Assertion>& assertion,
                  const Instruction& instruction);
+
+} // namespace mqt::debugger

@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file CodePreprocessing.hpp
  * @brief Contains the definition of the functions used to preprocess the code
@@ -15,6 +25,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace mqt::debugger {
 
 /**
  * @brief Represents a block of code.
@@ -316,3 +328,5 @@ bool isBarrier(const std::string& line);
  * @return A vector containing the parsed parameters.
  */
 std::vector<std::string> parseParameters(const std::string& instruction);
+
+} // namespace mqt::debugger

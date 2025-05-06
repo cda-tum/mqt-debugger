@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file InterfaceBindings.cpp
  * @brief Implementation of the Python bindings for the general debugging and
@@ -21,6 +31,8 @@
 
 namespace py = pybind11;
 using namespace pybind11::literals;
+
+namespace mqt::debugger {
 
 /**
  * @brief Checks whether the given result is OK, and throws a runtime_error
@@ -809,3 +821,5 @@ Returns:
       .doc() = "Provides diagnostics capabilities such as different analysis "
                "methods for the debugger.";
 }
+
+} // namespace mqt::debugger

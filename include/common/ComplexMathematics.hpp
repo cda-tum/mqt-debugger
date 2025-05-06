@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file ComplexMathematics.hpp
  * @brief Provides maths methods for complex numbers.
@@ -11,6 +21,8 @@
 #include <cstddef>
 #include <string>
 #include <vector>
+
+namespace mqt::debugger {
 
 /**
  * @brief Compute the magnitude of a complex number.
@@ -118,3 +130,5 @@ std::string complexToString(const Complex& c);
  * @return The computed dot product.
  */
 double dotProduct(const Statevector& sv1, const Statevector& sv2);
+
+} // namespace mqt::debugger

@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2024 - 2025 Chair for Design Automation, TUM
+ * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * All rights reserved.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Licensed under the MIT License
+ */
+
 /**
  * @file AssertionParsing.hpp
  * @brief Contains classes and functions for parsing and validating assertions
@@ -12,6 +22,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+
+namespace mqt::debugger {
 
 /**
  * @brief Represents the type of an assertion.
@@ -319,3 +331,5 @@ std::unique_ptr<Assertion> parseAssertion(std::string assertionString,
  * @return True, if the string represents an assertion, false otherwise.
  */
 bool isAssertion(std::string expression);
+
+} // namespace mqt::debugger
