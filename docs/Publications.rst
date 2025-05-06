@@ -7,7 +7,7 @@ Publications
 
 *MQT Debugger* is academic software. Thus, many of its built-in algorithms are being published as scientific papers.
 
-If you use *MQT Debugger* in your work, we would appreciate if you cited: :cite:labelpar:`rovara2025debugging`.
+If you use *MQT Debugger* in your work, we would appreciate if you cited: :cite:labelpar:`rovara2024debugging`.
 
 Furthermore, if you use any of the particular algorithms such as
 
