@@ -1,10 +1,10 @@
 [![PyPI](https://img.shields.io/pypi/v/mqt.debugger?logo=pypi&style=flat-square)](https://pypi.org/project/mqt.debugger/)
 ![OS](https://img.shields.io/badge/os-linux%20%7C%20macos%20%7C%20windows-blue?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![CI](https://img.shields.io/github/actions/workflow/status/cda-tum/mqt-debugger/ci.yml?branch=main&style=flat-square&logo=github&label=ci)](https://github.com/cda-tum/mqt-debugger/actions/workflows/ci.yml)
-[![CD](https://img.shields.io/github/actions/workflow/status/cda-tum/mqt-debugger/cd.yml?style=flat-square&logo=github&label=cd)](https://github.com/cda-tum/mqt-debugger/actions/workflows/cd.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/munich-quantum-toolkit/debugger/ci.yml?branch=main&style=flat-square&logo=github&label=ci)](https://github.com/munich-quantum-toolkit/debugger/actions/workflows/ci.yml)
+[![CD](https://img.shields.io/github/actions/workflow/status/munich-quantum-toolkit/debugger/cd.yml?style=flat-square&logo=github&label=cd)](https://github.com/munich-quantum-toolkit/debugger/actions/workflows/cd.yml)
 [![Documentation](https://img.shields.io/readthedocs/mqt-debugger?logo=readthedocs&style=flat-square)](https://mqt.readthedocs.io/projects/debugger)
-[![codecov](https://img.shields.io/codecov/c/github/cda-tum/mqt-debugger?style=flat-square&logo=codecov)](https://codecov.io/gh/cda-tum/mqt-debugger)
+[![codecov](https://img.shields.io/codecov/c/github/munich-quantum-toolkit/debugger?style=flat-square&logo=codecov)](https://codecov.io/gh/munich-quantum-toolkit/debugger)
 
 <p align="center">
   <a href="https://mqt.readthedocs.io">
@@ -27,7 +27,7 @@ It also provides a Debugger Adapter Protocol (DAP) server that can be used to in
   </a>
 </p>
 
-If you have any questions, feel free to contact us via [quantum.cda@xcit.tum.de](mailto:quantum.cda@xcit.tum.de) or by creating an issue on [GitHub](https://github.com/cda-tum/mqt-debugger/issues).
+If you have any questions, feel free to contact us via [quantum.cda@xcit.tum.de](mailto:quantum.cda@xcit.tum.de) or by creating an issue on [GitHub](https://github.com/munich-quantum-toolkit/debugger/issues).
 
 ## Getting Started
 

@@ -191,8 +191,8 @@ bool doesCommute(const std::unique_ptr<Assertion>& assertion,
     // only need to focus on the quantum parts.
     // NOTE: This will not work, if the operation is a function call and
     // requires
-    //       issue https://github.com/cda-tum/mqt-debugger/issues/29 to first be
-    //       resolved in that situation.
+    //       issue https://github.com/munich-quantum-toolkit/debugger/issues/29
+    //       to first be resolved in that situation.
     const auto c = parseClassicControlledGate(code).operations;
     return std::all_of(c.begin(), c.end(), [&assertion](const auto& operation) {
       return doesCommute(assertion, operation);

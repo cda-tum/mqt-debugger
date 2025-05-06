@@ -9,7 +9,7 @@ In order to start developing, clone the MQT Debugger repository using
 
     .. code-block:: console
 
-        $ git clone https://github.com/cda-tum/mqt-debugger
+        $ git clone https://github.com/munich-quantum-toolkit/debugger
 
 A C++ compiler supporting C++17 and a minimum CMake version of 3.19 are required to build the project.
 
@@ -55,5 +55,5 @@ The :code:`mqt.debugger` Python module can be conveniently built locally by call
 
 The :code:`--editable` flag ensures that changes in the Python code are instantly available without re-running the command.
 
-`Pybind11 <https://pybind11.readthedocs.io/>`_ is used for providing bindings of the C++ core library to Python (see `bindings.cpp <https://github.com/cda-tum/mqt-debugger/tree/main/src/python/bindings.cpp>`_).
+`Pybind11 <https://pybind11.readthedocs.io/>`_ is used for providing bindings of the C++ core library to Python (see `bindings.cpp <https://github.com/munich-quantum-toolkit/debugger/tree/main/src/python/bindings.cpp>`_).
 If parts of the C++ code have been changed, the above command has to be run again to make the changes visible in Python.

@@ -57,10 +57,10 @@ check = [
 mqt-debugger-check = "mqt.debugger.check.runtime_check:main"
 
 [project.urls]
-Homepage = "https://github.com/cda-tum/mqt-debugger"
+Homepage = "https://github.com/munich-quantum-toolkit/debugger"
 Documentation = "https://mqt.readthedocs.io/projects/debugger"
-Issues = "https://github.com/cda-tum/mqt-debugger/issues"
-Discussions = "https://github.com/cda-tum/mqt-debugger/discussions"
+Issues = "https://github.com/munich-quantum-toolkit/debugger/issues"
+Discussions = "https://github.com/munich-quantum-toolkit/debugger/discussions"
 
 
 [tool.scikit-build]
