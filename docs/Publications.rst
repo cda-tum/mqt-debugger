@@ -12,7 +12,8 @@ If you use *MQT Debugger* in your work, we would appreciate if you cited: :cite:
 Furthermore, if you use any of the particular algorithms such as
 
 - diagnostics and error cause analysis :cite:labelpar:`rovara2024debugging`
-- assertion refinembent (moving or creating assertions) :cite:labelpar:`rovara2024assertionrefinement`
+- assertion refinement (moving or creating assertions) :cite:labelpar:`rovara2024assertionrefinement`
+- runtime verification on real quantum devices :cite:labelpar:`rovara2025runtimeverification`
 
 please consider citing their respective papers as well. A full list of related papers is given below.
 

@@ -68,6 +68,10 @@ D. Rovara, L. Burgholzer, and R. Wille, "[A Framework for Debugging Quantum Prog
 [![a](https://img.shields.io/static/v1?label=arXiv&message=2412.14252&color=inactive&style=flat-square)](https://arxiv.org/abs/2412.14252)
 D. Rovara, L. Burgholzer, and R. Wille, "[Automatically Refining Assertions for Efficient Debugging of Quantum Programs](https://arxiv.org/abs/2412.14252)," arXiv, 2024
 
+[![a](https://img.shields.io/static/v1?label=arXiv&message=2505.03885&color=inactive&style=flat-square)](https://arxiv.org/abs/2505.03885)
+D. Rovara, L. Burgholzer, and R. Wille, "[A Framework for the Efficient Evaluation of Runtime Assertions on Quantum Computers
+](https://arxiv.org/abs/2505.03885)," arXiv, 2025
+
 ## Acknowledgements
 
 The Munich Quantum Toolkit has been supported by the European

@@ -7,9 +7,7 @@ After running the program and collecting measurement outcomes, the results can b
 
 Translating assertion programs into executable slices is done by the :cpp:member:`SimulationState::compile <SimulationStateStruct::compile>` method.
 However, python bindings and a full python framework are available to automate this process. The remainder of this document will focus on the python framework and its usage.
-The functionalities of this framework devised as part of a scientific paper that is currently under review.
-
-.. For further information, please refer to :cite:labelpar:`rovara2025runtimeverification`.
+For further information, please refer to :cite:labelpar:`rovara2025runtimeverification`.
 
 Run Preparation
 ###############
