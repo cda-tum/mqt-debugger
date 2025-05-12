@@ -388,7 +388,7 @@ class DAPServer:
         """
         if "title" in message:
             title_event = mqt.debugger.dap.messages.OutputDAPEvent(
-                "console", cast(str, message["title"]), "start", line, column, self.source_file
+                "console", cast("str", message["title"]), "start", line, column, self.source_file
             )
             send_message(json.dumps(title_event.encode()), connection)
 
@@ -413,6 +413,6 @@ class DAPServer:
 
         if "end" in message or "title" in message:
             end_event = mqt.debugger.dap.messages.OutputDAPEvent(
-                "console", cast(str, message.get("end")), "end", line, column, self.source_file
+                "console", cast("str", message.get("end")), "end", line, column, self.source_file
             )
             send_message(json.dumps(end_event.encode()), connection)

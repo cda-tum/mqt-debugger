@@ -80,7 +80,7 @@ def simulation_state_cleanup(
 
 def load_fixture(request: pytest.FixtureRequest, name: str) -> tuple[mqt.debugger.SimulationState, int]:
     """Loads a fixture with the given name."""
-    return cast(tuple[mqt.debugger.SimulationState, int], request.getfixturevalue(name))
+    return cast("tuple[mqt.debugger.SimulationState, int]", request.getfixturevalue(name))
 
 
 @pytest.mark.parametrize(
