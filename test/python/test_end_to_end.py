@@ -109,13 +109,13 @@ def assert_statevectors_equal(result: Statevector, expected: Statevector) -> Non
         expected (Statevector): The expected statevector.
     """
     assert result.num_qubits == expected.num_qubits, f"Expected {expected.num_qubits} qubits, got {result.num_qubits}"
-    assert (
-        result.num_states == expected.num_states
-    ), f"Expected {expected.num_states} amplitudes, got {result.num_states}"
+    assert result.num_states == expected.num_states, (
+        f"Expected {expected.num_states} amplitudes, got {result.num_states}"
+    )
     for i in range(result.num_states):
-        assert complex_approximately_equal(
-            result.amplitudes[i], expected.amplitudes[i]
-        ), f"Expected amplitude {expected.amplitudes[i]} at index {i}, got {result.amplitudes[i]}"
+        assert complex_approximately_equal(result.amplitudes[i], expected.amplitudes[i]), (
+            f"Expected amplitude {expected.amplitudes[i]} at index {i}, got {result.amplitudes[i]}"
+        )
 
 
 @pytest.mark.parametrize(
@@ -140,9 +140,9 @@ def test_end_to_end(instance: str) -> None:
     """
     state, solution = load_instance(instance)
     errors = state.run_all()
-    assert (
-        errors == solution.failed_assertions
-    ), f"Expected {solution.failed_assertions} failed assertions, got {errors}"
+    assert errors == solution.failed_assertions, (
+        f"Expected {solution.failed_assertions} failed assertions, got {errors}"
+    )
     assert_statevectors_equal(state.get_state_vector_full(), solution.statevector)
 
     for key, value in solution.classical.items():
