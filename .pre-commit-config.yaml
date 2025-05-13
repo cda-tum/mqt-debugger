@@ -103,7 +103,7 @@ repos:
   - hooks:
       - args:
           - -L
-          - wille,linz,astroid
+          - wille,linz,astroid,anc
           - --skip
           - "*.ipynb"
         id: codespell

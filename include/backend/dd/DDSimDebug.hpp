@@ -213,7 +213,7 @@ struct DDSimulationState {
   std::map<size_t, std::map<std::string, std::string>> callSubstitutions;
   /**
    * @brief Saves elements removed from the `callReturnStack` so that they can
-   * be re-used when stepping back.
+   * be reused when stepping back.
    */
   std::vector<std::pair<size_t, size_t>> restoreCallReturnStack;
   /**

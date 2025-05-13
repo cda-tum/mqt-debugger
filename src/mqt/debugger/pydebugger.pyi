@@ -15,11 +15,11 @@ import enum
 class VariableType(enum.Enum):
     """Represents possible types of classical variables."""
 
-    VarBool: VariableType
+    VarBool = 0
     """A boolean variable."""
-    VarInt: VariableType
+    VarInt = 1
     """A 32-bit integer variable."""
-    VarFloat: VariableType
+    VarFloat = 2
     """A floating-point variable."""
 
 # Classes
@@ -404,11 +404,11 @@ class SimulationState:
 class ErrorCauseType(enum.Enum):
     """Represents the type of a potential error cause."""
 
-    Unknown: ErrorCauseType
+    Unknown = 0
     """An unknown error cause."""
-    MissingInteraction: ErrorCauseType
+    MissingInteraction = 1
     """Indicates that an entanglement error may be caused by a missing interaction."""
-    ControlAlwaysZero: ErrorCauseType
+    ControlAlwaysZero = 2
     """Indicates that an error may be related to a controlled gate with a control that is always zero."""
 
 class ErrorCause:
