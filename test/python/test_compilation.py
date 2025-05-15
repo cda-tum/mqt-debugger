@@ -436,7 +436,7 @@ def test_main_shots(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixtu
     )
     runtime_check.main()
     out = capsys.readouterr().out
-    match = re.match("^Estimated required shots: (\\d+)$", out)
+    match = re.match(r"^Estimated required shots: (\d+)$", out)
     assert match is not None, f"Output did not match expected format: {out}"
     shots = int(match.group(1))
     assert shots == 180, f"Expected 100 shots, but got {shots}."
