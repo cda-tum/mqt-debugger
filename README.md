@@ -17,7 +17,7 @@
 
 # MQT Debugger - A Quantum Circuit Debugging Tool
 
-A tool for debugging quantum circuits developed as part of the [_Munich Quantum Toolkit (MQT)_](https://mqt.readthedocs.io) by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/).
+A tool for debugging quantum circuits developed as part of the [_Munich Quantum Toolkit (MQT)_](https://mqt.readthedocs.io)[^1] by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/).
 It proposes an interface for the simulation of circuits and diagnosis of errors and provides a base implementation built upon [MQT Core](https://github.com/munich-quantum-toolkit/core), which forms the backbone of the MQT.
 It also provides a Debugger Adapter Protocol (DAP) server that can be used to integrate the debugger into IDEs.
 
@@ -71,6 +71,8 @@ D. Rovara, L. Burgholzer, and R. Wille, "[Automatically Refining Assertions for 
 [![a](https://img.shields.io/static/v1?label=arXiv&message=2505.03885&color=inactive&style=flat-square)](https://arxiv.org/abs/2505.03885)
 D. Rovara, L. Burgholzer, and R. Wille, "[A Framework for the Efficient Evaluation of Runtime Assertions on Quantum Computers
 ](https://arxiv.org/abs/2505.03885)," arXiv, 2025
+
+[^1]: The _[Munich Quantum Toolkit (MQT)](https://mqt.readthedocs.io)_ is a collection of software tools for quantum computing developed by the [Chair for Design Automation](https://www.cda.cit.tum.de/) at the [Technical University of Munich](https://www.tum.de/) as well as the [Munich Quantum Software Company (MQSC)](https://munichquantum.software). Among others, it is part of the [Munich Quantum Software Stack (MQSS)](https://www.munich-quantum-valley.de/research/research-areas/mqss) ecosystem, which is being developed as part of the [Munich Quantum Valley (MQV)](https://www.munich-quantum-valley.de) initiative.
 
 ## Acknowledgements
 
