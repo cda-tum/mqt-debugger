@@ -52,7 +52,7 @@ repos:
           - pyi
           - jupyter
     repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.9
+    rev: v0.11.10
   - hooks:
       - additional_dependencies:
           - black==24.*
