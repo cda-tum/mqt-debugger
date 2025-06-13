@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 missing_optionals: list[str] = []
 try:
-    from scipy.stats import chi2  # type: ignore[import-not-found]
+    from scipy.stats import chi2  # type: ignore[import-untyped]
 except ImportError:
     missing_optionals.append("scipy")
 
@@ -276,7 +276,7 @@ def check_assertion_equality(
     Returns:
         bool: True if the assertion is satisfied, False otherwise.
     """
-    expected_distribution = [float(x) for x in assertion[1:].split("}")[0].split(",")]
+    expected_distribution = [float(x) for x in assertion[1:].split("}", maxsplit=1)[0].split(",")]
     magnitude = sum(expected_distribution)
     expected_distribution = [x / magnitude for x in expected_distribution]
     return distribution_equal_under_noise(
