@@ -112,7 +112,12 @@ write_to = "src/mqt/debugger/_version.py"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = ["-ra", "--strict-markers", "--strict-config"]
+addopts = [
+  "-ra",
+  "--strict-markers",
+  "--strict-config",
+  "--numprocesses=auto", # Automatically use all available CPU cores for parallel testing
+]
 xfail_strict = true
 filterwarnings = [
     "error",
@@ -133,6 +138,9 @@ report.exclude_also = [
     'if TYPE_CHECKING:',
     'raise AssertionError',
     'raise NotImplementedError',
+]
+run.disable_warnings = [
+    "no-sysmon",
 ]
 
 
@@ -291,7 +299,9 @@ test = [
     "pytest>=7.0",
     "pytest-console-scripts>=1.4",
     "uv >=0.5.20",
-    "pytest-cov>=6.1.1"
+    "pytest-cov>=6.1.1",
+    "pytest-sugar>=1.0.0",
+    "pytest-xdist>=3.7.0",
 ]
 docs = [
     "furo>=2024.8.6",
